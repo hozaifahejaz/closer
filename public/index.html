@@ -129,6 +129,7 @@
   .modes button.on { background:var(--raise); color:#fff; }
   @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
   @media (max-width:340px) { .pick-opt small { display:none; } }
+  @media (max-width:300px) { .pick-foot .ghost { padding:0 12px; } .pick-foot .primary { padding:0 10px; font-size:15px; } }
   .opt { order:6; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:0 4px 0 6px; font-size:13px; color:var(--muted); min-height:32px; }
   .switch { position:relative; flex:none; width:44px; min-height:0; height:26px; padding:0; border-radius:999px; background:var(--raise); border:1px solid var(--line2); transition:background .2s, border-color .2s; }
   .switch i { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#d9c8d5; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:transform .2s cubic-bezier(.2,.7,.2,1), background .2s; }
@@ -199,47 +200,58 @@
   /* Only the list scrolls, so the heading and the Start button stay in view. */
   .deck-list { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px 14px; grid-auto-rows:max-content; align-content:start; flex:0 1 auto; min-height:0;
     overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
-  /* Each deck is drawn as a small stack of cards: the face, with two cards peeking out behind it. */
-  .tile { --c1:#f08a7e; --c2:#c9486a; --b1:var(--c2); --b2:var(--c2); position:relative; display:block; width:100%; min-height:0; height:clamp(100px, calc((100vh - 460px) / 3), 172px); height:clamp(100px, calc((100dvh - 460px) / 3), 172px); padding:0; border:0; border-radius:16px;
-    background:none; color:#fff; text-align:left; font-weight:500; isolation:isolate; container:tile / size; transition:transform .25s cubic-bezier(.2,.7,.2,1); }
-  .tile::before, .tile::after { content:''; position:absolute; inset:0; z-index:-1; border-radius:16px; box-shadow:0 8px 16px -10px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.1);
-    transition:transform .25s cubic-bezier(.2,.7,.2,1), filter .25s; }
-  .tile::before { background:var(--b1); filter:brightness(.55) saturate(.8); transform:translate(1px,-4px) rotate(2.5deg); }
-  .tile::after { background:var(--b2); filter:brightness(.72) saturate(.85); transform:translate(-1px,-2px) rotate(-2deg); }
-  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; padding:12px; border-radius:16px; overflow:hidden; backface-visibility:visible; transform:none;
-    background:linear-gradient(0deg, rgba(20,8,20,.3), rgba(20,8,20,0) 60%), linear-gradient(155deg, var(--c1), var(--c2));
-    box-shadow:0 16px 28px -16px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.16); transition:filter .25s; }
-  .tile .tf::before { content:''; position:absolute; inset:6px; border:1px solid rgba(255,255,255,.2); border-radius:11px; pointer-events:none; }
-  .tile .top-row { display:flex; justify-content:space-between; align-items:flex-start; }
-  .tile .emb { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.18); font-size:16px; }
-  .tile .emb .ico { stroke-width:1.8; }
-  .tile .chk { width:24px; height:24px; border-radius:50%; border:1.5px solid rgba(255,255,255,.6); display:grid; place-items:center; color:transparent; transition:background .15s, color .15s, border-color .15s; }
-  .tile .chk .ico { font-size:15px; stroke-width:2.8; }
-  .tile .nm { margin-top:auto; font-family:var(--serif); font-weight:600; font-size:clamp(15px, 4.4vw, 18px); line-height:1.15; text-shadow:0 1px 8px rgba(0,0,0,.25); }
-  .tile .bl { display:none; margin-top:4px; font-size:12.5px; line-height:1.35; opacity:.88; }
-  .tile .ct { margin-top:6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; opacity:.85; font-variant-numeric:tabular-nums; }
+  /* Each deck is a card: a cream face with an illustrated window in the deck's colors,
+     and a card or two in the same colors peeking out behind it. */
+  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; width:100%; min-height:0; height:clamp(100px, calc((100vh - 460px) / 3), 172px); height:clamp(100px, calc((100dvh - 460px) / 3), 172px);
+    padding:0; border:0; border-radius:14px; background:none; color:var(--ink); text-align:left; font-weight:500; isolation:isolate; container:tile / size; transition:transform .3s cubic-bezier(.2,.7,.2,1); }
+  .tile::before, .tile::after { content:''; position:absolute; inset:0; z-index:-1; border-radius:14px; background:linear-gradient(155deg, var(--c1), var(--c2));
+    box-shadow:0 6px 14px -8px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.14); transition:transform .3s cubic-bezier(.2,.7,.2,1), opacity .3s; }
+  .tile::before { opacity:.55; transform:rotate(0); }
+  .tile::after { opacity:.8; transform:rotate(0); }
+  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; padding:6px; border-radius:14px; overflow:hidden;
+    background:radial-gradient(140% 90% at 30% 0%, #fffaf3, var(--card) 60%); box-shadow:0 18px 30px -18px rgba(0,0,0,.9), 0 1px 2px rgba(0,0,0,.25); transition:filter .3s, opacity .3s, box-shadow .3s; }
+  .tile .art { position:relative; flex:1 1 auto; min-height:0; border-radius:9px; overflow:hidden; background:radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.22), transparent 60%), linear-gradient(155deg, var(--c1), var(--c2)); }
+  .tile .art svg { position:absolute; inset:6%; width:88%; height:88%; fill:none; stroke:#fff6ec; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
+  .tile .art svg * { vector-effect:non-scaling-stroke; }
+  .tile .art .fill { fill:#fff6ec; stroke:none; }
+  .tile .art .soft { opacity:.45; }
+  .tile .art .gold { stroke:#ffd98a; stroke-width:2.2; }
+  .tile .meta { flex:none; padding:7px 5px 2px; display:flex; flex-direction:column; min-width:0; }
+  .tile .nm { font-family:var(--serif); font-weight:600; font-size:15px; line-height:1.15; color:var(--ink); overflow-wrap:anywhere; }
+  .tile .bl { display:none; margin-top:3px; font-size:12px; line-height:1.35; color:var(--ink2); }
+  .tile .ct { margin-top:3px; font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--c2); font-variant-numeric:tabular-nums; }
+  .tile .chk { position:absolute; top:12px; right:12px; width:24px; height:24px; border-radius:50%; display:grid; place-items:center; border:1.5px solid rgba(255,255,255,.75); color:transparent;
+    background:rgba(0,0,0,.12); transition:background .15s, color .15s, border-color .15s, transform .2s; }
+  .tile .chk .ico { font-size:14px; stroke-width:3; }
   .tile[aria-pressed="true"] { transform:translateY(-3px); }
-  .tile[aria-pressed="true"]::before { transform:translate(6px,-7px) rotate(5deg); }
-  .tile[aria-pressed="true"]::after { transform:translate(-4px,-4px) rotate(-3.5deg); }
+  .tile[aria-pressed="true"]::before { transform:translate(7px,-5px) rotate(5deg); }
+  .tile[aria-pressed="true"]::after { transform:translate(-5px,-3px) rotate(-3.5deg); }
+  .tile[aria-pressed="true"] .tf { box-shadow:0 20px 32px -16px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,.25); }
   .tile[aria-pressed="true"] .chk { background:#fff; border-color:#fff; color:var(--c2); }
-  .tile[aria-pressed="false"] .tf, .tile[aria-pressed="false"]::before, .tile[aria-pressed="false"]::after { filter:saturate(.25) brightness(.5); }
-  .tile[aria-pressed="false"] .tf { box-shadow:0 10px 20px -16px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.12); }
-  .tile.spent[aria-pressed="true"] .tf { filter:saturate(.6) brightness(.8); }
-  .tile.all { --c1:#e8766f; --c2:#6d3a78; --b1:linear-gradient(155deg,#4fc2b0,#2a7f8a); --b2:linear-gradient(155deg,#f0b35a,#c46a34); }
-  .tile.all .tf { background:linear-gradient(0deg, rgba(20,8,20,.3), rgba(20,8,20,0) 60%), var(--grad); }
+  /* Decks that aren't picked fade back into the panel. */
+  .tile[aria-pressed="false"] .tf { background:var(--bg3); box-shadow:inset 0 0 0 1px var(--line2); }
+  .tile[aria-pressed="false"] .art { opacity:.4; filter:saturate(.35); }
+  .tile[aria-pressed="false"] .nm { color:var(--muted); }
+  .tile[aria-pressed="false"] .ct { color:var(--faint); }
+  .tile[aria-pressed="false"]::before, .tile[aria-pressed="false"]::after { opacity:0; }
+  .tile.spent .art { filter:grayscale(.85) brightness(.9); }
+  .tile.spent .ct { color:var(--ink2); }
+  .tile.all { --c1:#7b4585; --c2:#2e1b33; }
+  .tile.all::before { background:linear-gradient(155deg,#45bfae,#23707e); }
+  .tile.all::after { background:linear-gradient(155deg,#eeaa52,#b35a2a); }
   .tile[data-deck="Who You Are"] { --c1:#9a7ff0; --c2:#5236a3; }
-  .tile[data-deck="Us & The Future"] { --c1:#eeaa52; --c2:#b35a2a; }
+  .tile[data-deck="Us & The Future"] { --c1:#eeaa52; --c2:#b0592a; }
   .tile[data-deck="Honest & Vulnerable"] { --c1:#c2567a; --c2:#5e1d3c; }
-  .tile[data-deck="Light & Playful"] { --c1:#45bfae; --c2:#23707e; }
-  @media (hover:hover) { .tile:hover { transform:translateY(-4px); } .tile[aria-pressed="false"]:hover .tf { filter:saturate(.45) brightness(.65); } }
-  /* The text inside each deck adapts to the size the deck ends up at. */
-  @container tile (min-height:150px) and (min-width:160px) { .tile .tf { padding:16px; } .tile .nm { font-size:19px; } }
-  @container tile (min-height:169px) and (min-width:160px) { .tile .bl { display:block; } }
-  @container tile (max-height:128px) { .tile .tf { padding:10px; } .tile .emb { width:26px; height:26px; font-size:13px; } .tile .chk { width:22px; height:22px; } .tile .nm { font-size:15px; } .tile .ct { margin-top:4px; font-size:10px; letter-spacing:.05em; } }
-  @container tile (max-height:112px) { .tile .emb { display:none; } .tile .top-row { position:absolute; top:9px; right:9px; } }
-  @container tile (max-height:112px) and (max-width:112px) { .tile .nm { font-size:14px; } }
-  @container tile (max-height:84px) { .tile .tf { padding:8px; } .tile .nm { font-size:12.5px; line-height:1.1; } .tile .ct { font-size:9px; margin-top:3px; } .tile .chk { width:18px; height:18px; } .tile .chk .ico { font-size:12px; } }
-  @container tile (max-width:80px) { .tile .nm { font-size:11.5px; } }
+  .tile[data-deck="Light & Playful"] { --c1:#45bfae; --c2:#1f6b78; }
+  @media (hover:hover) { .tile:hover { transform:translateY(-5px); } .tile[aria-pressed="false"]:hover .art { opacity:.6; } }
+  /* The card adapts to the size it ends up at. */
+  @container tile (min-height:150px) and (min-width:160px) { .tile .tf { padding:7px; } .tile .meta { padding:9px 7px 4px; } .tile .nm { font-size:18px; } .tile .ct { font-size:11px; } }
+  @container tile (min-height:190px) and (min-width:160px) { .tile .bl { display:block; } }
+  @container tile (max-height:112px) { .tile .tf { padding:5px; } .tile .meta { padding:5px 3px 1px; } .tile .nm { font-size:13.5px; } .tile .ct { font-size:9.5px; letter-spacing:.06em; margin-top:2px; }
+    .tile .chk { top:9px; right:9px; width:20px; height:20px; } .tile .chk .ico { font-size:12px; } }
+  @container tile (max-height:84px) { .tile .tf { padding:4px; } .tile .meta { padding:3px 2px 0; } .tile .nm { font-size:11.5px; line-height:1.1; } .tile .ct { font-size:8.5px; }
+    .tile .chk { top:7px; right:7px; width:16px; height:16px; border-width:1px; } .tile .chk .ico { font-size:10px; } }
+  @container tile (max-width:80px) { .tile .nm { font-size:10.5px; } }
   .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
   .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
   .pick-opt small { color:var(--muted); font-size:12.5px; font-weight:400; }
@@ -383,9 +395,6 @@
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
     <symbol id="i-cards" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4.5 7.5v10A3.5 3.5 0 0 0 8 21h8"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
-    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24"><path d="M3 18.5h18M6.5 18.5a5.5 5.5 0 0 1 11 0M12 5v3M5.3 9.8l2 2M18.7 9.8l-2 2"/></symbol>
-    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5c.6 4.4 2.9 6.9 8.5 8.5-5.6 1.6-7.9 4.1-8.5 8.5-.6-4.4-2.9-6.9-8.5-8.5 5.6-1.6 7.9-4.1 8.5-8.5z"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
 
@@ -746,7 +755,27 @@ const DECK_BLURBS = {
   'Honest & Vulnerable': 'The deeper things that are harder to say.',
   'Light & Playful': 'Fun, silly and nostalgic.',
 };
-const DECK_ICONS = { 'Getting Closer': 'i-chat', 'Who You Are': 'i-user', 'Us & The Future': 'i-sun', 'Honest & Vulnerable': 'i-heart', 'Light & Playful': 'i-spark' };
+// Artwork for each deck, drawn in a 120x90 box.
+const DECK_ART = {
+  'All': ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae'].map((c, i) =>
+    `<rect x="-13" y="-58" width="26" height="36" rx="3.5" fill="${c}" transform="translate(60 84) rotate(${(i - 2) * 17})"/>`).join('') +
+    '<path class="fill" d="M60 47.8c-.3 0-5-3-5-6.4 0-1.7 1.3-2.9 2.8-2.9 1 0 1.8.5 2.2 1.3.4-.8 1.2-1.3 2.2-1.3 1.5 0 2.8 1.2 2.8 2.9 0 3.4-4.7 6.4-5 6.4z"/>',
+  'Getting Closer': '<circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
+    '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>' +
+    '<circle class="fill soft" cx="20" cy="18" r="1.6"/><circle class="fill soft" cx="102" cy="72" r="1.6"/><circle class="fill soft" cx="98" cy="14" r="1"/><circle class="fill soft" cx="24" cy="76" r="1"/>',
+  'Who You Are': '<path d="M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6"/>' +
+    '<path class="soft" d="M60 50v8M65 60c0 6-2 10-5 14M55 62c-1 5-4 9-8 12"/>',
+  'Us & The Future': '<path d="M12 62h96M42 62a18 18 0 0 1 36 0"/>' +
+    '<path d="M60 36v-8M44 42l-5-5M76 42l5-5M36 54h-7M84 54h7" class="soft"/>' +
+    '<path d="M36 90l21-28M84 90L63 62"/><path class="soft" d="M60 68v4M60 77v5M60 86v4"/>' +
+    '<circle class="fill soft" cx="22" cy="20" r="1.4"/><circle class="fill soft" cx="100" cy="24" r="1.4"/><circle class="fill soft" cx="88" cy="12" r="1"/>',
+  'Honest & Vulnerable': '<path d="M60 78C57 78 29 60 29 38c0-9.5 7.3-17 16.5-17 6.3 0 11.3 3.5 14.5 8.6 3.2-5.1 8.2-8.6 14.5-8.6C83.7 21 91 28.5 91 38c0 22-28 40-31 40z"/>' +
+    '<path class="gold" d="M60 29.6l-5.5 9.4 8 7.5-7 9 5 8-1.5 14.5M63 46.5l9-4M55.5 55.5l-8 3"/>',
+  'Light & Playful': '<ellipse cx="47" cy="32" rx="13" ry="16"/><ellipse cx="73" cy="27" rx="13" ry="16"/>' +
+    '<path class="fill soft" d="M47 16a13 16 0 0 0-13 16c0 3 1 6 2.5 8.5A13 16 0 0 1 47 16z"/>' +
+    '<path d="M44.5 48.5h5l-2.5-3zM70.5 43.5h5l-2.5-3z"/><path d="M47 48.5c-4 12 16 16 11 33M73 43.5c4 12-18 18-13 38"/>' +
+    '<path class="soft" d="M18 20l5-3M98 60l4 4M16 64l-2 5M104 18l-4 2M28 46l2 3M94 42l3-2"/>',
+};
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 let pickSel = new Set(), pickFresh = false, picking = false;
@@ -764,13 +793,14 @@ function renderPicker(s, first) {
   const all = s.deckList.length;
   const left = d => d.count - d.used;
   const countLine = (count, unused) => !fresh ? plural(count, 'card', 'cards') : unused ? `${unused} new` : 'All seen';
-  const tile = (cls, pressed, name, blurb, icon, count, unused, attrs) =>
+  const tile = (cls, pressed, name, blurb, art, count, unused, attrs) =>
     `<button class="tile ${cls}${fresh && !unused ? ' spent' : ''}" aria-pressed="${pressed}" ${attrs}><span class="tf">` +
-    `<span class="top-row"><span class="emb"><svg class="ico${icon === 'i-heart' ? ' fill' : ''}"><use href="#${icon}"/></svg></span><span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span>` +
-    `<span class="nm">${escapeHtml(name)}</span>${blurb ? `<span class="bl">${escapeHtml(blurb)}</span>` : ''}<span class="ct">${countLine(count, unused)}</span></span></button>`;
+    `<span class="art" aria-hidden="true"><svg viewBox="0 0 120 90" preserveAspectRatio="xMidYMid meet">${DECK_ART[art] || DECK_ART.All}</svg></span>` +
+    `<span class="meta"><span class="nm">${escapeHtml(name)}</span>${blurb ? `<span class="bl">${escapeHtml(blurb)}</span>` : ''}<span class="ct">${countLine(count, unused)}</span></span>` +
+    `<span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span></button>`;
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
-  $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'i-cards', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
-    s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', DECK_ICONS[d.name] || 'i-cards', d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
+  $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
+    s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
