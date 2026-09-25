@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Closer",
+    "slug": "closer",
+    "scheme": "closer",
+    "version": "1.0.0",
+    "description": "Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1d1420",
+    "ios": {
+      "bundleIdentifier": "com.hozaifahejaz.closer",
+      "supportsTablet": true,
+      "config": { "usesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "com.hozaifahejaz.closer",
+      "adaptiveIcon": {
+        "backgroundColor": "#1d1420",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "softwareKeyboardLayoutMode": "resize",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#1d1420"
+        }
+      ]
+    ]
+  }
+}
