@@ -372,8 +372,8 @@ document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
 function gate(msg) { $('gateMsg').textContent = msg; $('gate').classList.remove('hidden'); }
 
 (async function init() {
-  if (!token) return gate('Log in to Closer with an admin account first.');
-  try { me = await api('/api/me'); } catch { return gate('Your session ended. Log in to Closer again.'); }
+  try { me = await api('/api/me'); } catch { return gate(token ? 'Your session ended. Log in to Closer again.' : 'Log in to Closer with an admin account first.'); }
+  if (me.token) { token = me.token; try { localStorage.setItem('closer:token', token); } catch {} }
   if (!me.isAdmin) return gate('This account is not an admin.');
   $('app').classList.remove('hidden');
   await loadOverview().catch(e => toast(e.message));

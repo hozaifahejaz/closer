@@ -13,9 +13,18 @@ function shuffle(a) {
   return a;
 }
 
-function buildOrder(category) {
-  const cats = category === 'All' ? CATEGORIES : [category];
-  return shuffle(cats.flatMap(c => DECK[c].map((q, i) => ({ c, i }))));
+// A room plays one or more decks (categories); no decks chosen means all of them.
+// `keep` can leave cards out (used for "only cards we haven't seen").
+function buildOrder(decks, keep = () => true) {
+  const cats = decks.length ? decks : CATEGORIES;
+  return shuffle(cats.flatMap(c => DECK[c].map((q, i) => ({ c, i }))).filter(keep));
+}
+const deckKey = decks => decks.length ? decks.join('|') : 'All';
+const deckLabel = decks => !decks.length ? 'All' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+// Keeps the deck order stable and turns "every deck" into the shorthand [].
+function cleanDecks(list) {
+  const picked = CATEGORIES.filter(c => Array.isArray(list) && list.includes(c));
+  return picked.length === CATEGORIES.length ? [] : picked;
 }
 
 export function randomCode(length) {
@@ -25,8 +34,45 @@ export function randomCode(length) {
 }
 
 export function newRoom(code, coupleId = null) {
-  return { code, coupleId, category: 'All', order: buildOrder('All'), index: 0, flipped: false, tapToReveal: true, favorites: [], mode: 'talk', answers: {} };
+  return { code, coupleId, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false,
+    flipped: false, tapToReveal: true, favorites: [], mode: 'talk', answers: {} };
 }
+
+// Rooms saved before decks existed only had one category.
+export function upgradeRoom(room) {
+  if (!room || room.decks) return room;
+  room.decks = !room.category || room.category === 'All' ? [] : [room.category];
+  room.progress = {};
+  room.choosing = false;
+  room.started = true;
+  return room;
+}
+
+// A card counts as used once it has been shown face up in the room, or either
+// partner has answered it.
+const isUsed = (room, card) => Boolean(room.seen?.[cardKey(card)]) || cardKey(card) in room.answers;
+function markSeen(room) {
+  if (!room.flipped) return;
+  room.seen ||= {};
+  room.seen[cardKey(room.order[room.index])] = true;
+}
+
+// Switches decks, remembering where the room was in the old set and picking
+// up where it left off if it has played the new set before. With `fresh`, it
+// deals only cards the room hasn't used yet (a fresh deal each time, not saved).
+function useDecks(room, decks, fresh) {
+  if (!room.fresh) room.progress[deckKey(room.decks)] = { order: room.order, index: room.index };
+  room.decks = decks;
+  room.category = deckLabel(decks);
+  room.fresh = fresh;
+  const saved = !fresh && room.progress[deckKey(decks)];
+  if (saved) { room.order = saved.order; room.index = saved.index; }
+  else { room.order = fresh ? buildOrder(decks, c => !isUsed(room, c)) : buildOrder(decks); room.index = 0; }
+  // A fresh deal leaves the saved place in this set alone, to come back to later.
+  if (!fresh) delete room.progress[deckKey(decks)];
+}
+const unusedCount = (room, decks) => (decks.length ? decks : CATEGORIES)
+  .reduce((n, c) => n + DECK[c].filter((q, i) => !isUsed(room, { c, i })).length, 0);
 
 // Rooms saved before the setting existed have no field: treat them as "tap to reveal" on.
 const tapToReveal = room => room.tapToReveal !== false;
@@ -48,8 +94,14 @@ export function publicState(room, players, viewerId) {
   return {
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
-    categories: ['All', ...CATEGORIES],
-    category: room.category,
+    deckList: CATEGORIES.map(name => ({ name, count: DECK[name].length, used: DECK[name].filter((q, i) => isUsed(room, { c: name, i })).length })),
+    fresh: Boolean(room.fresh),
+    decks: room.decks,
+    choosing: Boolean(room.choosing),
+    started: room.started !== false,
+    // Where the room is in every set of decks it has played, so the picker can offer "Continue".
+    saved: Object.fromEntries([...Object.entries(room.progress).map(([k, p]) => [k, { index: p.index, total: p.order.length }]),
+      ...(room.fresh ? [] : [[deckKey(room.decks), { index: room.index, total: room.order.length }]])]),
     index: room.index,
     total: room.order.length,
     flipped: room.flipped,
@@ -66,13 +118,29 @@ export function publicState(room, players, viewerId) {
 
 // Applies one action. Returns false for anything unrecognised, otherwise an
 // object describing what (if anything) should be saved for a couple.
-export function applyAction(room, actorId, isPlayer, { type, category, mode, text, on }) {
+export function applyAction(room, actorId, isPlayer, action) {
+  const result = act(room, actorId, isPlayer, action);
+  if (result) markSeen(room);
+  return result;
+}
+
+function act(room, actorId, isPlayer, { type, category, decks, fresh, mode, text, on }) {
   if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
   else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; freshCard(room); }
   else if (type === 'flip') { if (tapToReveal(room)) room.flipped = !room.flipped; }
   else if (type === 'tapToReveal' && typeof on === 'boolean') { room.tapToReveal = on; if (!on) room.flipped = true; }
+  else if (type === 'decks' && Array.isArray(decks)) {
+    const next = cleanDecks(decks);
+    if (!next.length && decks.length && decks.length < CATEGORIES.length) return false; // nothing valid picked
+    // Only couples (accounts) can deal just the cards they haven't used.
+    const onlyNew = fresh === true && Boolean(room.coupleId);
+    if (onlyNew && !unusedCount(room, next)) return false;
+    if (onlyNew || room.fresh || deckKey(next) !== deckKey(room.decks)) { useDecks(room, next, onlyNew); freshCard(room); }
+    room.choosing = false;
+    room.started = true;
+  } else if (type === 'choose' && typeof on === 'boolean') room.choosing = on;
   else if (type === 'category' && (category === 'All' || CATEGORIES.includes(category))) {
-    room.category = category; room.order = buildOrder(category); room.index = 0; freshCard(room);
+    useDecks(room, category === 'All' ? [] : [category], false); freshCard(room);
   } else if (type === 'favorite') {
     const q = questionText(room.order[room.index]);
     const on = !room.favorites.includes(q);

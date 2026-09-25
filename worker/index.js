@@ -6,13 +6,14 @@
 //   is sent over that socket and broadcast back to both.
 // - Accounts go through database functions in Supabase (see supabase/schema.sql).
 import { DurableObject } from 'cloudflare:workers';
-import { randomCode, newRoom, publicState, applyAction } from './game.js';
+import { randomCode, newRoom, upgradeRoom, publicState, applyAction } from './game.js';
 import { Db, DbError } from './db.js';
 
-// Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a week
-// (a couple's room is rebuilt from their saved answers next time they open it).
+// Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
+// A couple's room holds their place in each deck; if it's ever forgotten it is
+// rebuilt from their saved answers next time they open it.
 const GUEST_ROOM_TTL = 6 * 3600e3;
-const COUPLE_ROOM_TTL = 7 * 86400e3;
+const COUPLE_ROOM_TTL = 365 * 86400e3;
 
 const json = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -23,6 +24,23 @@ async function readBody(request) {
 function tokenOf(request, url) {
   const header = request.headers.get('Authorization') || '';
   return header.startsWith('Bearer ') ? header.slice(7) : url.searchParams.get('token');
+}
+
+// The sign-in is also kept in a first-party, HttpOnly cookie. Browsers (Safari
+// especially) may wipe a site's localStorage after a few weeks away, but keep this
+// cookie, so people stay signed in until they log out. The cookie is only honoured
+// by same-origin requests that just read (GET /api/me, the room WebSocket);
+// everything else still needs the token in the Authorization header.
+const COOKIE = 'closer_session';
+const cookieToken = request => (request.headers.get('Cookie') || '').split(/;\s*/)
+  .find(c => c.startsWith(COOKIE + '='))?.slice(COOKIE.length + 1) || null;
+const sameOrigin = (request, url) => { const o = request.headers.get('Origin'); return !o || o === url.origin; };
+const sessionCookie = (url, token) => `${COOKIE}=${token || ''}; Path=/api/; HttpOnly; SameSite=Lax; Max-Age=${token ? 400 * 86400 : 0}` +
+  (url.protocol === 'https:' ? '; Secure' : '');
+function withCookie(response, url, token) {
+  const r = new Response(response.body, response);
+  r.headers.append('Set-Cookie', sessionCookie(url, token));
+  return r;
 }
 
 const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
@@ -90,24 +108,31 @@ async function accountApi(request, url, db, env) {
   if (url.pathname === '/api/signup' && request.method === 'POST') {
     const { email, password, name } = await readBody(request);
     const token = await db.rpc('sign_up', { p_email: String(email || ''), p_password: String(password || ''), p_name: String(name || '') });
-    return json(200, { token, me: publicMe(await db.me(token)) });
+    return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
   if (url.pathname === '/api/login' && request.method === 'POST') {
     const { email, password } = await readBody(request);
     const token = await db.rpc('log_in', { p_email: String(email || ''), p_password: String(password || '') });
-    return json(200, { token, me: publicMe(await db.me(token)) });
+    return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
 
-  const token = tokenOf(request, url);
+  const readsWithCookie = request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws') && sameOrigin(request, url);
+  const fromCookie = !tokenOf(request, url) && readsWithCookie ? cookieToken(request) : null;
+  const token = tokenOf(request, url) || fromCookie;
   if (url.pathname === '/api/logout' && request.method === 'POST') {
     if (token) await db.rpc('log_out', { p_token: token });
-    return json(200, { ok: true });
+    return withCookie(json(200, { ok: true }), url, null);
   }
 
   const state = await db.me(token);
-  if (!state) return json(401, { error: 'Please log in again' });
+  if (!state) return fromCookie ? withCookie(json(401, { error: 'Please log in again' }), url, null) : json(401, { error: 'Please log in again' });
 
-  if (url.pathname === '/api/me' && request.method === 'GET') return json(200, publicMe(state));
+  if (url.pathname === '/api/me' && request.method === 'GET') {
+    // Hands the token back when the page lost it, and (re)sets the cookie, including
+    // for people who signed in before it existed.
+    const res = json(200, { ...publicMe(state), ...(fromCookie ? { token } : {}) });
+    return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
+  }
   if (url.pathname === '/api/link' && request.method === 'POST') {
     const partner = await db.rpc('link_partner', { p_token: token, p_code: String((await readBody(request)).code || '') });
     return json(200, { partner });
@@ -241,7 +266,7 @@ export class Room extends DurableObject {
     this.db = new Db(env);
     this.room = null;
     // Room state survives the object going to sleep between taps.
-    ctx.blockConcurrencyWhile(async () => { this.room = (await ctx.storage.get('room')) || null; });
+    ctx.blockConcurrencyWhile(async () => { this.room = upgradeRoom((await ctx.storage.get('room')) || null); });
   }
 
   async fetch(request) {
