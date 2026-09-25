@@ -34,8 +34,13 @@ function newCode() {
   return code;
 }
 
-function publicState(room) {
+const cardKey = card => `${card.c}:${card.i}`;
+
+// State is tailored per viewer: a partner's answer stays hidden until both have answered.
+function publicState(room, viewerId) {
   const card = room.order[room.index];
+  const answers = room.answers[cardKey(card)] || {};
+  const bothAnswered = room.clients.size === 2 && [...room.clients.keys()].every(id => id in answers);
   return {
     code: room.code,
     categories: ['All', ...CATEGORIES],
@@ -46,12 +51,15 @@ function publicState(room) {
     card: { category: card.c, text: DECK[card.c][card.i] },
     partners: [...room.clients.values()].map(c => c.name),
     favorites: room.favorites,
+    mode: room.mode,
+    myAnswer: answers[viewerId] ?? null,
+    partnerAnswered: [...room.clients.keys()].some(id => id !== viewerId && id in answers),
+    revealed: bothAnswered ? [...room.clients.entries()].map(([id, c]) => ({ name: c.name, text: answers[id], mine: id === viewerId })) : null,
   };
 }
 
 function broadcast(room) {
-  const data = `data: ${JSON.stringify(publicState(room))}\n\n`;
-  for (const c of room.clients.values()) c.res.write(data);
+  for (const [id, c] of room.clients) c.res.write(`data: ${JSON.stringify(publicState(room, id))}\n\n`);
 }
 
 function readBody(req) {
@@ -72,7 +80,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && url.pathname === '/api/rooms') {
     const code = newCode();
-    rooms.set(code, { code, category: 'All', order: buildOrder('All'), index: 0, flipped: false, favorites: [], clients: new Map(), touched: Date.now() });
+    rooms.set(code, { code, category: 'All', order: buildOrder('All'), index: 0, flipped: false, favorites: [], mode: 'talk', answers: {}, clients: new Map(), touched: Date.now() });
     return json(res, 200, { code });
   }
 
@@ -85,27 +93,38 @@ const server = http.createServer(async (req, res) => {
     if (!m[2] && req.method === 'GET') return json(res, 200, { code: room.code, partners: room.clients.size });
 
     if (m[2] === '/events' && req.method === 'GET') {
-      if (room.clients.size >= 2) return json(res, 409, { error: 'Room is full' });
-      const id = crypto.randomUUID();
+      // The browser keeps a stable id so a partner who reloads gets their seat (and answers) back.
+      const id = (url.searchParams.get('id') || '').slice(0, 64) || crypto.randomUUID();
+      const old = room.clients.get(id);
+      if (old) old.res.end();
+      else if (room.clients.size >= 2) return json(res, 409, { error: 'Room is full' });
       const name = (url.searchParams.get('name') || 'Partner').slice(0, 24);
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
       room.clients.set(id, { res, name });
       broadcast(room);
       const ping = setInterval(() => res.write(': ping\n\n'), 25000);
-      req.on('close', () => { clearInterval(ping); room.clients.delete(id); broadcast(room); });
+      req.on('close', () => {
+        clearInterval(ping);
+        if (room.clients.get(id)?.res === res) { room.clients.delete(id); broadcast(room); }
+      });
       return;
     }
 
     if (m[2] === '/action' && req.method === 'POST') {
-      const { type, category } = await readBody(req);
+      const { type, category, mode, id, text } = await readBody(req);
       if (type === 'next') { room.index = (room.index + 1) % room.order.length; room.flipped = false; }
       else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; room.flipped = false; }
       else if (type === 'flip') room.flipped = !room.flipped;
       else if (type === 'category' && (category === 'All' || CATEGORIES.includes(category))) {
         room.category = category; room.order = buildOrder(category); room.index = 0; room.flipped = false;
       } else if (type === 'favorite') {
-        const text = publicState(room).card.text;
-        room.favorites = room.favorites.includes(text) ? room.favorites.filter(f => f !== text) : [...room.favorites, text];
+        const q = publicState(room).card.text;
+        room.favorites = room.favorites.includes(q) ? room.favorites.filter(f => f !== q) : [...room.favorites, q];
+      } else if (type === 'mode' && (mode === 'talk' || mode === 'answer')) {
+        room.mode = mode;
+      } else if (type === 'answer' && room.clients.has(id) && typeof text === 'string' && text.trim()) {
+        const key = cardKey(room.order[room.index]);
+        room.answers[key] = { ...room.answers[key], [id]: text.trim().slice(0, 1000) };
       } else return json(res, 400, { error: 'Unknown action' });
       broadcast(room);
       return json(res, 200, { ok: true });

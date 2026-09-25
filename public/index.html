@@ -50,6 +50,16 @@
   .controls .primary { flex:1; }
   .bar { width:100%; max-width:460px; margin-top:14px; display:flex; gap:10px; }
   .bar select { flex:1; }
+  .modes { width:100%; max-width:460px; display:flex; background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:14px; }
+  .modes button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; }
+  .modes button.on { background:#3a2640; color:#fff; }
+  .answer { width:100%; max-width:460px; margin-top:16px; background:var(--bg2); border:1px solid var(--line); border-radius:18px; padding:16px; }
+  .answer textarea { width:100%; min-height:88px; resize:vertical; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:#1a111c; color:#fff; font:16px/1.4 Inter,system-ui,sans-serif; }
+  .answer .status { font-size:13px; color:var(--muted); margin:10px 0 0; text-align:center; }
+  .answer .mine { font-size:14px; color:#f4e9ef; background:#1a111c; border-radius:12px; padding:12px 14px; white-space:pre-wrap; }
+  .reveal { display:grid; gap:10px; }
+  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; line-height:1.4; }
+  .reveal .who { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#b8527a; font-weight:600; margin-bottom:6px; }
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#000c; padding:10px 16px; border-radius:10px; font-size:14px; transition:opacity .3s; }
 </style>
 </head>
@@ -75,6 +85,10 @@
       <span class="pill">Room <b id="code"></b></span>
       <span class="pill" id="partners"><span class="dot"></span>Waiting for partner…</span>
     </div>
+    <div class="modes" role="tablist">
+      <button id="modeTalk" data-mode="talk">Just talk</button>
+      <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
+    </div>
     <div class="scene" id="scene" title="Tap to flip">
       <div class="card" id="card">
         <div class="face back"><div class="mark">♡</div><div class="hint">Tap to reveal together</div></div>
@@ -85,6 +99,15 @@
           <div class="num" id="num"></div>
         </div>
       </div>
+    </div>
+    <div class="answer hidden" id="answer">
+      <div id="answerForm" class="stack">
+        <textarea id="answerText" maxlength="1000" placeholder="Write your answer… your partner sees it once you've both answered"></textarea>
+        <button class="primary" id="lockIn">Lock in my answer</button>
+      </div>
+      <div id="answerWait" class="hidden"><div class="mine" id="myAnswer"></div></div>
+      <div id="answerReveal" class="reveal hidden"></div>
+      <p class="status" id="answerStatus"></p>
     </div>
     <div class="controls">
       <button class="ghost" id="prev" aria-label="Previous">←</button>
@@ -101,6 +124,9 @@
 <script>
 const $ = id => document.getElementById(id);
 let room = null, es = null, me = '';
+let clientId;
+try { clientId = localStorage.getItem('closer:id'); if (!clientId) { clientId = crypto.randomUUID(); localStorage.setItem('closer:id', clientId); } }
+catch { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
 try { $('name').value = localStorage.getItem('closer:name') || ''; } catch {}
 const params = new URLSearchParams(location.search);
@@ -125,7 +151,7 @@ async function connect(code) {
   $('err').textContent = '';
   const check = await fetch(`/api/rooms/${code}`, { method: 'GET' });
   if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
-  es = new EventSource(`/api/rooms/${code}/events?name=${encodeURIComponent(me)}`);
+  es = new EventSource(`/api/rooms/${code}/events?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`);
   es.onmessage = e => render(JSON.parse(e.data));
   es.onerror = () => { if (!room) { $('err').textContent = 'Could not join (the room may be full).'; es.close(); } };
   history.replaceState(null, '', `?room=${code}`);
@@ -149,13 +175,41 @@ function render(s) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
     $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
   } else { $('q').textContent = s.card.text; $('card').classList.toggle('flipped', s.flipped); }
+  if (key !== lastKey) $('answerText').value = '';
   lastKey = key;
+  renderMode(s, partner[0]);
+}
+
+function renderMode(s, partnerName = 'your partner') {
+  $('modeTalk').classList.toggle('on', s.mode === 'talk');
+  $('modeAnswer').classList.toggle('on', s.mode === 'answer');
+  $('answer').classList.toggle('hidden', s.mode !== 'answer');
+  if (s.mode !== 'answer') return;
+  const answered = s.myAnswer !== null;
+  $('answerForm').classList.toggle('hidden', answered);
+  $('answerWait').classList.toggle('hidden', !answered || !!s.revealed);
+  $('answerReveal').classList.toggle('hidden', !s.revealed);
+  if (answered && !s.revealed) $('myAnswer').textContent = s.myAnswer;
+  if (s.revealed) {
+    $('answerReveal').innerHTML = s.revealed.map(a => `<div class="a"><div class="who">${a.mine ? 'You' : escapeHtml(a.name)}</div>${escapeHtml(a.text)}</div>`).join('');
+  }
+  $('answerStatus').textContent =
+    s.revealed ? 'Now talk about it ♡' :
+    s.partners.length < 2 ? 'Waiting for your partner to join…' :
+    answered ? `Locked in. Waiting for ${partnerName}…` :
+    s.partnerAnswered ? `${partnerName} has answered. Your turn.` : '';
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const act = body => fetch(`/api/rooms/${room.code}/action`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 $('scene').onclick = e => { if (e.target.id !== 'fav') act({ type: 'flip' }); };
 $('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
+document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
+$('lockIn').onclick = () => {
+  const text = $('answerText').value.trim();
+  if (!text) return toast('Write something first');
+  act({ type: 'answer', id: clientId, text }); $('answerText').value = '';
+};
 $('next').onclick = () => act({ type: 'next' });
 $('prev').onclick = () => act({ type: 'prev' });
 $('category').onchange = e => act({ type: 'category', category: e.target.value });
