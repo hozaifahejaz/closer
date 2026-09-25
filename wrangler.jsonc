@@ -5,9 +5,9 @@
   "compatibility_date": "2026-09-01",
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   "durable_objects": {
-    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }, { "name": "STATS", "class_name": "Stats" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Stats"] }],
   // Public values. CLOSER_DB_KEY is a secret: set it in the Cloudflare dashboard
   // (Worker > Settings > Variables and Secrets) or with `wrangler secret put CLOSER_DB_KEY`.
   "vars": {

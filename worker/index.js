@@ -22,10 +22,10 @@ function tokenOf(request, url) {
   return header.startsWith('Bearer ') ? header.slice(7) : url.searchParams.get('token');
 }
 
-const publicMe = s => ({ name: s.name, inviteCode: s.invite_code, partner: s.partner });
+const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const db = new Db(env);
 
@@ -37,7 +37,10 @@ export default {
         for (let attempt = 0; attempt < 5; attempt++) {
           const code = randomCode(4);
           const res = await roomStub(env, code).fetch('https://room/create', { method: 'POST', body: JSON.stringify({ code }) });
-          if (res.ok) return json(200, { code });
+          if (res.ok) {
+            ctx.waitUntil(statsStub(env).fetch('https://stats/room-created', { method: 'POST' }).catch(() => {}));
+            return json(200, { code });
+          }
         }
         return json(500, { error: 'Could not create a room, please try again' });
       }
@@ -65,6 +68,7 @@ export default {
 };
 
 const roomStub = (env, name) => env.ROOMS.get(env.ROOMS.idFromName(name));
+const statsStub = env => env.STATS.get(env.STATS.idFromName('stats'));
 
 // Passes who the player is to the room via headers the browser can't set on its own
 // (the Worker overwrites them on every request).
@@ -107,12 +111,81 @@ async function accountApi(request, url, db, env) {
     await db.rpc('unlink_partner', { p_token: token });
     return json(200, { ok: true });
   }
+  if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token);
   if (url.pathname === '/api/couple/ws') {
     if (!state.couple_id) return json(409, { error: 'Link with your partner first' });
     return roomStub(env, `couple:${state.couple_id}`)
       .fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id }));
   }
   return json(404, { error: 'Not found' });
+}
+
+// ---- Admin dashboard ----
+// The database checks that the token belongs to an admin on every call.
+async function adminApi(request, url, db, env, token) {
+  const path = url.pathname.slice('/api/admin/'.length);
+  if (path === 'stats' && request.method === 'GET') {
+    const [stats, live] = await Promise.all([
+      db.rpc('admin_stats', { p_token: token }),
+      statsStub(env).fetch('https://stats/live').then(r => r.json()),
+    ]);
+    return json(200, { ...stats, live });
+  }
+  if (path === 'users' && request.method === 'GET') return json(200, await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' }));
+  if (path === 'couples' && request.method === 'GET') return json(200, await db.rpc('admin_couples', { p_token: token }));
+  if (path === 'couple' && request.method === 'GET') return json(200, await db.rpc('admin_couple', { p_token: token, p_couple_id: url.searchParams.get('id') || '' }));
+  if (path === 'action' && request.method === 'POST') {
+    const { action, user, password, on } = await readBody(request);
+    const fn = { password: 'admin_set_password', signout: 'admin_sign_out', unlink: 'admin_unlink', delete: 'admin_delete_user', admin: 'admin_set_admin' }[action];
+    if (!fn) return json(400, { error: 'Unknown action' });
+    const args = { p_token: token, p_user: String(user || '') };
+    if (action === 'password') args.p_password = String(password || '');
+    if (action === 'admin') args.p_on = Boolean(on);
+    await db.rpc(fn, args);
+    return json(200, { ok: true });
+  }
+  return json(404, { error: 'Not found' });
+}
+
+// ---- Live numbers ----
+// One object keeps track of which rooms have people in them right now, and how
+// many guest rooms are started each day. Rooms report to it as people come and go.
+export class Stats extends DurableObject {
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === '/presence') {
+      const { room, couple, players } = await request.json();
+      if (players > 0) await this.ctx.storage.put(`live:${room}`, { couple, players, at: Date.now() });
+      else await this.ctx.storage.delete(`live:${room}`);
+      return json(200, { ok: true });
+    }
+    if (url.pathname === '/room-created') {
+      const key = `created:${new Date().toISOString().slice(0, 10)}`;
+      await this.ctx.storage.put(key, ((await this.ctx.storage.get(key)) || 0) + 1);
+      return json(200, { ok: true });
+    }
+    if (url.pathname === '/live') {
+      const live = await this.ctx.storage.list({ prefix: 'live:' });
+      const stale = Date.now() - 24 * 3600e3; // a room that never reported leaving
+      let rooms = 0, coupleRooms = 0, people = 0;
+      for (const [key, r] of live) {
+        if (r.at < stale) { await this.ctx.storage.delete(key); continue; }
+        rooms++; if (r.couple) coupleRooms++; people += r.players;
+      }
+      const created = await this.ctx.storage.list({ prefix: 'created:' });
+      const today = new Date().toISOString().slice(0, 10);
+      const week = new Date(Date.now() - 6 * 86400e3).toISOString().slice(0, 10);
+      let guestToday = 0, guestWeek = 0;
+      for (const [key, n] of created) {
+        const day = key.slice(8);
+        if (day === today) guestToday += n;
+        if (day >= week) guestWeek += n;
+        if (day < new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10)) await this.ctx.storage.delete(key);
+      }
+      return json(200, { rooms, coupleRooms, guestRooms: rooms - coupleRooms, people, guestRoomsToday: guestToday, guestRooms7d: guestWeek });
+    }
+    return json(404, { error: 'Not found' });
+  }
 }
 
 // ---- One room ----
@@ -168,6 +241,7 @@ export class Room extends DurableObject {
     this.ctx.acceptWebSocket(server, [player.id]);
     server.serializeAttachment(player);
     this.broadcast();
+    this.reportPresence();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -185,10 +259,19 @@ export class Room extends DurableObject {
   webSocketClose(ws) {
     try { ws.close(); } catch {} // already closed
     this.broadcast();
+    this.reportPresence();
   }
 
   webSocketError() {
     this.broadcast();
+    this.reportPresence();
+  }
+
+  reportPresence() {
+    if (!this.room) return;
+    const body = JSON.stringify({ room: this.room.code, couple: Boolean(this.room.coupleId), players: this.players().size });
+    this.ctx.waitUntil(this.env.STATS.get(this.env.STATS.idFromName('stats'))
+      .fetch('https://stats/presence', { method: 'POST', body }).catch(() => {}));
   }
 
   // Only open sockets count: a closing socket may still be listed briefly.

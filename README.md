@@ -27,6 +27,10 @@ For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY
 - `questions.json`: starter deck, 50 questions across 5 categories. Edit freely.
 - `server.js` + `supabase.js` + `render.yaml`: the older Node version for Render, kept until the Cloudflare move is done.
 
+## Admin dashboard
+`/admin` shows live and total numbers (people in rooms right now, sign-ups, couples, answers, the most answered and favorited questions), every account, and every couple's answers. Admins can set a new password for someone, sign them out everywhere, unlink a couple, delete an account, or make someone else an admin.
+An account is an admin when its email is in `private.config` under `admin_emails` (see `supabase/migrations/20260925_admin.sql`), or when another admin makes it one. Admins see an "Admin dashboard" link after logging in.
+
 ## Roadmap
 1. **Prototype (this)**: pairing by code, synced card, flip, next/back, categories, shared favorites.
 2. **Real product**: accounts so a couple stays paired, saved history of answered questions, rooms that survive a server restart (database such as Supabase or Firebase), hosting on a public URL.

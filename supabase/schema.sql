@@ -11,6 +11,7 @@
 -- server (which holds CLOSER_DB_KEY) can call them. After running this file,
 -- set the key once:
 --   insert into private.config (key, value) values ('server_key', '<CLOSER_DB_KEY>');
+-- Then run the files in supabase/migrations/ in order (the admin dashboard is one).
 
 create extension if not exists pgcrypto with schema extensions;
 

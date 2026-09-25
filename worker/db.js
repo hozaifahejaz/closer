@@ -26,8 +26,10 @@ export class Db {
     try { data = text ? JSON.parse(text) : null; } catch {}
     if (!res.ok) {
       // Messages raised by our own functions (P0001) are written for players; anything else isn't.
-      const friendly = data?.code === 'P0001' || data?.code === '28000';
-      throw new DbError(friendly ? data.message : 'Something went wrong, please try again', data?.code === '28000' ? 401 : friendly ? 400 : 500);
+      const code = data?.code;
+      const friendly = code === 'P0001' || code === '28000' || code === '42501';
+      const status = code === '28000' ? 401 : code === '42501' ? 403 : friendly ? 400 : 500;
+      throw new DbError(friendly ? data.message : 'Something went wrong, please try again', status);
     }
     return data;
   }

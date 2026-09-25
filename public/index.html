@@ -124,6 +124,7 @@
         <button class="ghost" id="linkGo" style="flex:0 0 96px">Link</button>
       </div>
       <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
+      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
       <button class="link" type="button" data-logout>Log out</button>
     </div>
 
@@ -133,6 +134,7 @@
       <button class="primary" id="startCouple">Open our cards</button>
       <p class="hint">Your answers and favorites are saved to your account.</p>
       <button class="link" type="button" id="unlink">Unlink partner</button>
+      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
       <button class="link" type="button" data-logout>Log out</button>
     </div>
 
@@ -217,6 +219,7 @@ async function api(path, body) {
 
 function showAccount(a) {
   account = a;
+  document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   if (a.partner) {
     $('partnerName').textContent = a.partner.name;
     show('homeBox');
