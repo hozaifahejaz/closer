@@ -40,12 +40,25 @@ export function newRoom(code, coupleId = null) {
 
 // Rooms saved before decks existed only had one category.
 export function upgradeRoom(room) {
-  if (!room || room.decks) return room;
-  room.decks = !room.category || room.category === 'All' ? [] : [room.category];
-  room.progress = {};
-  room.choosing = false;
-  room.started = true;
+  if (!room) return room;
+  if (!room.decks) {
+    room.decks = !room.category || room.category === 'All' ? [] : [room.category];
+    room.progress = {};
+    room.choosing = false;
+    room.started = true;
+  }
+  // Cards added to a deck since the room was dealt go at the end of its order,
+  // so nobody loses their place. A new-cards-only deal gets just the unseen ones.
+  room.order = topUp(room.order, room.decks, c => !room.fresh || !isUsed(room, c));
+  for (const [key, p] of Object.entries(room.progress)) p.order = topUp(p.order, key === 'All' ? [] : key.split('|'));
   return room;
+}
+function topUp(order, decks, keep = () => true) {
+  const known = decks.filter(c => DECK[c]);
+  if (decks.length && !known.length) return order;
+  const have = new Set(order.map(cardKey));
+  const missing = buildOrder(known, c => !have.has(cardKey(c)) && keep(c));
+  return missing.length ? order.concat(missing) : order;
 }
 
 // A card counts as used once it has been shown face up in the room, or either
