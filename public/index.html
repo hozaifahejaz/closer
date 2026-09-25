@@ -30,6 +30,14 @@
   .row { display:flex; gap:10px; } .row > * { flex:1; }
   .stack > * + * { margin-top:12px; }
   .hidden { display:none !important; }
+  .tabs { display:flex; background:#1a111c; border:1px solid var(--line); border-radius:12px; padding:4px; }
+  .tabs button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; }
+  .tabs button.on { background:#3a2640; color:#fff; }
+  .wide { width:100%; }
+  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; padding:6px; width:100%; text-decoration:underline; }
+  .hello { font-family:Fraunces,serif; font-size:22px; text-align:center; margin:4px 0 8px; }
+  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; }
+  .bigcode { flex:1; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:600; letter-spacing:6px; background:#1a111c; border:1px dashed var(--accent); border-radius:12px; padding:10px; }
   .err { color:#ff9a8f; font-size:13px; min-height:18px; margin-top:8px; }
 
   .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
@@ -81,14 +89,53 @@
   <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
 
   <!-- Lobby -->
-  <div id="lobby" class="panel stack">
-    <div><label for="name">Your name</label><input id="name" maxlength="24" placeholder="e.g. Sam"></div>
-    <button class="primary" id="create">Start a new room</button>
-    <div class="or">or join your partner</div>
-    <div class="row">
-      <input id="joinCode" class="code" maxlength="4" placeholder="CODE">
-      <button class="ghost" id="join" style="flex:0 0 96px">Join</button>
+  <div id="lobby" class="panel">
+    <!-- Sign up / log in -->
+    <form id="authBox" class="stack hidden" autocomplete="on">
+      <div class="tabs"><button type="button" id="tabSignup" class="on">Sign up</button><button type="button" id="tabLogin">Log in</button></div>
+      <div id="nameRow"><label for="authName">Your name</label><input id="authName" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name"></div>
+      <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
+      <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+      <button class="primary" id="authGo" type="submit">Create account</button>
+      <div class="or">or</div>
+      <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
+    </form>
+
+    <!-- Guest rooms -->
+    <div id="guestBox" class="stack hidden">
+      <div><label for="name">Your name</label><input id="name" maxlength="24" placeholder="e.g. Sam"></div>
+      <button class="primary" id="create">Start a new room</button>
+      <div class="or">or join your partner</div>
+      <div class="row">
+        <input id="joinCode" class="code" maxlength="4" placeholder="CODE">
+        <button class="ghost" id="join" style="flex:0 0 96px">Join</button>
+      </div>
+      <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
     </div>
+
+    <!-- Signed in, not linked yet -->
+    <div id="linkBox" class="stack hidden">
+      <p class="hello">Hi <span id="helloName"></span>! Link with your partner</p>
+      <label>Your code: send it to your partner</label>
+      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode" style="flex:0 0 96px">Share</button></div>
+      <div class="or">or enter theirs</div>
+      <div class="row">
+        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters">
+        <button class="ghost" id="linkGo" style="flex:0 0 96px">Link</button>
+      </div>
+      <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
+      <button class="link" type="button" data-logout>Log out</button>
+    </div>
+
+    <!-- Signed in and linked -->
+    <div id="homeBox" class="stack hidden">
+      <p class="hello">You &amp; <span id="partnerName"></span> ♡</p>
+      <button class="primary" id="startCouple">Open our cards</button>
+      <p class="hint">Your answers and favorites are saved to your account.</p>
+      <button class="link" type="button" id="unlink">Unlink partner</button>
+      <button class="link" type="button" data-logout>Log out</button>
+    </div>
+
     <div class="err" id="err"></div>
   </div>
 
@@ -138,6 +185,8 @@
 <script>
 const $ = id => document.getElementById(id);
 let room = null, es = null, me = '';
+let accounts = false, couple = false, token = null, account = null, linkPoll = null;
+try { token = localStorage.getItem('closer:token'); } catch {}
 let clientId;
 try { clientId = localStorage.getItem('closer:id'); if (!clientId) { clientId = crypto.randomUUID(); localStorage.setItem('closer:id', clientId); } }
 catch { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36); }
@@ -145,6 +194,97 @@ catch { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36)
 try { $('name').value = localStorage.getItem('closer:name') || ''; } catch {}
 const params = new URLSearchParams(location.search);
 if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
+
+// ---- Lobby screens ----
+function show(box) {
+  for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
+  $('err').textContent = '';
+  clearInterval(linkPoll);
+}
+function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && token) { setToken(null); account = null; show('authBox'); }
+  if (!res.ok) throw new Error(data.error || 'Something went wrong, please try again');
+  return data;
+}
+
+function showAccount(a) {
+  account = a;
+  if (a.partner) {
+    $('partnerName').textContent = a.partner.name;
+    show('homeBox');
+  } else {
+    $('helloName').textContent = a.name;
+    $('myCode').textContent = a.inviteCode;
+    show('linkBox');
+    // Notice when the partner types in our code on their phone.
+    linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
+  }
+}
+
+let signingUp = true;
+function setAuthTab(signup) {
+  signingUp = signup;
+  $('tabSignup').classList.toggle('on', signup); $('tabLogin').classList.toggle('on', !signup);
+  $('nameRow').classList.toggle('hidden', !signup);
+  $('authGo').textContent = signup ? 'Create account' : 'Log in';
+  $('password').autocomplete = signup ? 'new-password' : 'current-password';
+  $('err').textContent = '';
+}
+$('tabSignup').onclick = () => setAuthTab(true);
+$('tabLogin').onclick = () => setAuthTab(false);
+$('authBox').onsubmit = async e => {
+  e.preventDefault();
+  const body = { email: $('email').value, password: $('password').value, name: $('authName').value };
+  if (signingUp && !body.name.trim()) { $('err').textContent = 'Add your name first.'; return; }
+  $('authGo').disabled = true;
+  try {
+    const r = await api(signingUp ? '/api/signup' : '/api/login', body);
+    setToken(r.token); $('password').value = '';
+    showAccount(r.me);
+  } catch (err) { $('err').textContent = err.message; }
+  finally { $('authGo').disabled = false; }
+};
+$('showGuest').onclick = () => { show('guestBox'); $('showAuth').classList.remove('hidden'); };
+$('showAuth').onclick = () => show('authBox');
+document.querySelectorAll('[data-logout]').forEach(b => b.onclick = async () => {
+  try { await api('/api/logout', {}); } catch {}
+  setToken(null); account = null; show('authBox');
+});
+$('unlink').onclick = async () => {
+  if (!confirm(`Unlink from ${account.partner.name}? Your saved answers stay saved.`)) return;
+  try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+};
+$('linkGo').onclick = async () => {
+  const code = $('partnerCode').value.trim().toUpperCase();
+  if (code.length !== 6) { $('err').textContent = 'Partner codes are 6 letters.'; return; }
+  try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+};
+$('shareMyCode').onclick = async () => {
+  const text = `Join me on Closer! Sign up at ${location.origin} and enter my code: ${account.inviteCode}`;
+  try { if (navigator.share) await navigator.share({ title: 'Closer', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
+  catch { toast(`Your code: ${account.inviteCode}`); }
+};
+$('startCouple').onclick = () => {
+  couple = true; me = account.name; $('err').textContent = '';
+  es = new EventSource(`/api/couple/events?token=${encodeURIComponent(token)}`);
+  es.onmessage = e => render(JSON.parse(e.data));
+  es.onerror = () => { if (!room) { $('err').textContent = 'Could not open your room. Please try again.'; es.close(); } };
+};
+
+(async function init() {
+  try { accounts = (await fetch('/api/config').then(r => r.json())).accounts; } catch {}
+  if (!accounts || params.get('room')) return show('guestBox');
+  if (!token) return show('authBox');
+  try { showAccount(await api('/api/me')); } catch (err) { if (token) { show('authBox'); $('err').textContent = err.message; } }
+})();
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
 function getName() { const n = $('name').value.trim(); if (!n) { $('err').textContent = 'Add your name first.'; return null; } try { localStorage.setItem('closer:name', n); } catch {} return n; }
@@ -175,7 +315,8 @@ let lastKey = '';
 function render(s) {
   const first = !room; room = s;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
-  $('code').textContent = s.code;
+  $('code').parentElement.innerHTML = s.couple ? '♡ <b id="code">Just us</b>' : `Room <b id="code">${s.code}</b>`;
+  $('share').classList.toggle('hidden', !!s.couple);
   const partner = s.partners.filter(p => p !== me);
   const together = s.partners.length === 2;
   $('partners').innerHTML = `<span class="dot ${together ? 'on' : ''}"></span>` + (together ? `With ${escapeHtml(partner[0] || s.partners[1])}` : 'Waiting for partner…');
@@ -216,7 +357,9 @@ function renderMode(s, partnerName = 'your partner') {
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-const act = body => fetch(`/api/rooms/${room.code}/action`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const act = body => couple
+  ? fetch('/api/couple/action', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
+  : fetch(`/api/rooms/${room.code}/action`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 $('scene').onclick = e => { if (e.target.id !== 'fav') act({ type: 'flip' }); };
 $('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
 document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
