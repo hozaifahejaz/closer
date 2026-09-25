@@ -317,6 +317,15 @@ function openSocket(path, failMessage) {
   sock.onclose = e => {
     if (sock !== ws) return; // replaced by a newer connection
     if (e.code === 4000) { toast('Opened on another device'); return; }
+    if (e.code === 4001) {
+      // Closed by Closer's team: back to the start screen.
+      room = null; ws = null;
+      history.replaceState(null, '', '/');
+      document.body.classList.remove('in-game', 'answer-mode');
+      $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
+      $('err').textContent = e.reason || 'This room was closed.';
+      return;
+    }
     if (!room) { $('err').textContent = failMessage; return; }
     setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
   };

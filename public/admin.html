@@ -62,11 +62,16 @@
   .answers .q { font-family:Fraunces,serif; font-size:15px; margin-top:12px; }
   .answers .a { color:var(--muted); margin-top:4px; }
   .answers .a b { color:var(--ink); font-weight:600; }
+  .roomsHead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .people { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .person { display:inline-flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--line); border-radius:999px; padding:3px 4px 3px 12px; }
+  .person button, .a button { font-size:11px; padding:3px 8px; }
+  .a button { margin-left:6px; background:transparent; border:1px solid var(--line); color:var(--muted); }
   .empty { color:var(--muted); padding:20px 0; text-align:center; }
   .gate { max-width:380px; margin:12vh auto; text-align:center; }
   .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#0f0a11; border:1px solid var(--line); padding:10px 16px; border-radius:10px; }
   .hidden { display:none !important; }
-  @media (max-width:500px) { .hbar span:first-child { width:110px; } }
+  @media (max-width:500px) { .hbar span:first-child { width:110px; } .tabs { width:100%; } .tabs button { flex:1; padding:8px 4px; font-size:13px; } }
 </style>
 </head>
 <body>
@@ -84,6 +89,7 @@
         <button data-tab="overview" class="on">Overview</button>
         <button data-tab="accounts">Accounts</button>
         <button data-tab="couples">Couples</button>
+        <button data-tab="rooms">Rooms</button>
       </div>
       <a href="/">Open app</a>
     </header>
@@ -105,6 +111,13 @@
       <div class="panel">
         <input id="search" placeholder="Search by name or email" autocomplete="off">
         <div class="list" id="userList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section id="rooms" class="hidden">
+      <div class="panel">
+        <div class="roomsHead"><span class="meta" style="margin:0" id="roomsSummary"></span><button class="danger" id="clearGuests">Close all guest rooms</button></div>
+        <div class="list" id="roomList" style="margin-top:8px"></div>
       </div>
     </section>
 
@@ -230,7 +243,7 @@ $('userList').onclick = async e => {
   if (!btn) return;
   const u = users.find(x => x.id === btn.closest('[data-user]').dataset.user);
   const act = btn.dataset.act;
-  const body = { action: act, user: u.id };
+  const body = { action: act, user: u.id, couple: u.partner ? [u.id, u.partner.id].sort().join(':') : null };
   if (act === 'password') {
     const pw = prompt(`New password for ${u.name} (at least 6 characters). They'll be signed out and can log in with it.`);
     if (!pw) return;
@@ -259,15 +272,31 @@ async function loadCouples() {
     <div data-couple="${esc(c.id)}">
       <div class="who"><b>${esc(c.partners[0].name)} &amp; ${esc(c.partners[1].name)}</b><span class="meta" style="margin:0">${esc(c.partners[0].email)} · ${esc(c.partners[1].email)}</span></div>
       <div class="meta">${plural(c.answers, 'answer', 'answers')} · ${plural(c.favorites, 'favorite', 'favorites')} · last answer ${ago(c.last_activity)}</div>
-      <div class="actions"><button data-view>View answers</button></div>
+      <div class="actions"><button data-view>View answers</button><button class="danger" data-wipe>Delete all answers</button></div>
       <div class="answers hidden"></div>
     </div>`).join('') : '<div class="empty">No linked couples yet</div>';
 }
 
+async function deleteData(body, done) {
+  try { await api('/api/admin/delete-data', body); toast(done); await loadCouples(); }
+  catch (err) { toast(err.message); }
+}
+
 $('coupleList').onclick = async e => {
+  const row = e.target.closest('[data-couple]');
+  const wipe = e.target.closest('button[data-wipe]');
+  if (wipe) {
+    const c = couples.find(x => x.id === row.dataset.couple);
+    if (prompt(`Delete all of ${c.partners[0].name} & ${c.partners[1].name}'s saved answers and favorites? Their accounts stay. This can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
+    return deleteData({ couple: c.id }, 'Answers deleted');
+  }
+  const one = e.target.closest('button[data-del-answer]');
+  if (one) {
+    if (!confirm('Delete this answer? This can\'t be undone.')) return;
+    return deleteData({ couple: row.dataset.couple, card: one.dataset.card, user: one.dataset.user }, 'Answer deleted');
+  }
   const btn = e.target.closest('button[data-view]');
   if (!btn) return;
-  const row = btn.closest('[data-couple]');
   const box = row.querySelector('.answers');
   if (!box.classList.contains('hidden')) { box.classList.add('hidden'); btn.textContent = 'View answers'; return; }
   const d = await api(`/api/admin/couple?id=${encodeURIComponent(row.dataset.couple)}`).catch(err => (toast(err.message), null));
@@ -278,15 +307,60 @@ $('coupleList').onclick = async e => {
     byQuestion.get(a.question).push(a);
   }
   box.innerHTML = (byQuestion.size ? [...byQuestion].map(([q, as]) =>
-    `<div class="q">${esc(q)}</div>${as.map(a => `<div class="a"><b>${esc(a.name)}:</b> ${esc(a.text)}</div>`).join('')}`).join('')
+    `<div class="q">${esc(q)}</div>${as.map(a => `<div class="a"><b>${esc(a.name)}:</b> ${esc(a.text)}<button data-del-answer data-card="${esc(a.card_key)}" data-user="${esc(a.user_id)}">Delete</button></div>`).join('')}`).join('')
     : '<div class="empty">No answers yet</div>')
     + (d.favorites.length ? `<div class="q">♡ Favorites</div>${d.favorites.map(f => `<div class="a">${esc(f)}</div>`).join('')}` : '');
   box.classList.remove('hidden');
   btn.textContent = 'Hide answers';
 };
 
+// ---- Rooms ----
+// Every room that exists right now: guest rooms (4-letter codes) and couples'
+// private rooms. Rooms are forgotten after a while without use.
+let rooms = [];
+async function loadRooms() {
+  rooms = await api('/api/admin/rooms');
+  const guests = rooms.filter(r => !r.couple);
+  $('roomsSummary').textContent = `${plural(guests.length, 'guest room', 'guest rooms')} · ${plural(rooms.length - guests.length, 'couple room', 'couple rooms')} · ${plural(rooms.reduce((n, r) => n + r.players, 0), 'person', 'people')} in a room now`;
+  $('clearGuests').disabled = !guests.length;
+  $('roomList').innerHTML = rooms.length ? rooms.map(r => `
+    <div data-room="${esc(r.room)}">
+      <div class="who"><b>${r.couple ? '♡ Couple room' : `Guest room ${esc(r.room)}`}</b>
+        <span class="meta" style="margin:0">${r.players ? `${r.players} in the room` : 'empty'} · ${r.mode === 'answer' ? 'Answer & reveal' : 'Just talk'} · ${esc(r.category)} · card ${r.card} of ${r.total}</span></div>
+      <div class="meta">Started ${ago(r.createdAt)} · last used ${ago(r.at)}${r.couple ? '' : ` · ${plural(r.answered, 'card', 'cards')} answered`}</div>
+      <div class="people">${(r.people || []).map(p => `<span class="person">${esc(p.name)}<button data-kick="${esc(p.id)}">Remove</button></span>`).join('') || '<span class="meta" style="margin:0">Nobody connected</span>'}</div>
+      <div class="actions"><button class="danger" data-close>${r.couple ? 'Close room' : 'Close and delete room'}</button></div>
+    </div>`).join('') : '<div class="empty">No rooms right now</div>';
+}
+
+$('roomList').onclick = async e => {
+  const row = e.target.closest('[data-room]');
+  if (!row) return;
+  const r = rooms.find(x => x.room === row.dataset.room);
+  const kick = e.target.closest('button[data-kick]');
+  const close = e.target.closest('button[data-close]');
+  let body;
+  if (kick) {
+    const who = r.people.find(p => p.id === kick.dataset.kick);
+    if (!confirm(`Remove ${who ? who.name : 'this person'} from the room? They can rejoin with the code.`)) return;
+    body = { action: 'kick', room: r.room, player: kick.dataset.kick };
+  } else if (close) {
+    if (!confirm(r.couple ? 'Close this couple\'s room? Anyone in it is sent back to the start. Their saved answers stay.'
+      : `Close guest room ${r.room}? Anyone in it is sent back to the start, and the room and its answers are deleted.`)) return;
+    body = { action: 'close', room: r.room };
+  } else return;
+  try { await api('/api/admin/room', body); toast(kick ? 'Removed' : 'Room closed'); setTimeout(() => loadRooms().catch(() => {}), 400); }
+  catch (err) { toast(err.message); }
+};
+
+$('clearGuests').onclick = async () => {
+  if (!confirm('Close and delete every guest room? Guests in them are sent back to the start.')) return;
+  try { const r = await api('/api/admin/clear-guest-rooms', {}); toast(`${plural(r.closed, 'room', 'rooms')} closed`); setTimeout(() => loadRooms().catch(() => {}), 400); }
+  catch (err) { toast(err.message); }
+};
+
 // ---- Tabs ----
-const loaders = { overview: loadOverview, accounts: loadUsers, couples: loadCouples };
+const loaders = { overview: loadOverview, accounts: loadUsers, couples: loadCouples, rooms: loadRooms };
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
   for (const id of Object.keys(loaders)) $(id).classList.toggle('hidden', id !== b.dataset.tab);
