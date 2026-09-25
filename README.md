@@ -28,7 +28,7 @@ For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY
 - `server.js` + `supabase.js` + `render.yaml`: the older Node version for Render, kept until the Cloudflare move is done.
 
 ## Admin dashboard
-`/admin` shows live and total numbers (people in rooms right now, sign-ups, couples, answers, the most answered and favorited questions), every account, and every couple's answers. Admins can set a new password for someone, sign them out everywhere, unlink a couple, delete an account, or make someone else an admin.
+`/admin` shows live and total numbers (people in rooms right now, sign-ups, couples, answers, the most answered and favorited questions), every account, and every couple's answers. Admins can set a new password for someone, sign them out everywhere, unlink a couple, delete an account, or make someone else an admin. The Rooms tab lists every open guest and couple room with who's in it; admins can remove a person, close a room, or close all guest rooms. On the Couples tab they can delete a single answer or all of a couple's saved answers and favorites.
 An account is an admin when `profiles.is_admin` is set: promote the first one in the Supabase SQL editor once that account exists (see `supabase/migrations/20260925_admin_by_account.sql`), and admins can promote others from the dashboard. Admin is never granted by email alone, because sign-up doesn't verify emails. Admins see an "Admin dashboard" link after logging in.
 
 ## Roadmap
