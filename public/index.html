@@ -4,91 +4,223 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Closer · Deep Questions for Two</title>
+<meta name="description" content="Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.">
+<meta name="theme-color" content="#1d1420">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Closer">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#1d1420; --bg2:#2a1c2e; --card:#fbf3ea; --ink:#2b1d2e; --muted:#a893a9; --accent:#e8766f; --accent2:#f3b27a; --line:#3d2b41; }
+  :root {
+    --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --raise:#3a2640; --card:#fbf3ea; --ink:#2b1d2e; --muted:#a893a9;
+    --text:#f4e9ef; --accent:#e8766f; --accent2:#f3b27a; --rose:#b8527a; --line:#3d2b41; --ok:#7fd6a0; --bad:#ff9a8f;
+    --pad: clamp(12px, 4vw, 20px); --radius:18px;
+  }
   * { box-sizing:border-box; }
-  html { background:var(--bg); }
-  body { margin:0; min-height:100vh; min-height:100dvh; font-family:Inter,system-ui,sans-serif; color:#f4e9ef; -webkit-tap-highlight-color:transparent;
-    background: radial-gradient(1200px 600px at 50% -10%, #43263f 0%, var(--bg) 60%) var(--bg); display:flex; flex-direction:column; align-items:center;
-    padding: max(20px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
-  /* In a room the game fills exactly one screen: the card takes whatever height is left. */
-  body.in-game { height:100vh; height:100dvh; padding-top:max(12px, env(safe-area-inset-top)); }
-  body.in-game h1, body.in-game .sub, body.in-game .foot { display:none; }
-  .hint a, .foot a { color:var(--muted); }
-  .foot { font-size:13px; margin:16px 0 0; }
-  body.in-game.answer-mode { height:auto; min-height:100dvh; }
-  #game { width:100%; max-width:460px; flex:1; min-height:0; display:flex; flex-direction:column; }
-  h1 { font-family:Fraunces,serif; font-weight:600; font-size:28px; margin:8px 0 4px; letter-spacing:.3px; }
-  .sub { color:var(--muted); margin:0 0 24px; font-size:14px; text-align:center; }
-  .panel { width:100%; max-width:420px; background:var(--bg2); border:1px solid var(--line); border-radius:18px; padding:22px; }
-  label { font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
-  input, select { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:#1a111c; color:#fff; font-size:16px; font-family:inherit; }
-  input.code { text-transform:uppercase; letter-spacing:6px; text-align:center; font-weight:600; }
-  button { font-family:inherit; font-size:15px; font-weight:600; border:0; border-radius:12px; padding:12px 16px; cursor:pointer; }
-  .primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#2b1320; width:100%; }
-  .ghost { background:transparent; color:#f4e9ef; border:1px solid var(--line); }
-  .or { text-align:center; color:var(--muted); font-size:12px; margin:16px 0; }
-  .row { display:flex; gap:10px; } .row > * { flex:1; }
-  .stack > * + * { margin-top:12px; }
+  html { background:var(--bg); -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body { margin:0; min-height:100vh; min-height:100dvh; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--text);
+    -webkit-tap-highlight-color:transparent; -webkit-font-smoothing:antialiased;
+    background: radial-gradient(1200px 600px at 50% -10%, #43263f 0%, transparent 60%), radial-gradient(900px 500px at 100% 110%, #2c1a35 0%, transparent 60%), var(--bg);
+    background-attachment:fixed;
+    display:flex; flex-direction:column; align-items:center;
+    padding: max(16px, env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left)); }
+  button, select, a, .scene { touch-action:manipulation; }
+  :focus-visible { outline:2px solid var(--accent2); outline-offset:2px; }
   .hidden { display:none !important; }
-  .tabs { display:flex; background:#1a111c; border:1px solid var(--line); border-radius:12px; padding:4px; }
+
+  /* ---------- Lobby ---------- */
+  .lobbyView { width:100%; max-width:1120px; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+  .hero { text-align:center; max-width:520px; }
+  .logo { display:inline-flex; align-items:center; gap:10px; }
+  .logo i { width:34px; height:34px; border-radius:10px; background:linear-gradient(150deg,var(--accent),var(--rose) 55%,#6d3a78); display:grid; place-items:center; font-style:normal; font-size:18px; color:#fff; box-shadow:0 6px 18px -8px var(--accent); }
+  h1 { font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(28px, 7vw, 34px); margin:0; letter-spacing:.3px; }
+  .sub { color:var(--muted); margin:8px auto 0; font-size:clamp(14px, 3.6vw, 15px); line-height:1.5; max-width:34ch; }
+  .perks { display:none; list-style:none; padding:0; margin:22px 0 0; text-align:left; }
+  .perks li { display:flex; gap:12px; align-items:flex-start; color:#dccbd8; line-height:1.5; }
+  .perks li + li { margin-top:12px; }
+  .perks b { color:var(--text); font-weight:600; }
+  .perks span.i { flex:none; width:28px; height:28px; border-radius:9px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-size:14px; }
+  .deck { display:none; }
+
+  .panel { width:100%; max-width:420px; background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:var(--radius); padding:clamp(16px, 5vw, 24px);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.7); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  label { font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
+  input, select, textarea { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit; -webkit-appearance:none; appearance:none; transition:border-color .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  select { background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:calc(100% - 20px) 55%, calc(100% - 15px) 55%; background-size:5px 5px; background-repeat:no-repeat; padding-right:36px; }
+  input::placeholder, textarea::placeholder { color:#7d6a7e; }
+  input.code { text-transform:uppercase; letter-spacing:6px; text-align:center; font-weight:600; }
+  button { font-family:inherit; font-size:15px; font-weight:600; border:0; border-radius:12px; padding:12px 16px; cursor:pointer; color:var(--text); transition:transform .08s, filter .15s, background .15s; }
+  button:active { transform:scale(.98); }
+  button:disabled { opacity:.5; cursor:default; }
+  .primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#2b1320; width:100%; box-shadow:0 8px 20px -12px var(--accent); }
+  .ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  @media (hover:hover) {
+    .primary:hover { filter:brightness(1.06); }
+    .ghost:hover { background:var(--bg2); border-color:#5a4160; }
+    .link:hover { color:var(--text); }
+  }
+  .or { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px; margin:16px 0; }
+  .or::before, .or::after { content:''; flex:1; height:1px; background:var(--line); }
+  .row { display:flex; gap:10px; } .row > * { flex:1; min-width:0; }
+  .row > button { flex:0 0 auto; min-width:88px; }
+  .stack > * + * { margin-top:12px; }
+  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:4px; }
   .tabs button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; }
-  .tabs button.on { background:#3a2640; color:#fff; }
+  .tabs button.on { background:var(--raise); color:#fff; }
   .wide { width:100%; }
-  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; padding:6px; width:100%; text-decoration:underline; }
-  .hello { font-family:Fraunces,serif; font-size:22px; text-align:center; margin:4px 0 8px; }
-  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; }
-  .bigcode { flex:1; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:600; letter-spacing:6px; background:#1a111c; border:1px dashed var(--accent); border-radius:12px; padding:10px; }
-  .err { color:#ff9a8f; font-size:13px; min-height:18px; margin-top:8px; }
+  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; padding:6px; width:100%; text-decoration:underline; text-underline-offset:3px; display:block; text-align:center; }
+  .hello { font-family:Fraunces,Georgia,serif; font-size:22px; text-align:center; margin:4px 0 8px; }
+  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; line-height:1.45; }
+  .hint a, .foot a { color:var(--muted); }
+  .bigcode { display:flex; align-items:center; justify-content:center; font-size:clamp(20px, 7vw, 26px); font-weight:600; letter-spacing:clamp(3px, 1.5vw, 6px); background:var(--bg3); border:1px dashed var(--accent); border-radius:12px; padding:10px; }
+  .err { color:var(--bad); font-size:13px; min-height:18px; margin-top:8px; text-align:center; }
+  .foot { font-size:13px; margin:18px 0 0; color:var(--muted); }
+  body.in-game .lobbyView, body.in-game .foot { display:none; }
 
-  .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
-  .brand { font-family:Fraunces,serif; font-weight:600; font-size:20px; margin-right:auto; }
-  .top .pill { flex:none; }
-  .top #partners { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  @media (max-width:380px) { .brand { display:none; } .top { justify-content:space-between; } }
-  .pill { font-size:13px; padding:6px 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+  /* ---------- Game ---------- */
+  /* Phones: one column that fills exactly one screen; the card takes the space left over. */
+  body.in-game { height:100vh; height:100dvh; padding-top:max(10px, env(safe-area-inset-top)); }
+  body.in-game.answer-mode { height:auto; min-height:100dvh; }
+  #game { width:100%; max-width:480px; flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
+  .side { display:contents; }
+  .top { order:0; display:flex; align-items:center; gap:8px; }
+  .brand { font-family:Fraunces,Georgia,serif; font-weight:600; font-size:20px; margin-right:auto; display:inline-flex; align-items:center; gap:8px; }
+  .brand i { width:26px; height:26px; border-radius:8px; background:linear-gradient(150deg,var(--accent),var(--rose) 55%,#6d3a78); display:grid; place-items:center; font-style:normal; font-size:13px; color:#fff; }
+  .pill { font-size:13px; padding:6px 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex:none; }
   .pill b { color:#fff; letter-spacing:2px; }
+  .top #partners { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#6b5a6d; margin-right:6px; vertical-align:middle; }
-  .dot.on { background:#7fd6a0; box-shadow:0 0 8px #7fd6a0; }
+  .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  @media (max-width:380px) { .brand span { display:none; } .pill { padding:6px 10px; font-size:12px; } }
 
-  .scene { flex:1 1 auto; min-height:220px; max-height:600px; perspective:1400px; cursor:pointer; }
-  body.answer-mode .scene { flex:0 0 auto; height:clamp(200px, 34dvh, 320px); }
-  .card { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
+  .modes { order:1; display:flex; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:4px; }
+  .modes button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
+  @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
+  .modes button.on { background:var(--raise); color:#fff; }
+
+  .scene { order:2; flex:1 1 auto; min-height:200px; max-height:620px; perspective:1400px; cursor:pointer; -webkit-user-select:none; user-select:none; }
+  body.answer-mode .scene { flex:0 0 auto; height:clamp(190px, 34dvh, 320px); }
+  .card { position:relative; width:100%; height:100%; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
   .card.flipped { transform:rotateY(180deg); }
-  .face { position:absolute; inset:0; border-radius:22px; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:44px 26px; text-align:center; box-shadow:0 20px 40px -18px rgba(0,0,0,.6); }
+  .face { position:absolute; inset:0; border-radius:22px; -webkit-backface-visibility:hidden; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:clamp(40px, 8vh, 56px) clamp(20px, 6vw, 44px); text-align:center; box-shadow:0 24px 50px -22px rgba(0,0,0,.7); overflow:hidden; }
   .back { background:linear-gradient(150deg,#e8766f,#b8527a 55%,#6d3a78); }
-  .back .mark { font-family:Fraunces,serif; font-size:44px; color:#fff; opacity:.95; }
+  .back::before { content:''; position:absolute; inset:12px; border:1px solid rgba(255,255,255,.25); border-radius:14px; }
+  .back .mark { font-family:Fraunces,Georgia,serif; font-size:clamp(40px, 10vw, 56px); color:#fff; opacity:.95; }
   .back .hint { margin-top:10px; font-size:13px; color:#ffe6e6; opacity:.85; }
-  .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); }
-  .front .cat { position:absolute; top:22px; left:0; right:0; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#b8527a; font-weight:600; }
-  .front .q { font-family:Fraunces,serif; font-size:clamp(20px,5.6vw,28px); line-height:1.3; font-weight:500; }
+  .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); background-image:radial-gradient(600px 300px at 50% 0%, #fff8f0 0%, transparent 70%); }
+  .front .cat { position:absolute; top:22px; left:52px; right:52px; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:var(--rose); font-weight:600; }
+  .front .q { font-family:Fraunces,Georgia,serif; font-size:clamp(20px, 5.4vw, 30px); line-height:1.3; font-weight:500; max-width:24ch; text-wrap:balance; }
   .front .num { position:absolute; bottom:20px; font-size:12px; color:#9a8599; }
-  .fav { position:absolute; top:14px; right:16px; background:none; border:0; font-size:22px; padding:6px; color:#c9b3c3; }
-  .fav.on { color:#e8766f; }
+  .fav { position:absolute; top:12px; right:12px; background:none; border:0; font-size:22px; padding:8px; color:#c9b3c3; line-height:1; }
+  .fav.on { color:var(--accent); }
+  @media (hover:hover) { .fav:hover { color:var(--accent); } }
 
-  .controls { display:flex; gap:10px; margin-top:12px; flex-shrink:0; }
-  .controls .ghost { flex:0 0 64px; }
-  .controls .primary { flex:1; }
-  .bar { margin-top:10px; display:flex; gap:10px; flex-shrink:0; }
-  .bar select { padding:10px 14px; }
-  .bar select { flex:1; }
-  .modes { display:flex; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:10px; }
-  .modes button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; }
-  .modes button.on { background:#3a2640; color:#fff; }
-  .answer { margin-top:12px; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:18px; padding:16px; }
-  .answer textarea { width:100%; min-height:72px; resize:vertical; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:#1a111c; color:#fff; font:16px/1.4 Inter,system-ui,sans-serif; }
+  .answer { order:3; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
+  .answer textarea { min-height:76px; resize:vertical; font:16px/1.45 Inter,system-ui,sans-serif; }
   .answer .status { font-size:13px; color:var(--muted); margin:10px 0 0; text-align:center; }
-  .answer .mine { font-size:14px; color:#f4e9ef; background:#1a111c; border-radius:12px; padding:12px 14px; white-space:pre-wrap; }
+  .answer .mine { font-size:14px; color:var(--text); background:var(--bg3); border-radius:12px; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
   .reveal { display:grid; gap:10px; }
-  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; line-height:1.4; }
-  .reveal .who { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#b8527a; font-weight:600; margin-bottom:6px; }
-  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#000c; padding:10px 16px; border-radius:10px; font-size:14px; transition:opacity .3s; }
+  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.45; }
+  .reveal .who { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--rose); font-weight:600; margin-bottom:6px; }
+
+  .controls { order:4; display:flex; gap:10px; flex-shrink:0; }
+  .controls .ghost { flex:0 0 64px; font-size:18px; }
+  .controls .primary { flex:1; }
+  .bar { order:5; display:flex; gap:10px; flex-shrink:0; }
+  .bar select { flex:1; min-width:0; padding-top:10px; padding-bottom:10px; }
+  .keys { display:none; }
+  .toast { position:fixed; bottom:max(20px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#000d; padding:10px 16px; border-radius:10px; font-size:14px; transition:opacity .3s; z-index:10; max-width:calc(100vw - 32px); text-align:center; }
+
+  /* Short phones (iPhone SE and similar): tighten everything a little. */
+  @media (max-height:640px) {
+    #game { gap:8px; }
+    .modes button { padding:7px 8px; }
+    button { padding:10px 14px; }
+    .face { padding:36px 18px; }
+    .lobbyView { gap:14px; }
+    .sub { display:none; }
+  }
+
+  /* Phones on their side: card on the left, controls on the right. */
+  @media (orientation:landscape) and (max-height:520px) {
+    body.in-game, body.in-game.answer-mode { height:100dvh; min-height:0; }
+    #game { max-width:none; display:grid; grid-template-columns:minmax(0,1fr) minmax(260px, 40%); grid-template-rows:auto minmax(0,1fr); gap:10px 14px; }
+    .top { grid-column:1 / -1; }
+    .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
+    .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+    .face { padding:34px 22px; }
+    .front .q { font-size:clamp(18px, 4.4vh, 24px); }
+    .lobbyView { flex-direction:row; align-items:center; gap:24px; }
+    .hero { text-align:left; flex:1; }
+    .sub { display:block; margin-left:0; }
+  }
+
+  /* Tablets and up: more room to breathe. */
+  @media (min-width:700px) and (min-height:521px) {
+    #game { max-width:560px; justify-content:center; }
+    .scene { max-height:760px; }
+    .perks { display:block; }
+    .hero { max-width:460px; }
+    .front .q { font-size:clamp(24px, 3.4vw, 32px); }
+  }
+
+  /* Desktop: the card on the left, everything else in a side panel on the right. */
+  @media (min-width:960px) and (min-height:521px) {
+    body { padding-left:32px; padding-right:32px; }
+    .lobbyView { flex-direction:row; align-items:center; justify-content:space-between; gap:56px; padding:24px 0; }
+    .hero { text-align:left; flex:1; max-width:560px; }
+    .sub { margin-left:0; font-size:17px; max-width:40ch; }
+    h1 { font-size:44px; }
+    .logo i { width:44px; height:44px; font-size:22px; border-radius:13px; }
+    .deck { display:block; position:relative; height:190px; margin-top:34px; }
+    .deck div { position:absolute; width:250px; height:160px; border-radius:18px; background:var(--card); color:var(--ink); padding:22px 20px; font-family:Fraunces,Georgia,serif; font-size:17px; line-height:1.35; box-shadow:0 24px 40px -22px rgba(0,0,0,.8); }
+    .deck div small { display:block; font-family:Inter,system-ui,sans-serif; font-size:10px; letter-spacing:1.6px; text-transform:uppercase; color:var(--rose); font-weight:600; margin-bottom:10px; }
+    .deck div:nth-child(1) { left:0; top:14px; transform:rotate(-6deg); }
+    .deck div:nth-child(2) { left:170px; top:0; transform:rotate(3deg); z-index:1; }
+    .deck div:nth-child(3) { left:330px; top:22px; transform:rotate(9deg); background:linear-gradient(150deg,#e8766f,#b8527a 55%,#6d3a78); color:#fff; display:grid; place-items:center; font-size:40px; }
+    .panel { flex:none; width:420px; }
+
+    body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; padding-top:24px; padding-bottom:24px; }
+    #game { max-width:1180px; display:grid; justify-content:center; grid-template-columns:minmax(0, calc((100dvh - 130px) * .82)) 360px; grid-template-rows:auto minmax(0,1fr); gap:18px 28px; }
+    .top { grid-column:1 / -1; }
+    .brand { font-size:24px; }
+    .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
+    .face { border-radius:28px; padding:64px 56px; }
+    .front .q { font-size:clamp(28px, 2.6vw, 40px); }
+    .front .cat { top:30px; font-size:13px; }
+    .fav { top:20px; right:22px; font-size:26px; }
+    .side { display:flex; flex-direction:column; justify-content:center; gap:12px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
+    .keys { display:block; order:99; margin-top:6px; text-align:center; font-size:12px; color:var(--muted); line-height:1.8; }
+    .keys kbd { font:600 11px Inter,system-ui,sans-serif; background:var(--bg2); border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 6px; margin-right:4px; color:var(--text); }
+  }
+  @media (min-width:1400px) and (min-height:521px) { #game { grid-template-columns:minmax(0, calc((100dvh - 130px) * .82)) 400px; } }
+
+  @media (prefers-reduced-motion:reduce) { .card, button { transition:none; } }
 </style>
 </head>
 <body>
-  <h1>Closer</h1>
-  <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
+  <main class="lobbyView">
+    <section class="hero">
+      <div class="logo"><i aria-hidden="true">♡</i><h1>Closer</h1></div>
+      <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
+      <ul class="perks">
+        <li><span class="i" aria-hidden="true">🃏</span><span><b>Always in sync.</b> Flip, skip or change the topic, and your partner sees it instantly.</span></li>
+        <li><span class="i" aria-hidden="true">💬</span><span><b>Just talk, or answer & reveal.</b> Write privately and see each other's answers only when you've both answered.</span></li>
+        <li><span class="i" aria-hidden="true">♡</span><span><b>Your story, saved.</b> With an account, your answers and favorites stay with you.</span></li>
+      </ul>
+      <div class="deck" aria-hidden="true">
+        <div><small>Getting Closer</small>What's a moment with me you replay in your head when you miss me?</div>
+        <div><small>Us &amp; The Future</small>Where do you picture us in ten years, in as much detail as you can?</div>
+        <div>♡</div>
+      </div>
+    </section>
 
   <!-- Lobby -->
   <div id="lobby" class="panel">
@@ -143,46 +275,50 @@
 
     <div class="err" id="err"></div>
   </div>
+  </main>
   <p class="foot"><a href="/privacy">Privacy policy</a></p>
 
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
-      <span class="brand">Closer</span>
+      <span class="brand"><i aria-hidden="true">♡</i><span>Closer</span></span>
       <span class="pill">Room <b id="code"></b></span>
       <span class="pill" id="partners"><span class="dot"></span>Waiting for partner…</span>
     </div>
-    <div class="modes" role="tablist">
-      <button id="modeTalk" data-mode="talk">Just talk</button>
-      <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
-    </div>
-    <div class="scene" id="scene" title="Tap to flip">
+    <div class="scene" id="scene" title="Tap to flip" role="button" aria-label="Flip the card">
       <div class="card" id="card">
         <div class="face back"><div class="mark">♡</div><div class="hint">Tap to reveal together</div></div>
         <div class="face front">
           <div class="cat" id="cat"></div>
-          <button class="fav" id="fav" title="Save to favorites">♥</button>
+          <button class="fav" id="fav" title="Save to favorites" aria-label="Save to favorites">♥</button>
           <div class="q" id="q"></div>
           <div class="num" id="num"></div>
         </div>
       </div>
     </div>
-    <div class="answer hidden" id="answer">
-      <div id="answerForm" class="stack">
-        <textarea id="answerText" maxlength="1000" placeholder="Write your answer… your partner sees it once you've both answered"></textarea>
-        <button class="primary" id="lockIn">Lock in my answer</button>
+    <div class="side">
+      <div class="modes" role="tablist">
+        <button id="modeTalk" data-mode="talk">Just talk</button>
+        <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
       </div>
-      <div id="answerWait" class="hidden"><div class="mine" id="myAnswer"></div></div>
-      <div id="answerReveal" class="reveal hidden"></div>
-      <p class="status" id="answerStatus"></p>
-    </div>
-    <div class="controls">
-      <button class="ghost" id="prev" aria-label="Previous">←</button>
-      <button class="primary" id="next">Next question</button>
-    </div>
-    <div class="bar">
-      <select id="category"></select>
-      <button class="ghost" id="share">Share code</button>
+      <div class="answer hidden" id="answer">
+        <div id="answerForm" class="stack">
+          <textarea id="answerText" maxlength="1000" placeholder="Write your answer… your partner sees it once you've both answered"></textarea>
+          <button class="primary" id="lockIn">Lock in my answer</button>
+        </div>
+        <div id="answerWait" class="hidden"><div class="mine" id="myAnswer"></div></div>
+        <div id="answerReveal" class="reveal hidden"></div>
+        <p class="status" id="answerStatus"></p>
+      </div>
+      <div class="controls">
+        <button class="ghost" id="prev" aria-label="Previous question">←</button>
+        <button class="primary" id="next">Next question</button>
+      </div>
+      <div class="bar">
+        <select id="category" aria-label="Category"></select>
+        <button class="ghost" id="share">Share code</button>
+      </div>
+      <div class="keys"><kbd>Space</kbd> flip &nbsp; <kbd>←</kbd><kbd>→</kbd> previous / next &nbsp; <kbd>F</kbd> favorite</div>
     </div>
   </div>
 
@@ -402,6 +538,19 @@ $('lockIn').onclick = () => {
 };
 $('next').onclick = () => act({ type: 'next' });
 $('prev').onclick = () => act({ type: 'prev' });
+document.addEventListener('keydown', e => {
+  if ($('game').classList.contains('hidden') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+  if (t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ' || k === 'enter') act({ type: 'flip' });
+  else if (k === 'arrowright') act({ type: 'next' });
+  else if (k === 'arrowleft') act({ type: 'prev' });
+  else if (k === 'f') act({ type: 'favorite' });
+  else return;
+  e.preventDefault();
+});
 $('category').onchange = e => act({ type: 'category', category: e.target.value });
 $('share').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;

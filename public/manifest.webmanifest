@@ -1,0 +1,14 @@
+{
+  "name": "Closer",
+  "short_name": "Closer",
+  "description": "Deep questions for couples, on the same card at the same time.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1d1420",
+  "theme_color": "#1d1420",
+  "icons": [
+    { "src": "/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
