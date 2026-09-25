@@ -1,0 +1,8 @@
+{
+  "name": "closer-couples-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deep questions for couples, synced in real time",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
