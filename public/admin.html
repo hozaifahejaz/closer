@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Closer Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --ink:#f4e9ef; --muted:#a893a9; --accent:#e8766f; --line:#3d2b41; --good:#7fd6a0; --bad:#ff9a8f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; font-size:14px;
+    padding:max(16px, env(safe-area-inset-top)) 16px 40px; }
+  .wrap { max-width:1000px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  h1 { font-family:Fraunces,serif; font-weight:600; font-size:24px; margin:0; margin-right:auto; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); font-weight:600; margin:0 0 12px; }
+  a { color:var(--muted); }
+  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:4px; }
+  .tabs button { background:transparent; color:var(--muted); padding:8px 14px; border-radius:9px; }
+  .tabs button.on { background:#3a2640; color:#fff; }
+  button { font-family:inherit; font-size:14px; font-weight:600; border:0; border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--ink); background:#3a2640; }
+  button.danger { background:#5a2430; color:#ffd9d4; }
+  input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit; }
+  .panel { background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:16px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; margin-bottom:16px; }
+  .tile { background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .tile .v { font-size:28px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .tile .l { color:var(--muted); font-size:13px; margin-top:2px; }
+  .tile .s { color:var(--muted); font-size:12px; margin-top:6px; }
+  .live .v::before { content:''; display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); margin-right:8px; vertical-align:middle; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
+  .grid2 .panel { margin-bottom:0; }
+  /* Bar chart: one series, thin bars anchored to the baseline, 2px gaps. */
+  .chart { position:relative; height:140px; display:flex; align-items:flex-end; gap:2px; border-bottom:1px solid var(--line); }
+  .chart .bar { flex:1; position:relative; height:100%; display:flex; align-items:flex-end; cursor:default; }
+  .chart .bar i { display:block; width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:0; }
+  .chart .bar:hover i { background:#f3a49e; }
+  .axis { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-top:6px; }
+  .chartHead { display:flex; justify-content:space-between; align-items:baseline; }
+  .chartHead b { font-size:20px; font-variant-numeric:tabular-nums; }
+  .tip { position:fixed; pointer-events:none; background:#0f0a11; border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:12px; white-space:nowrap; z-index:10; }
+  ol.top { margin:0; padding:0; list-style:none; }
+  ol.top li { display:flex; gap:10px; align-items:baseline; padding:7px 0; border-top:1px solid var(--line); }
+  ol.top li:first-child { border-top:0; }
+  ol.top .q { flex:1; }
+  ol.top .n { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .hbar { display:flex; align-items:center; gap:10px; margin:8px 0; }
+  .hbar span:first-child { width:150px; flex:none; color:var(--muted); font-size:13px; }
+  .hbar .track { flex:1; height:10px; }
+  .hbar .track i { display:block; height:100%; background:var(--accent); border-radius:0 4px 4px 0; }
+  .hbar .n { width:40px; text-align:right; font-variant-numeric:tabular-nums; }
+  .list > div { border-top:1px solid var(--line); padding:12px 0; }
+  .list > div:first-child { border-top:0; }
+  .who { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+  .who b { font-size:15px; }
+  .meta { color:var(--muted); font-size:13px; margin-top:4px; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:#3a2640; color:var(--accent); font-weight:600; }
+  .actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .actions button { font-size:12px; padding:6px 10px; }
+  .answers { margin-top:10px; }
+  .answers .q { font-family:Fraunces,serif; font-size:15px; margin-top:12px; }
+  .answers .a { color:var(--muted); margin-top:4px; }
+  .answers .a b { color:var(--ink); font-weight:600; }
+  .empty { color:var(--muted); padding:20px 0; text-align:center; }
+  .gate { max-width:380px; margin:12vh auto; text-align:center; }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#0f0a11; border:1px solid var(--line); padding:10px 16px; border-radius:10px; }
+  .hidden { display:none !important; }
+  @media (max-width:500px) { .hbar span:first-child { width:110px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate hidden">
+    <h1 style="margin-bottom:12px">Closer Admin</h1>
+    <p id="gateMsg" class="meta"></p>
+    <p><a href="/">Back to Closer</a></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <header>
+      <h1>Closer Admin</h1>
+      <div class="tabs">
+        <button data-tab="overview" class="on">Overview</button>
+        <button data-tab="accounts">Accounts</button>
+        <button data-tab="couples">Couples</button>
+      </div>
+      <a href="/">Open app</a>
+    </header>
+
+    <section id="overview">
+      <div class="tiles" id="tiles"></div>
+      <div class="grid2">
+        <div class="panel"><div class="chartHead"><h2>Sign-ups, last 30 days</h2><b id="signupTotal"></b></div><div class="chart" id="signupChart"></div><div class="axis" id="signupAxis"></div></div>
+        <div class="panel"><div class="chartHead"><h2>Answers, last 30 days</h2><b id="answerTotal"></b></div><div class="chart" id="answerChart"></div><div class="axis" id="answerAxis"></div></div>
+      </div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel"><h2>Most answered questions</h2><ol class="top" id="topAnswered"></ol></div>
+        <div class="panel"><h2>Most favorited questions</h2><ol class="top" id="topFavorited"></ol></div>
+      </div>
+      <div class="panel" style="margin-top:16px"><h2>Answers by category</h2><div id="byCategory"></div></div>
+    </section>
+
+    <section id="accounts" class="hidden">
+      <div class="panel">
+        <input id="search" placeholder="Search by name or email" autocomplete="off">
+        <div class="list" id="userList" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section id="couples" class="hidden">
+      <div class="panel"><div class="list" id="coupleList"></div></div>
+    </section>
+  </div>
+</div>
+<div class="tip hidden" id="tip"></div>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let token = null;
+try { token = localStorage.getItem('closer:token'); } catch {}
+let me = null;
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || 'Something went wrong'), { status: res.status });
+  return data;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = n => Number(n || 0).toLocaleString();
+const plural = (n, one, many) => `${num(n)} ${Number(n) === 1 ? one : many}`;
+const day = d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+function ago(t) {
+  if (!t) return 'never';
+  const s = (Date.now() - new Date(t)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 86400 * 30) return `${Math.floor(s / 86400)} d ago`;
+  return new Date(t).toLocaleDateString();
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('hidden'), 2500); }
+
+// ---- Overview ----
+function tile(value, label, sub = '', cls = '') {
+  return `<div class="tile ${cls}"><div class="v">${value}</div><div class="l">${label}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`;
+}
+
+function barChart(el, axisEl, days, values, noun) {
+  const max = Math.max(1, ...values);
+  el.innerHTML = values.map((v, i) =>
+    `<div class="bar" data-tip="${esc(day(days[i]))}: ${num(v)} ${noun}"><i style="height:${(v / max) * 100}%"></i></div>`).join('');
+  axisEl.innerHTML = `<span>${day(days[0])}</span><span>peak ${num(Math.max(...values))}/day</span><span>Today</span>`;
+}
+
+function topList(el, rows) {
+  el.innerHTML = rows.length ? rows.map((r, i) => `<li><span class="n">${i + 1}.</span><span class="q">${esc(r.question)}</span><span class="n">${num(r.count)}</span></li>`).join('')
+    : '<li class="empty">Nothing yet</li>';
+}
+
+async function loadOverview() {
+  const s = await api('/api/admin/stats');
+  const live = s.live || {};
+  $('tiles').innerHTML = [
+    tile(num(live.people), 'People in a room now', `${num(live.coupleRooms)} couple · ${plural(live.guestRooms, 'guest room', 'guest rooms')}`, 'live'),
+    tile(num(s.users), 'Accounts', `+${num(s.users_today)} today · +${num(s.users_7d)} this week`),
+    tile(num(s.couples), 'Linked couples', `${plural(s.waiting_for_partner, 'account', 'accounts')} waiting for a partner`),
+    tile(num(s.active_7d), 'Active this week', `${num(s.active_30d)} in the last 30 days`),
+    tile(num(s.answers), 'Answers saved', `+${num(s.answers_7d)} this week`),
+    tile(num(s.favorites), 'Favorites', `${plural(s.couples_answering, 'couple has', 'couples have')} answered`),
+    tile(num(live.guestRoomsToday), 'Guest rooms today', `${num(live.guestRooms7d)} this week`),
+  ].join('');
+  barChart($('signupChart'), $('signupAxis'), s.days, s.signups_by_day, 'sign-ups');
+  barChart($('answerChart'), $('answerAxis'), s.days, s.answers_by_day, 'answers');
+  $('signupTotal').textContent = num(s.users_30d);
+  $('answerTotal').textContent = num(s.answers_by_day.reduce((a, b) => a + b, 0));
+  topList($('topAnswered'), s.top_answered);
+  topList($('topFavorited'), s.top_favorited);
+  const maxCat = Math.max(1, ...s.by_category.map(c => c.count));
+  $('byCategory').innerHTML = s.by_category.length ? s.by_category.map(c =>
+    `<div class="hbar" data-tip="${esc(c.category)}: ${num(c.count)} answers"><span>${esc(c.category)}</span><div class="track"><i style="width:${(c.count / maxCat) * 100}%"></i></div><span class="n">${num(c.count)}</span></div>`).join('')
+    : '<div class="empty">No answers yet</div>';
+}
+
+// Hover tooltips for chart marks.
+document.addEventListener('mousemove', e => {
+  const t = e.target.closest('[data-tip]');
+  const tip = $('tip');
+  if (!t) return tip.classList.add('hidden');
+  tip.textContent = t.dataset.tip;
+  tip.classList.remove('hidden');
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px';
+  tip.style.top = (e.clientY - 36) + 'px';
+});
+
+// ---- Accounts ----
+let users = [];
+function renderUsers() {
+  $('userList').innerHTML = users.length ? users.map(u => `
+    <div data-user="${u.id}">
+      <div class="who"><b>${esc(u.name)}</b><span>${esc(u.email)}</span>${u.is_admin ? '<span class="badge">Admin</span>' : ''}</div>
+      <div class="meta">Joined ${ago(u.created_at)} · ${u.partner ? `Linked with ${esc(u.partner.name)} (${esc(u.partner.email)})` : `Not linked · code ${esc(u.invite_code)}`}
+        · ${plural(u.answers, 'answer', 'answers')} · last login ${ago(u.last_login)}</div>
+      <div class="actions">
+        <button data-act="password">Set new password</button>
+        <button data-act="signout">Sign out everywhere</button>
+        ${u.partner ? '<button data-act="unlink">Unlink partner</button>' : ''}
+        ${u.id === me.id ? '' : `<button data-act="admin">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>`}
+        ${u.id === me.id ? '' : '<button class="danger" data-act="delete">Delete account</button>'}
+      </div>
+    </div>`).join('') : '<div class="empty">No accounts found</div>';
+}
+
+let searchTimer;
+async function loadUsers() {
+  users = await api(`/api/admin/users?q=${encodeURIComponent($('search').value)}`);
+  renderUsers();
+}
+$('search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
+
+$('userList').onclick = async e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const u = users.find(x => x.id === btn.closest('[data-user]').dataset.user);
+  const act = btn.dataset.act;
+  const body = { action: act, user: u.id };
+  if (act === 'password') {
+    const pw = prompt(`New password for ${u.name} (at least 6 characters). They'll be signed out and can log in with it.`);
+    if (!pw) return;
+    body.password = pw;
+  } else if (act === 'delete') {
+    if (prompt(`This deletes ${u.name}'s account and all their answers. It can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
+  } else if (act === 'unlink') {
+    if (!confirm(`Unlink ${u.name} from ${u.partner.name}? Their saved answers stay.`)) return;
+  } else if (act === 'admin') {
+    body.on = !u.is_admin;
+    if (!confirm(`${body.on ? 'Give' : 'Remove'} admin access ${body.on ? 'to' : 'from'} ${u.name}?`)) return;
+  }
+  btn.disabled = true;
+  try {
+    await api('/api/admin/action', body);
+    toast({ password: 'Password changed', signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
+    await loadUsers();
+  } catch (err) { toast(err.message); btn.disabled = false; }
+};
+
+// ---- Couples ----
+let couples = [];
+async function loadCouples() {
+  couples = await api('/api/admin/couples');
+  $('coupleList').innerHTML = couples.length ? couples.map(c => `
+    <div data-couple="${esc(c.id)}">
+      <div class="who"><b>${esc(c.partners[0].name)} &amp; ${esc(c.partners[1].name)}</b><span class="meta" style="margin:0">${esc(c.partners[0].email)} · ${esc(c.partners[1].email)}</span></div>
+      <div class="meta">${plural(c.answers, 'answer', 'answers')} · ${plural(c.favorites, 'favorite', 'favorites')} · last answer ${ago(c.last_activity)}</div>
+      <div class="actions"><button data-view>View answers</button></div>
+      <div class="answers hidden"></div>
+    </div>`).join('') : '<div class="empty">No linked couples yet</div>';
+}
+
+$('coupleList').onclick = async e => {
+  const btn = e.target.closest('button[data-view]');
+  if (!btn) return;
+  const row = btn.closest('[data-couple]');
+  const box = row.querySelector('.answers');
+  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); btn.textContent = 'View answers'; return; }
+  const d = await api(`/api/admin/couple?id=${encodeURIComponent(row.dataset.couple)}`).catch(err => (toast(err.message), null));
+  if (!d) return;
+  const byQuestion = new Map();
+  for (const a of d.answers) {
+    if (!byQuestion.has(a.question)) byQuestion.set(a.question, []);
+    byQuestion.get(a.question).push(a);
+  }
+  box.innerHTML = (byQuestion.size ? [...byQuestion].map(([q, as]) =>
+    `<div class="q">${esc(q)}</div>${as.map(a => `<div class="a"><b>${esc(a.name)}:</b> ${esc(a.text)}</div>`).join('')}`).join('')
+    : '<div class="empty">No answers yet</div>')
+    + (d.favorites.length ? `<div class="q">♡ Favorites</div>${d.favorites.map(f => `<div class="a">${esc(f)}</div>`).join('')}` : '');
+  box.classList.remove('hidden');
+  btn.textContent = 'Hide answers';
+};
+
+// ---- Tabs ----
+const loaders = { overview: loadOverview, accounts: loadUsers, couples: loadCouples };
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
+  for (const id of Object.keys(loaders)) $(id).classList.toggle('hidden', id !== b.dataset.tab);
+  loaders[b.dataset.tab]().catch(e => toast(e.message));
+});
+
+function gate(msg) { $('gateMsg').textContent = msg; $('gate').classList.remove('hidden'); }
+
+(async function init() {
+  if (!token) return gate('Log in to Closer with an admin account first.');
+  try { me = await api('/api/me'); } catch { return gate('Your session ended. Log in to Closer again.'); }
+  if (!me.isAdmin) return gate('This account is not an admin.');
+  $('app').classList.remove('hidden');
+  await loadOverview().catch(e => toast(e.message));
+})();
+</script>
+</body>
+</html>

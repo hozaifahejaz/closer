@@ -14,7 +14,9 @@
     padding: max(20px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
   /* In a room the game fills exactly one screen: the card takes whatever height is left. */
   body.in-game { height:100vh; height:100dvh; padding-top:max(12px, env(safe-area-inset-top)); }
-  body.in-game h1, body.in-game .sub { display:none; }
+  body.in-game h1, body.in-game .sub, body.in-game .foot { display:none; }
+  .hint a, .foot a { color:var(--muted); }
+  .foot { font-size:13px; margin:16px 0 0; }
   body.in-game.answer-mode { height:auto; min-height:100dvh; }
   #game { width:100%; max-width:460px; flex:1; min-height:0; display:flex; flex-direction:column; }
   h1 { font-family:Fraunces,serif; font-weight:600; font-size:28px; margin:8px 0 4px; letter-spacing:.3px; }
@@ -97,6 +99,7 @@
       <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
       <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
       <button class="primary" id="authGo" type="submit">Create account</button>
+      <p class="hint">By signing up you agree to our <a href="/privacy">privacy policy</a>.</p>
       <div class="or">or</div>
       <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
     </form>
@@ -124,6 +127,7 @@
         <button class="ghost" id="linkGo" style="flex:0 0 96px">Link</button>
       </div>
       <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
+      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
       <button class="link" type="button" data-logout>Log out</button>
     </div>
 
@@ -133,11 +137,13 @@
       <button class="primary" id="startCouple">Open our cards</button>
       <p class="hint">Your answers and favorites are saved to your account.</p>
       <button class="link" type="button" id="unlink">Unlink partner</button>
+      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
       <button class="link" type="button" data-logout>Log out</button>
     </div>
 
     <div class="err" id="err"></div>
   </div>
+  <p class="foot"><a href="/privacy">Privacy policy</a></p>
 
   <!-- Game -->
   <div id="game" class="hidden">
@@ -217,6 +223,7 @@ async function api(path, body) {
 
 function showAccount(a) {
   account = a;
+  document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   if (a.partner) {
     $('partnerName').textContent = a.partner.name;
     show('homeBox');
