@@ -25,7 +25,14 @@ export function randomCode(length) {
 }
 
 export function newRoom(code, coupleId = null) {
-  return { code, coupleId, category: 'All', order: buildOrder('All'), index: 0, flipped: false, favorites: [], mode: 'talk', answers: {} };
+  return { code, coupleId, category: 'All', order: buildOrder('All'), index: 0, flipped: false, tapToReveal: true, favorites: [], mode: 'talk', answers: {} };
+}
+
+// Rooms saved before the setting existed have no field: treat them as "tap to reveal" on.
+const tapToReveal = room => room.tapToReveal !== false;
+// With tap to reveal off, every card lands face up.
+function freshCard(room) {
+  room.flipped = !tapToReveal(room);
 }
 
 export const cardKey = card => `${card.c}:${card.i}`;
@@ -46,6 +53,7 @@ export function publicState(room, players, viewerId) {
     index: room.index,
     total: room.order.length,
     flipped: room.flipped,
+    tapToReveal: tapToReveal(room),
     card: { category: card.c, text: questionText(card) },
     partners: [...players.values()],
     favorites: room.favorites,
@@ -58,12 +66,13 @@ export function publicState(room, players, viewerId) {
 
 // Applies one action. Returns false for anything unrecognised, otherwise an
 // object describing what (if anything) should be saved for a couple.
-export function applyAction(room, actorId, isPlayer, { type, category, mode, text }) {
-  if (type === 'next') { room.index = (room.index + 1) % room.order.length; room.flipped = false; }
-  else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; room.flipped = false; }
-  else if (type === 'flip') room.flipped = !room.flipped;
+export function applyAction(room, actorId, isPlayer, { type, category, mode, text, on }) {
+  if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
+  else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; freshCard(room); }
+  else if (type === 'flip') { if (tapToReveal(room)) room.flipped = !room.flipped; }
+  else if (type === 'tapToReveal' && typeof on === 'boolean') { room.tapToReveal = on; if (!on) room.flipped = true; }
   else if (type === 'category' && (category === 'All' || CATEGORIES.includes(category))) {
-    room.category = category; room.order = buildOrder(category); room.index = 0; room.flipped = false;
+    room.category = category; room.order = buildOrder(category); room.index = 0; freshCard(room);
   } else if (type === 'favorite') {
     const q = questionText(room.order[room.index]);
     const on = !room.favorites.includes(q);

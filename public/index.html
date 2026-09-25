@@ -128,7 +128,17 @@
   .modes button { flex:1; min-height:38px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
   .modes button.on { background:var(--raise); color:#fff; }
   @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
-  @media (max-width:699px) { body.answer-mode .front .q { font-size:clamp(18px, 5.2vw, 26px); } }
+  .opt { order:6; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:0 4px 0 6px; font-size:13px; color:var(--muted); min-height:32px; }
+  .switch { position:relative; flex:none; width:44px; min-height:0; height:26px; padding:0; border-radius:999px; background:var(--raise); border:1px solid var(--line2); transition:background .2s, border-color .2s; }
+  .switch i { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#d9c8d5; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:transform .2s cubic-bezier(.2,.7,.2,1), background .2s; }
+  .switch[aria-checked="true"] { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; }
+  .switch[aria-checked="true"] i { transform:translateX(18px); background:#fff; }
+  .switch:active { transform:none; }
+  /* Tap to reveal off: cards arrive face up, so the card isn't a button any more. */
+  body.auto-reveal .scene { cursor:default; }
+  .q.swap { animation:swap .35s ease both; }
+  @keyframes swap { from { opacity:0; transform:translateY(4px); } }
+  @media (max-width:699px) and (min-height:521px) { body.answer-mode .front .q { font-size:clamp(18px, 5.2vw, 26px); } }
 
   .scene { order:2; flex:1 1 auto; min-height:200px; max-height:680px; perspective:1600px; display:grid; cursor:pointer; -webkit-user-select:none; user-select:none; border-radius:24px; }
   .scene:focus-visible { outline-offset:4px; }
@@ -271,8 +281,9 @@
     .bar { display:contents; }
     #category { order:1; }
     .modes { order:3; }
-    .answer { order:4; background:var(--bg3); }
-    .controls, body.answer-mode .controls { order:5; margin-top:6px; }
+    .opt { order:4; padding:4px 2px; font-size:14px; color:var(--text); }
+    .answer { order:5; background:var(--bg3); }
+    .controls, body.answer-mode .controls { order:6; margin-top:6px; }
     #share { display:none; }
     #shareTop:not(.hidden) { display:inline-flex; }
     @media (hover:hover) { #shareTop:hover { background:var(--raise); border-color:var(--line2); } }
@@ -280,12 +291,13 @@
     .keys { display:block; order:8; margin-top:2px; text-align:center; font-size:12px; color:var(--muted); line-height:2; }
     .keys kbd { font:600 11px var(--sans); background:var(--bg2); border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 6px; color:var(--text); }
     .keys span { white-space:nowrap; margin:0 6px; }
+    body.auto-reveal .k-flip { display:none; }
   }
   @media (min-width:960px) and (min-height:521px) and (pointer:fine) { .t-touch { display:none; } .t-mouse { display:inline; } }
   @media (min-width:960px) and (min-height:521px) and (pointer:coarse) { .keys { display:none; } }
   @media (min-width:1400px) and (min-height:521px) { :root { --sw:380px; } }
 
-  @media (prefers-reduced-motion:reduce) { .card, button, .panel { transition:none; } .reveal .a { animation:none; } }
+  @media (prefers-reduced-motion:reduce) { .card, button, .panel, .switch i { transition:none; } .reveal .a, .q.swap { animation:none; } }
 </style>
 </head>
 <body>
@@ -397,6 +409,10 @@
         <button id="modeTalk" data-mode="talk">Just talk</button>
         <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
       </div>
+      <div class="opt">
+        <span id="revealLbl">Tap to reveal each card</span>
+        <button class="switch" id="revealSwitch" role="switch" aria-checked="true" aria-labelledby="revealLbl"><i></i></button>
+      </div>
       <div class="answer hidden" id="answer">
         <div id="answerForm" class="stack">
           <textarea id="answerText" maxlength="1000" placeholder="Write your answer…" aria-label="Your answer"></textarea>
@@ -414,7 +430,7 @@
         <select id="category" aria-label="Topic"></select>
         <button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       </div>
-      <div class="keys"><span><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
+      <div class="keys"><span class="k-flip"><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
     </div>
   </div>
 
@@ -596,7 +612,13 @@ function render(s) {
   if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
     $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
-  } else { $('q').textContent = s.card.text; $('card').classList.toggle('flipped', s.flipped); }
+  } else {
+    if (key !== lastKey && lastKey && s.flipped) { const q = $('q'); q.classList.remove('swap'); void q.offsetWidth; q.classList.add('swap'); }
+    $('q').textContent = s.card.text; $('card').classList.toggle('flipped', s.flipped);
+  }
+  $('revealSwitch').setAttribute('aria-checked', String(s.tapToReveal));
+  document.body.classList.toggle('auto-reveal', !s.tapToReveal);
+  $('scene').setAttribute('role', s.tapToReveal ? 'button' : 'group'); $('scene').title = s.tapToReveal ? 'Flip the card' : ''; $('scene').setAttribute('aria-label', s.tapToReveal ? 'Flip the card' : 'Question card'); $('scene').tabIndex = s.tapToReveal ? 0 : -1;
   if (key !== lastKey) $('answerText').value = '';
   lastKey = key;
   renderMode(s, partner[0]);
@@ -628,7 +650,8 @@ const act = body => {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(body));
   else toast('Reconnecting…');
 };
-$('scene').onclick = e => { if (e.target.id !== 'fav') act({ type: 'flip' }); };
+const flip = () => { if (room && room.tapToReveal) act({ type: 'flip' }); };
+$('scene').onclick = e => { if (e.target.id !== 'fav') flip(); };
 $('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
 document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
 $('lockIn').onclick = () => {
@@ -636,6 +659,7 @@ $('lockIn').onclick = () => {
   if (!text) return toast('Write something first');
   act({ type: 'answer', id: clientId, text }); $('answerText').value = '';
 };
+$('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReveal });
 $('next').onclick = () => act({ type: 'next' });
 $('prev').onclick = () => act({ type: 'prev' });
 document.addEventListener('keydown', e => {
@@ -644,7 +668,7 @@ document.addEventListener('keydown', e => {
   if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
   if (t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
   const k = e.key.toLowerCase();
-  if (k === ' ' || k === 'enter') act({ type: 'flip' });
+  if (k === ' ' || k === 'enter') flip();
   else if (k === 'arrowright') act({ type: 'next' });
   else if (k === 'arrowleft') act({ type: 'prev' });
   else if (k === 'f') act({ type: 'favorite' });
