@@ -184,7 +184,34 @@
   .controls .primary { flex:1; }
   .controls .primary .ico { font-size:18px; }
   .bar { order:5; display:flex; gap:var(--gap); flex-shrink:0; }
-  .bar select { flex:1; min-width:0; }
+  .deck-btn { flex:1; min-width:0; justify-content:flex-start; font-weight:500; background:var(--bg3); padding:0 14px; }
+  .deck-btn .ico { font-size:17px; color:var(--accent2); }
+  .deck-btn span:not(.chev) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deck-btn .chev { margin-left:auto; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:rotate(-45deg); flex:none; }
+
+  /* Deck picker: replaces the card and controls until the room starts. */
+  .picker { order:2; flex:0 1 auto; min-height:0; display:flex; flex-direction:column; gap:14px; overflow:hidden; background:var(--bg2); border:1px solid var(--line); border-radius:24px;
+    padding:clamp(16px, 5vw, 24px); box-shadow:0 28px 56px -30px rgba(0,0,0,.7); }
+  body.choosing .scene, body.choosing .side { display:none; }
+  .pick-head h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px, 6vw, 28px); margin:0; line-height:1.2; }
+  .pick-head p { margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.45; }
+  /* Only the list scrolls, so the heading and the Start button stay in view. */
+  .deck-list { display:grid; gap:8px; grid-auto-rows:max-content; align-content:start; flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -4px; padding:0 4px; scrollbar-width:thin; }
+  .deck-row { width:100%; min-height:60px; justify-content:flex-start; text-align:left; gap:14px; padding:12px 14px; background:var(--bg3); border:1px solid var(--line); border-radius:14px; font-weight:500; }
+  .deck-row .chk { flex:none; width:24px; height:24px; border-radius:8px; border:1.5px solid var(--line2); display:grid; place-items:center; color:transparent; transition:background .15s, border-color .15s; }
+  .deck-row .chk .ico { font-size:16px; stroke-width:2.6; }
+  .deck-row[aria-pressed="true"] { border-color:rgba(232,118,111,.55); background:linear-gradient(0deg, rgba(232,118,111,.07), rgba(232,118,111,.07)), var(--bg3); }
+  .deck-row[aria-pressed="true"] .chk { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#2b1320; }
+  .deck-row .txt { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .deck-row b { font-weight:600; font-size:15px; }
+  .deck-row small { color:var(--muted); font-size:13px; line-height:1.35; font-weight:400; }
+  .deck-row .cnt { flex:none; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .deck-row.all { background:transparent; }
+  .deck-row.all b { font-size:16px; }
+  @media (hover:hover) { .deck-row:hover { border-color:var(--line2); } .deck-row[aria-pressed="true"]:hover { border-color:rgba(232,118,111,.8); } }
+  .pick-foot { display:flex; gap:var(--gap); flex-shrink:0; }
+  .pick-foot .ghost { flex:0 0 auto; padding:0 18px; background:var(--bg2); }
+  .pick-foot .primary { flex:1; }
   .bar .ghost .ico { font-size:17px; }
   .keys { display:none; }
   .toast { position:fixed; bottom:max(24px, calc(env(safe-area-inset-bottom) + 12px)); left:50%; transform:translateX(-50%); background:rgba(18,11,20,.94); border:1px solid var(--line);
@@ -207,6 +234,12 @@
     body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; }
     #game { max-width:980px; display:grid; grid-template-columns:minmax(0,1fr) minmax(250px, 42%); grid-template-rows:auto minmax(0,1fr); gap:10px 16px; }
     .top { grid-column:1 / -1; }
+    .picker { grid-column:1 / -1; grid-row:2; }
+    .deck-list { grid-template-columns:1fr 1fr; }
+    .picker { gap:10px; padding:14px 16px; }
+    .pick-head p, .deck-row small { display:none; }
+    .deck-row { min-height:46px; padding:8px 12px; }
+    .deck-row.all { grid-column:1 / -1; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
     .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
     .side > * { flex-shrink:0; }
@@ -263,6 +296,8 @@
     .brand { font-size:24px; }
     .brand .heart-badge { width:32px; height:32px; font-size:16px; border-radius:10px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
+    .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:center; width:min(100%, 640px); max-height:100%; padding:30px; }
+    .deck-row { min-height:66px; }
     .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
     .back::before { inset:14px; border-radius:18px; }
     .front .q { font-size:calc(var(--cw) * .058); }
@@ -279,7 +314,7 @@
     .lbl { display:block; order:var(--o); margin:4px 0 -4px; font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--faint); font-weight:600; }
     .lbl:first-child { margin-top:0; }
     .bar { display:contents; }
-    #category { order:1; }
+    .deck-btn { order:1; width:100%; }
     .modes { order:3; }
     .opt { order:4; padding:4px 2px; font-size:14px; color:var(--text); }
     .answer { order:5; background:var(--bg3); }
@@ -308,6 +343,8 @@
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
     <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.7-4.3L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.3L20 16m0 4v-4h-4"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4.5 7.5v10A3.5 3.5 0 0 0 8 21h8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
 
@@ -402,8 +439,19 @@
         </div>
       </div>
     </div>
+    <section class="picker hidden" id="picker" aria-labelledby="pickTitle">
+      <div class="pick-head">
+        <h2 id="pickTitle">Choose your decks</h2>
+        <p>Pick one, a few, or all of them. Your place in each is saved.</p>
+      </div>
+      <div class="deck-list" id="deckList" role="group" aria-labelledby="pickTitle"></div>
+      <div class="pick-foot">
+        <button class="ghost" id="pickCancel">Back</button>
+        <button class="primary" id="pickGo">Start</button>
+      </div>
+    </section>
     <div class="side">
-      <label class="lbl" for="category" style="--o:0">Topic</label>
+      <span class="lbl" style="--o:0">Decks</span>
       <span class="lbl" style="--o:2">Mode</span>
       <div class="modes" role="group" aria-label="Mode">
         <button id="modeTalk" data-mode="talk">Just talk</button>
@@ -427,7 +475,7 @@
         <button class="primary" id="next">Next question<svg class="ico"><use href="#i-right"/></svg></button>
       </div>
       <div class="bar">
-        <select id="category" aria-label="Topic"></select>
+        <button class="ghost deck-btn" id="decksBtn" aria-label="Choose decks"><svg class="ico"><use href="#i-cards"/></svg><span id="decksLabel">All decks</span><span class="chev" aria-hidden="true"></span></button>
         <button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       </div>
       <div class="keys"><span class="k-flip"><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
@@ -531,14 +579,15 @@ $('shareMyCode').onclick = async () => {
 };
 $('startCouple').onclick = () => {
   couple = true; me = account.name; $('err').textContent = '';
-  openSocket(`/api/couple/ws?token=${encodeURIComponent(token)}`, 'Could not open your room. Please try again.');
+  openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not open your room. Please try again.');
 };
 
 (async function init() {
   try { accounts = (await fetch('/api/config').then(r => r.json())).accounts; } catch {}
   if (!accounts || params.get('room')) return show('guestBox');
-  if (!token) return show('authBox');
-  try { showAccount(await api('/api/me')); } catch (err) { if (token) { show('authBox'); $('err').textContent = err.message; } }
+  // Even without a saved token, the sign-in cookie may still be there.
+  try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
+  catch (err) { show('authBox'); if (token) $('err').textContent = err.message; }
 })();
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
@@ -603,12 +652,12 @@ function render(s) {
   $('partners').innerHTML = together
     ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner[0] || s.partners[1])}</b>`
     : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
-  if (first) $('category').innerHTML = s.categories.map(c => `<option>${c}</option>`).join('');
-  $('category').value = s.category;
+  $('decksLabel').textContent = deckName(s.decks);
+  renderPicker(s, first);
   $('cat').textContent = s.card.category;
   $('num').textContent = `${s.index + 1} / ${s.total}`;
   $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
-  const key = s.category + s.index;
+  const key = s.decks.join('|') + s.index;
   if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
     $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
@@ -644,6 +693,46 @@ function renderMode(s, partnerName = 'your partner') {
     answered ? `Locked in. Waiting for ${partnerName}…` :
     s.partnerAnswered ? `${partnerName} has answered. Your turn.` : `Hidden until you've both answered.`;
 }
+// ---- Deck picker ----
+const DECK_BLURBS = {
+  'Getting Closer': 'Warm, easy questions to open up.',
+  'Who You Are': 'Your past, your values, what shaped you.',
+  'Us & The Future': 'Dreams, plans and the life you are building.',
+  'Honest & Vulnerable': 'The deeper things that are harder to say.',
+  'Light & Playful': 'Fun, silly and nostalgic.',
+};
+const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+let pickSel = new Set(), picking = false;
+function renderPicker(s, first) {
+  // Coming back to a room you've played before (and your partner isn't here yet):
+  // offer the picker first, with "Continue" ready.
+  if (first && s.started && !s.choosing && s.partners.length < 2) act({ type: 'choose', on: true });
+  document.body.classList.toggle('choosing', s.choosing);
+  $('picker').classList.toggle('hidden', !s.choosing);
+  if (!s.choosing) { picking = false; return; }
+  if (!picking) { picking = true; pickSel = new Set(s.decks.length ? s.decks : s.deckList.map(d => d.name)); }
+  $('pickCancel').classList.toggle('hidden', !s.started);
+  const all = s.deckList.length, total = s.deckList.reduce((n, d) => n + d.count, 0);
+  const row = (cls, pressed, name, blurb, count, attrs) =>
+    `<button class="deck-row ${cls}" aria-pressed="${pressed}" ${attrs}><span class="chk"><svg class="ico"><use href="#i-check"/></svg></span>` +
+    `<span class="txt"><b>${escapeHtml(name)}</b>${blurb ? `<small>${escapeHtml(blurb)}</small>` : ''}</span><span class="cnt">${count}</span></button>`;
+  $('deckList').innerHTML = row('all', pickSel.size === all, 'All decks', `${total} questions`, '', 'data-all') +
+    s.deckList.map(d => row('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.count, `data-deck="${escapeHtml(d.name)}"`)).join('');
+  const picked = s.deckList.filter(d => pickSel.has(d.name));
+  const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
+  const saved = s.saved[key];
+  const count = picked.reduce((n, d) => n + d.count, 0);
+  $('pickGo').disabled = !picked.length;
+  $('pickGo').textContent = !picked.length ? 'Pick at least one deck'
+    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : `Start · ${count} questions`;
+}
+$('deckList').onclick = e => {
+  const b = e.target.closest('.deck-row'); if (!b || !room) return;
+  if (b.hasAttribute('data-all')) pickSel = pickSel.size === room.deckList.length ? new Set() : new Set(room.deckList.map(d => d.name));
+  else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
+  renderPicker(room, false);
+};
+
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const act = body => {
@@ -663,7 +752,7 @@ $('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReve
 $('next').onclick = () => act({ type: 'next' });
 $('prev').onclick = () => act({ type: 'prev' });
 document.addEventListener('keydown', e => {
-  if ($('game').classList.contains('hidden') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if ($('game').classList.contains('hidden') || document.body.classList.contains('choosing') || e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
   if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
   if (t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -675,7 +764,9 @@ document.addEventListener('keydown', e => {
   else return;
   e.preventDefault();
 });
-$('category').onchange = e => act({ type: 'category', category: e.target.value });
+$('decksBtn').onclick = () => act({ type: 'choose', on: true });
+$('pickCancel').onclick = () => act({ type: 'choose', on: false });
+$('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel] }); };
 $('share').onclick = $('shareTop').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;
   try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }

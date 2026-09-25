@@ -7,6 +7,8 @@ There are two modes, and either partner can switch between them:
 - **Just talk**: you only see the questions. Good for a call or sitting together.
 - **Answer & reveal**: each of you writes an answer privately, and both answers appear once you've both locked in.
 - **Tap to reveal** (on by default): each new card starts face down until one of you taps it. Turn it off and every card arrives face up; moving to the next card still moves both of you.
+- **Decks**: before you start, pick one deck, a few, or all of them. The room remembers where you are in each set of decks, so switching away and back picks up at the same card. A couple's room keeps this for a year; a guest room for 6 hours.
+- **Staying signed in**: you stay signed in until you log out. Besides the token in local storage, the sign-in lives in an HttpOnly cookie (renewed on every visit) that browsers like Safari don't wipe; the cookie is only accepted for `GET /api/me` and the room WebSocket from the same origin.
 
 **Accounts (optional):** sign up with email and password, then link with your partner once using a 6-letter code. After that you both land in your own private room, and your answers and favorites are saved. Guests can still play with a room code, without saving anything.
 

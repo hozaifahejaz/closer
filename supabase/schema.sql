@@ -80,8 +80,7 @@ declare
 begin
   perform require_server();
   select profile_id into pid from sessions
-  where token_hash = encode(digest(coalesce(p_token, ''), 'sha256'), 'hex')
-    and created_at > now() - interval '180 days';
+  where token_hash = encode(digest(coalesce(p_token, ''), 'sha256'), 'hex');
   if pid is null then raise exception 'Please log in again' using errcode = '28000'; end if;
   return pid;
 end $$;
