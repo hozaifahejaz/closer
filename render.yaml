@@ -5,3 +5,10 @@ services:
     plan: free
     buildCommand: "true"
     startCommand: node server.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CLOSER_DB_KEY
+        sync: false
