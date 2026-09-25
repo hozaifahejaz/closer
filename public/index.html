@@ -14,211 +14,304 @@
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --raise:#3a2640; --card:#fbf3ea; --ink:#2b1d2e; --muted:#a893a9;
-    --text:#f4e9ef; --accent:#e8766f; --accent2:#f3b27a; --rose:#b8527a; --line:#3d2b41; --ok:#7fd6a0; --bad:#ff9a8f;
-    --pad: clamp(12px, 4vw, 20px); --radius:18px;
+    --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --raise:#3a2640; --card:#fbf3ea; --ink:#2b1d2e; --ink2:#8f7a8d;
+    --muted:#a893a9; --faint:#7d6a7e; --text:#f4e9ef; --accent:#e8766f; --accent2:#f3b27a; --rose:#b8527a; --plum:#6d3a78;
+    --line:#3d2b41; --line2:#553d5a; --ok:#7fd6a0; --bad:#ff9a8f;
+    --grad:linear-gradient(150deg,var(--accent),var(--rose) 55%,var(--plum));
+    --pad:clamp(12px, 4vw, 20px); --radius:18px; --gap:10px;
+    --serif:Fraunces,Georgia,"Times New Roman",serif;
+    --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
   * { box-sizing:border-box; }
   html { background:var(--bg); -webkit-text-size-adjust:100%; text-size-adjust:100%; }
-  body { margin:0; min-height:100vh; min-height:100dvh; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--text);
-    -webkit-tap-highlight-color:transparent; -webkit-font-smoothing:antialiased;
-    background: radial-gradient(1200px 600px at 50% -10%, #43263f 0%, transparent 60%), radial-gradient(900px 500px at 100% 110%, #2c1a35 0%, transparent 60%), var(--bg);
+  body { margin:0; min-height:100vh; min-height:100dvh; font-family:var(--sans); color:var(--text); line-height:1.4;
+    -webkit-tap-highlight-color:transparent; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    background:radial-gradient(1200px 600px at 50% -10%, #43263f 0%, transparent 60%), radial-gradient(900px 500px at 100% 110%, #2c1a35 0%, transparent 60%), var(--bg);
     background-attachment:fixed;
     display:flex; flex-direction:column; align-items:center;
-    padding: max(16px, env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left)); }
+    padding:max(16px, env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left)); }
   button, select, a, .scene { touch-action:manipulation; }
   :focus-visible { outline:2px solid var(--accent2); outline-offset:2px; }
   .hidden { display:none !important; }
+  .ico { width:1em; height:1em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ico.fill { fill:currentColor; stroke:none; }
+  .heart-badge { display:grid; place-items:center; background:var(--grad); color:#fff; flex:none; }
 
   /* ---------- Lobby ---------- */
   .lobbyView { width:100%; max-width:1120px; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
   .hero { text-align:center; max-width:520px; }
-  .logo { display:inline-flex; align-items:center; gap:10px; }
-  .logo i { width:34px; height:34px; border-radius:10px; background:linear-gradient(150deg,var(--accent),var(--rose) 55%,#6d3a78); display:grid; place-items:center; font-style:normal; font-size:18px; color:#fff; box-shadow:0 6px 18px -8px var(--accent); }
-  h1 { font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(28px, 7vw, 34px); margin:0; letter-spacing:.3px; }
-  .sub { color:var(--muted); margin:8px auto 0; font-size:clamp(14px, 3.6vw, 15px); line-height:1.5; max-width:34ch; }
-  .perks { display:none; list-style:none; padding:0; margin:22px 0 0; text-align:left; }
-  .perks li { display:flex; gap:12px; align-items:flex-start; color:#dccbd8; line-height:1.5; }
-  .perks li + li { margin-top:12px; }
-  .perks b { color:var(--text); font-weight:600; }
-  .perks span.i { flex:none; width:28px; height:28px; border-radius:9px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-size:14px; }
+  .logo { display:inline-flex; align-items:center; gap:12px; }
+  .logo .heart-badge { width:36px; height:36px; border-radius:11px; font-size:18px; box-shadow:0 8px 22px -8px var(--accent); }
+  h1 { font-family:var(--serif); font-weight:600; font-size:clamp(28px, 7vw, 34px); margin:0; letter-spacing:.2px; line-height:1.1; }
+  .sub { color:var(--muted); margin:10px auto 0; font-size:clamp(14px, 3.6vw, 15px); line-height:1.5; max-width:34ch; }
+  .perks { display:none; list-style:none; padding:0; margin:28px 0 0; text-align:left; }
+  .perks li { display:flex; gap:14px; align-items:flex-start; color:#d9c8d5; line-height:1.5; font-size:15px; }
+  .perks li + li { margin-top:16px; }
+  .perks b { color:var(--text); font-weight:600; display:block; }
+  .perks .i { flex:none; width:36px; height:36px; border-radius:11px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-size:17px; color:var(--accent2); }
   .deck { display:none; }
 
-  .panel { width:100%; max-width:420px; background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:var(--radius); padding:clamp(16px, 5vw, 24px);
-    box-shadow:0 30px 60px -30px rgba(0,0,0,.7); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
-  label { font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
-  input, select, textarea { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit; -webkit-appearance:none; appearance:none; transition:border-color .15s; }
-  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
-  select { background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-    background-position:calc(100% - 20px) 55%, calc(100% - 15px) 55%; background-size:5px 5px; background-repeat:no-repeat; padding-right:36px; }
-  input::placeholder, textarea::placeholder { color:#7d6a7e; }
-  input.code { text-transform:uppercase; letter-spacing:6px; text-align:center; font-weight:600; }
-  button { font-family:inherit; font-size:15px; font-weight:600; border:0; border-radius:12px; padding:12px 16px; cursor:pointer; color:var(--text); transition:transform .08s, filter .15s, background .15s; }
+  .panel { width:100%; max-width:420px; background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:22px; padding:clamp(18px, 5vw, 26px);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    opacity:0; transition:opacity .25s; }
+  .panel.ready { opacity:1; }
+  label, .lbl { font-size:13px; font-weight:500; color:var(--muted); display:block; margin-bottom:7px; }
+  input, select, textarea { width:100%; min-height:46px; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit;
+    -webkit-appearance:none; appearance:none; transition:border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(232,118,111,.18); }
+  select { cursor:pointer; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:calc(100% - 20px) 52%, calc(100% - 15px) 52%; background-size:5px 5px; background-repeat:no-repeat; padding-right:38px; text-overflow:ellipsis; }
+  input::placeholder, textarea::placeholder { color:var(--faint); }
+  input.code { text-transform:uppercase; letter-spacing:.4em; text-indent:.4em; text-align:center; font-weight:600; }
+  input.code::placeholder { letter-spacing:.3em; font-weight:500; }
+  button { font-family:inherit; font-size:15px; font-weight:600; border:0; border-radius:12px; min-height:46px; padding:12px 16px; cursor:pointer; color:var(--text);
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:transform .08s, filter .15s, background .15s, border-color .15s, color .15s; }
   button:active { transform:scale(.98); }
   button:disabled { opacity:.5; cursor:default; }
-  .primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#2b1320; width:100%; box-shadow:0 8px 20px -12px var(--accent); }
+  .primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#2b1320; width:100%; display:flex; box-shadow:0 10px 24px -14px var(--accent); }
   .ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
   @media (hover:hover) {
     .primary:hover { filter:brightness(1.06); }
-    .ghost:hover { background:var(--bg2); border-color:#5a4160; }
+    .ghost:hover { background:var(--bg2); border-color:var(--line2); }
     .link:hover { color:var(--text); }
   }
-  .or { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:12px; margin:16px 0; }
+  .or { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:18px 0; }
   .or::before, .or::after { content:''; flex:1; height:1px; background:var(--line); }
-  .row { display:flex; gap:10px; } .row > * { flex:1; min-width:0; }
-  .row > button { flex:0 0 auto; min-width:88px; }
-  .stack > * + * { margin-top:12px; }
-  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:4px; }
-  .tabs button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; }
-  .tabs button.on { background:var(--raise); color:#fff; }
-  .wide { width:100%; }
-  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; padding:6px; width:100%; text-decoration:underline; text-underline-offset:3px; display:block; text-align:center; }
-  .hello { font-family:Fraunces,Georgia,serif; font-size:22px; text-align:center; margin:4px 0 8px; }
-  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; line-height:1.45; }
-  .hint a, .foot a { color:var(--muted); }
-  .bigcode { display:flex; align-items:center; justify-content:center; font-size:clamp(20px, 7vw, 26px); font-weight:600; letter-spacing:clamp(3px, 1.5vw, 6px); background:var(--bg3); border:1px dashed var(--accent); border-radius:12px; padding:10px; }
-  .err { color:var(--bad); font-size:13px; min-height:18px; margin-top:8px; text-align:center; }
-  .foot { font-size:13px; margin:18px 0 0; color:var(--muted); }
+  .row { display:flex; gap:var(--gap); } .row > * { flex:1; min-width:0; }
+  .row > button { flex:0 0 96px; }
+  .stack > * + * { margin-top:14px; }
+  .stack > .or { margin:18px 0; }
+  .stack > .hint { margin-top:10px; }
+  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:13px; padding:4px; }
+  .tabs button { flex:1; min-height:40px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; }
+  .tabs button.on { background:var(--raise); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.05) inset; }
+  .wide { width:100%; display:flex; }
+  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; min-height:40px; padding:6px; width:100%; text-decoration:underline; text-decoration-color:rgba(168,147,169,.45); text-underline-offset:3px; display:flex; text-align:center; }
+  a.link { align-items:center; justify-content:center; }
+  .stack > .link + .link { margin-top:0; }
+  .hello { font-family:var(--serif); font-size:22px; font-weight:500; text-align:center; margin:2px 0 4px; line-height:1.3; }
+  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; line-height:1.5; }
+  .hint a, .foot a { color:var(--muted); text-underline-offset:2px; }
+  .bigcode { display:flex; align-items:center; justify-content:center; min-height:52px; font-size:clamp(20px, 7vw, 26px); font-weight:600; letter-spacing:.3em; text-indent:.3em; background:var(--bg3); border:1px dashed var(--accent); border-radius:12px; padding:8px; }
+  .err { color:var(--bad); font-size:13px; min-height:18px; margin-top:10px; text-align:center; }
+  .err:empty { margin-top:0; min-height:0; }
+  .foot { font-size:13px; margin:20px 0 0; color:var(--muted); }
   body.in-game .lobbyView, body.in-game .foot { display:none; }
 
   /* ---------- Game ---------- */
   /* Phones: one column that fills exactly one screen; the card takes the space left over. */
   body.in-game { height:100vh; height:100dvh; padding-top:max(10px, env(safe-area-inset-top)); }
-  body.in-game.answer-mode { height:auto; min-height:100dvh; }
-  #game { width:100%; max-width:480px; flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; }
+  body.in-game.answer-mode { height:auto; min-height:100vh; min-height:100dvh; }
+  #game { width:100%; max-width:480px; flex:1; min-height:0; display:flex; flex-direction:column; gap:var(--gap); }
   .side { display:contents; }
-  .top { order:0; display:flex; align-items:center; gap:8px; }
-  .brand { font-family:Fraunces,Georgia,serif; font-weight:600; font-size:20px; margin-right:auto; display:inline-flex; align-items:center; gap:8px; }
-  .brand i { width:26px; height:26px; border-radius:8px; background:linear-gradient(150deg,var(--accent),var(--rose) 55%,#6d3a78); display:grid; place-items:center; font-style:normal; font-size:13px; color:#fff; }
-  .pill { font-size:13px; padding:6px 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex:none; }
-  .pill b { color:#fff; letter-spacing:2px; }
-  .top #partners { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#6b5a6d; margin-right:6px; vertical-align:middle; }
+  .top { order:0; display:flex; align-items:center; gap:8px; min-height:34px; }
+  .brand { font-family:var(--serif); font-weight:600; font-size:20px; margin-right:auto; display:inline-flex; align-items:center; gap:9px; }
+  .brand .heart-badge { width:28px; height:28px; border-radius:9px; font-size:14px; }
+  .pill { font-size:13px; line-height:1; padding:8px 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex:none; display:inline-flex; align-items:center; gap:6px; }
+  .pill b { color:#fff; font-weight:600; letter-spacing:.14em; }
+  .pill b.name { letter-spacing:0; overflow:hidden; text-overflow:ellipsis; }
+  .top #partners { flex:0 1 auto; min-width:0; }
+  .pill-btn { min-height:0; font-weight:600; color:var(--text); cursor:pointer; }
+  #shareTop { display:none; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#6b5a6d; flex:none; }
   .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
-  @media (max-width:380px) { .brand span { display:none; } .pill { padding:6px 10px; font-size:12px; } }
+  .lbl { display:none; }
+  @media (max-width:400px) { .wide-only { display:none; } }
+  @media (max-width:380px) { .brand > span:not(.heart-badge) { display:none; } .pill { padding:7px 10px; font-size:12px; } }
 
-  .modes { order:1; display:flex; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:4px; }
-  .modes button { flex:1; background:transparent; color:var(--muted); padding:9px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
-  @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
+  .modes { order:1; display:flex; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:13px; padding:4px; }
+  .modes button { flex:1; min-height:38px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
   .modes button.on { background:var(--raise); color:#fff; }
+  @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
+  @media (max-width:699px) { body.answer-mode .front .q { font-size:clamp(18px, 5.2vw, 26px); } }
 
-  .scene { order:2; flex:1 1 auto; min-height:200px; max-height:620px; perspective:1400px; cursor:pointer; -webkit-user-select:none; user-select:none; }
-  body.answer-mode .scene { flex:0 0 auto; height:clamp(190px, 34dvh, 320px); }
-  .card { position:relative; width:100%; height:100%; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
+  .scene { order:2; flex:1 1 auto; min-height:200px; max-height:680px; perspective:1600px; display:grid; cursor:pointer; -webkit-user-select:none; user-select:none; border-radius:24px; }
+  .scene:focus-visible { outline-offset:4px; }
+  body.answer-mode .scene { min-height:180px; max-height:none; }
+  /* The scene is a grid so the card stretches to it even when the page height is auto (answer mode). */
+  .card { position:relative; min-width:0; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
   .card.flipped { transform:rotateY(180deg); }
-  .face { position:absolute; inset:0; border-radius:22px; -webkit-backface-visibility:hidden; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:clamp(40px, 8vh, 56px) clamp(20px, 6vw, 44px); text-align:center; box-shadow:0 24px 50px -22px rgba(0,0,0,.7); overflow:hidden; }
-  .back { background:linear-gradient(150deg,#e8766f,#b8527a 55%,#6d3a78); }
-  .back::before { content:''; position:absolute; inset:12px; border:1px solid rgba(255,255,255,.25); border-radius:14px; }
-  .back .mark { font-family:Fraunces,Georgia,serif; font-size:clamp(40px, 10vw, 56px); color:#fff; opacity:.95; }
-  .back .hint { margin-top:10px; font-size:13px; color:#ffe6e6; opacity:.85; }
-  .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); background-image:radial-gradient(600px 300px at 50% 0%, #fff8f0 0%, transparent 70%); }
-  .front .cat { position:absolute; top:22px; left:52px; right:52px; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:var(--rose); font-weight:600; }
-  .front .q { font-family:Fraunces,Georgia,serif; font-size:clamp(20px, 5.4vw, 30px); line-height:1.3; font-weight:500; max-width:24ch; text-wrap:balance; }
-  .front .num { position:absolute; bottom:20px; font-size:12px; color:#9a8599; }
-  .fav { position:absolute; top:12px; right:12px; background:none; border:0; font-size:22px; padding:8px; color:#c9b3c3; line-height:1; }
+  .face { position:absolute; inset:0; border-radius:24px; -webkit-backface-visibility:hidden; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    padding:clamp(52px, 9vh, 64px) clamp(22px, 7vw, 44px); text-align:center; box-shadow:0 28px 56px -26px rgba(0,0,0,.75), 0 2px 6px rgba(0,0,0,.18); overflow:hidden; }
+  .back { background:var(--grad); color:#fff; }
+  .back::before { content:''; position:absolute; inset:12px; border:1px solid rgba(255,255,255,.28); border-radius:16px; }
+  .back::after { content:''; position:absolute; inset:0; background:radial-gradient(420px 260px at 30% 0%, rgba(255,255,255,.18), transparent 70%); pointer-events:none; }
+  .back .mark { font-size:clamp(44px, 12vw, 60px); opacity:.95; }
+  .back .mark .ico { stroke-width:1.4; }
+  .back .tap { margin-top:14px; font-size:13px; font-weight:500; letter-spacing:.02em; color:#ffe6e6; opacity:.9; }
+  .t-mouse { display:none; }
+  .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); background-image:radial-gradient(600px 300px at 50% 0%, #fff9f2 0%, transparent 70%); }
+  /* Front: category, question and count stack in normal flow so a long question on a small card never runs into them. */
+  .face.front { justify-content:flex-start; padding:var(--fy, 24px) var(--fx, clamp(20px, 6vw, 40px)) calc(var(--fy, 24px) - 2px); }
+  .front .cat { margin:0 30px; min-height:16px; font-size:12px; line-height:1.3; text-transform:uppercase; letter-spacing:.16em; color:var(--rose); font-weight:600; }
+  .front .q { font-family:var(--serif); font-size:clamp(21px, 5.6vw, 30px); line-height:1.28; font-weight:500; max-width:22ch; text-wrap:balance; letter-spacing:-.005em; margin:auto 0; padding:14px 0; }
+  .front .num { font-size:12px; color:var(--ink2); font-variant-numeric:tabular-nums; letter-spacing:.04em; }
+  .fav { position:absolute; top:8px; right:8px; min-height:44px; width:44px; padding:0; background:none; border:0; font-size:22px; color:#cdb8c7; border-radius:12px; }
+  .fav .ico { stroke-width:1.8; }
   .fav.on { color:var(--accent); }
+  .fav.on .ico { fill:currentColor; }
   @media (hover:hover) { .fav:hover { color:var(--accent); } }
 
   .answer { order:3; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
-  .answer textarea { min-height:76px; resize:vertical; font:16px/1.45 Inter,system-ui,sans-serif; }
-  .answer .status { font-size:13px; color:var(--muted); margin:10px 0 0; text-align:center; }
-  .answer .mine { font-size:14px; color:var(--text); background:var(--bg3); border-radius:12px; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .answer textarea { min-height:84px; resize:none; font:16px/1.45 var(--sans); display:block; }
+  .answer .status { font-size:13px; color:var(--muted); margin:10px 0 0; text-align:center; line-height:1.4; }
+  .answer .status:empty { display:none; }
+  .answer .mine { font-size:15px; line-height:1.45; color:var(--text); background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .who { font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:var(--rose); font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+  #answerWait .who { color:var(--muted); }
   .reveal { display:grid; gap:10px; }
-  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.45; }
-  .reveal .who { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--rose); font-weight:600; margin-bottom:6px; }
+  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.45; font-size:15px; animation:pop .35s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal .a + .a { animation-delay:.08s; }
+  @keyframes pop { from { opacity:0; transform:translateY(6px) scale(.98); } }
 
-  .controls { order:4; display:flex; gap:10px; flex-shrink:0; }
-  .controls .ghost { flex:0 0 64px; font-size:18px; }
+  .controls { order:4; display:flex; gap:var(--gap); flex-shrink:0; }
+  .controls .ghost { flex:0 0 60px; padding:0; font-size:20px; }
   .controls .primary { flex:1; }
-  .bar { order:5; display:flex; gap:10px; flex-shrink:0; }
-  .bar select { flex:1; min-width:0; padding-top:10px; padding-bottom:10px; }
+  .controls .primary .ico { font-size:18px; }
+  .bar { order:5; display:flex; gap:var(--gap); flex-shrink:0; }
+  .bar select { flex:1; min-width:0; }
+  .bar .ghost .ico { font-size:17px; }
   .keys { display:none; }
-  .toast { position:fixed; bottom:max(20px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#000d; padding:10px 16px; border-radius:10px; font-size:14px; transition:opacity .3s; z-index:10; max-width:calc(100vw - 32px); text-align:center; }
+  .toast { position:fixed; bottom:max(24px, calc(env(safe-area-inset-bottom) + 12px)); left:50%; transform:translateX(-50%); background:rgba(18,11,20,.94); border:1px solid var(--line);
+    padding:11px 18px; border-radius:999px; font-size:14px; font-weight:500; transition:opacity .3s; z-index:10; max-width:calc(100vw - 32px); text-align:center; box-shadow:0 16px 40px -16px rgba(0,0,0,.8); }
 
   /* Short phones (iPhone SE and similar): tighten everything a little. */
   @media (max-height:640px) {
-    #game { gap:8px; }
-    .modes button { padding:7px 8px; }
-    button { padding:10px 14px; }
-    .face { padding:36px 18px; }
+    :root { --gap:8px; }
+    .modes button { min-height:34px; padding:6px 8px; }
+    button, input, select { min-height:42px; }
+    button { padding:9px 14px; }
+    .face { padding:44px 18px; }
+    .front { --fy:18px; }
     .lobbyView { gap:14px; }
     .sub { display:none; }
   }
 
   /* Phones on their side: card on the left, controls on the right. */
   @media (orientation:landscape) and (max-height:520px) {
-    body.in-game, body.in-game.answer-mode { height:100dvh; min-height:0; }
-    #game { max-width:none; display:grid; grid-template-columns:minmax(0,1fr) minmax(260px, 40%); grid-template-rows:auto minmax(0,1fr); gap:10px 14px; }
+    body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; }
+    #game { max-width:980px; display:grid; grid-template-columns:minmax(0,1fr) minmax(250px, 42%); grid-template-rows:auto minmax(0,1fr); gap:10px 16px; }
     .top { grid-column:1 / -1; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
-    .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
-    .face { padding:34px 22px; }
-    .front .q { font-size:clamp(18px, 4.4vh, 24px); }
-    .lobbyView { flex-direction:row; align-items:center; gap:24px; }
-    .hero { text-align:left; flex:1; }
+    .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
+    .side > * { flex-shrink:0; }
+    /* Flexible spacers centre the panel's content, but collapse (instead of clipping the top) when it overflows. */
+    .side::before, .side::after { content:''; flex:1 1 0; margin-top:-8px; }
+    button, input, select { min-height:42px; }
+    .modes button { min-height:34px; }
+    .face { padding:40px 22px; }
+    .front { --fy:16px; }
+    .front .q { font-size:clamp(18px, 4.8vh, 24px); }
+    .answer { padding:10px; } .answer textarea { min-height:64px; }
+    .lobbyView { flex-direction:row; align-items:center; justify-content:center; gap:clamp(20px, 5vw, 48px); }
+    .hero { text-align:left; flex:0 1 300px; }
     .sub { display:block; margin-left:0; }
+    .panel { flex:0 1 400px; }
   }
 
   /* Tablets and up: more room to breathe. */
   @media (min-width:700px) and (min-height:521px) {
-    #game { max-width:560px; justify-content:center; }
-    .scene { max-height:760px; }
+    #game { max-width:580px; justify-content:center; }
+    .scene { max-height:780px; }
+    body.answer-mode .scene { max-height:none; }
     .perks { display:block; }
-    .hero { max-width:460px; }
-    .front .q { font-size:clamp(24px, 3.4vw, 32px); }
+    .hero { max-width:440px; }
+    .front .q { font-size:clamp(26px, 3.6vw, 34px); }
+    .face { padding:72px 56px; }
+    .front { --fy:30px; --fx:56px; }
   }
 
-  /* Desktop: the card on the left, everything else in a side panel on the right. */
+  /* Desktop: the card on the left, a control panel on the right. */
   @media (min-width:960px) and (min-height:521px) {
-    body { padding-left:32px; padding-right:32px; }
-    .lobbyView { flex-direction:row; align-items:center; justify-content:space-between; gap:56px; padding:24px 0; }
-    .hero { text-align:left; flex:1; max-width:560px; }
-    .sub { margin-left:0; font-size:17px; max-width:40ch; }
-    h1 { font-size:44px; }
-    .logo i { width:44px; height:44px; font-size:22px; border-radius:13px; }
-    .deck { display:block; position:relative; height:190px; margin-top:34px; }
-    .deck div { position:absolute; width:250px; height:160px; border-radius:18px; background:var(--card); color:var(--ink); padding:22px 20px; font-family:Fraunces,Georgia,serif; font-size:17px; line-height:1.35; box-shadow:0 24px 40px -22px rgba(0,0,0,.8); }
-    .deck div small { display:block; font-family:Inter,system-ui,sans-serif; font-size:10px; letter-spacing:1.6px; text-transform:uppercase; color:var(--rose); font-weight:600; margin-bottom:10px; }
-    .deck div:nth-child(1) { left:0; top:14px; transform:rotate(-6deg); }
-    .deck div:nth-child(2) { left:170px; top:0; transform:rotate(3deg); z-index:1; }
-    .deck div:nth-child(3) { left:330px; top:22px; transform:rotate(9deg); background:linear-gradient(150deg,#e8766f,#b8527a 55%,#6d3a78); color:#fff; display:grid; place-items:center; font-size:40px; }
-    .panel { flex:none; width:420px; }
+    :root { --sw:360px; --ch:min(calc(100vh - 140px), 800px, calc((100vw - 112px - var(--sw)) * 1.25)); --ch:min(calc(100dvh - 140px), 800px, calc((100vw - 112px - var(--sw)) * 1.25)); --cw:calc(var(--ch) * .8); }
+    body { padding-left:40px; padding-right:40px; }
+    .lobbyView { flex-direction:row; align-items:center; justify-content:center; gap:clamp(48px, 8vw, 120px); padding:24px 0; }
+    .hero { text-align:left; flex:0 1 520px; max-width:520px; }
+    .sub { margin-left:0; font-size:18px; max-width:36ch; }
+    h1 { font-size:48px; }
+    .logo { gap:14px; }
+    .logo .heart-badge { width:48px; height:48px; font-size:24px; border-radius:14px; }
+    .deck { display:block; position:relative; height:210px; margin-top:40px; }
+    .deck > div { position:absolute; top:10px; width:230px; height:180px; border-radius:20px; box-shadow:0 26px 44px -24px rgba(0,0,0,.85); }
+    .deck .cb { background:var(--grad); color:#fff; display:grid; place-items:center; font-size:36px; }
+    .deck .cb::before { content:''; position:absolute; inset:9px; border:1px solid rgba(255,255,255,.28); border-radius:13px; }
+    .deck .cb .ico { stroke-width:1.4; }
+    .deck .c1 { left:10px; transform:rotate(-9deg); opacity:.75; }
+    .deck .c3 { left:190px; transform:rotate(8deg); opacity:.9; }
+    .deck .cf { left:92px; top:0; z-index:1; transform:rotate(-1.5deg); background:var(--card); color:var(--ink); padding:22px; font-family:var(--serif); font-size:19px; line-height:1.3; font-weight:500; }
+    .deck .cf small { display:block; font-family:var(--sans); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--rose); font-weight:600; margin-bottom:12px; }
+    .panel { flex:0 0 420px; }
 
     body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; padding-top:24px; padding-bottom:24px; }
-    #game { max-width:1180px; display:grid; justify-content:center; grid-template-columns:minmax(0, calc((100dvh - 130px) * .82)) 360px; grid-template-rows:auto minmax(0,1fr); gap:18px 28px; }
+    #game { flex:1; width:auto; max-width:none; display:grid; grid-template-columns:var(--cw) var(--sw); grid-template-rows:auto var(--ch); align-content:center; gap:22px 32px; }
     .top { grid-column:1 / -1; }
     .brand { font-size:24px; }
+    .brand .heart-badge { width:32px; height:32px; font-size:16px; border-radius:10px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
-    .face { border-radius:28px; padding:64px 56px; }
-    .front .q { font-size:clamp(28px, 2.6vw, 40px); }
-    .front .cat { top:30px; font-size:13px; }
-    .fav { top:20px; right:22px; font-size:26px; }
-    .side { display:flex; flex-direction:column; justify-content:center; gap:12px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-right:2px; }
-    .keys { display:block; order:99; margin-top:6px; text-align:center; font-size:12px; color:var(--muted); line-height:1.8; }
-    .keys kbd { font:600 11px Inter,system-ui,sans-serif; background:var(--bg2); border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 6px; margin-right:4px; color:var(--text); }
-  }
-  @media (min-width:1400px) and (min-height:521px) { #game { grid-template-columns:minmax(0, calc((100dvh - 130px) * .82)) 400px; } }
+    .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
+    .back::before { inset:14px; border-radius:18px; }
+    .front .q { font-size:calc(var(--cw) * .058); }
+    .front { --fy:32px; --fx:calc(var(--cw) * .1); }
+    .front .cat { font-size:13px; margin:0 40px; }
+    .front .num { font-size:13px; }
+    .fav { top:18px; right:18px; font-size:26px; }
+    .scene:hover .face { box-shadow:0 34px 64px -26px rgba(0,0,0,.8), 0 2px 6px rgba(0,0,0,.18); }
 
-  @media (prefers-reduced-motion:reduce) { .card, button { transition:none; } }
+    .side { display:flex; flex-direction:column; gap:12px; grid-column:2; grid-row:2; align-self:center; max-height:100%; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin;
+      background:rgba(42,28,46,.6); border:1px solid var(--line); border-radius:24px; padding:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+    .side > * { flex-shrink:0; }
+    .side::before, .side::after { display:none; }
+    .lbl { display:block; order:var(--o); margin:4px 0 -4px; font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--faint); font-weight:600; }
+    .lbl:first-child { margin-top:0; }
+    .bar { display:contents; }
+    #category { order:1; }
+    .modes { order:3; }
+    .answer { order:4; background:var(--bg3); }
+    .controls, body.answer-mode .controls { order:5; margin-top:6px; }
+    #share { display:none; }
+    #shareTop:not(.hidden) { display:inline-flex; }
+    @media (hover:hover) { #shareTop:hover { background:var(--raise); border-color:var(--line2); } }
+    .answer { padding:12px; }
+    .keys { display:block; order:8; margin-top:2px; text-align:center; font-size:12px; color:var(--muted); line-height:2; }
+    .keys kbd { font:600 11px var(--sans); background:var(--bg2); border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 6px; color:var(--text); }
+    .keys span { white-space:nowrap; margin:0 6px; }
+  }
+  @media (min-width:960px) and (min-height:521px) and (pointer:fine) { .t-touch { display:none; } .t-mouse { display:inline; } }
+  @media (min-width:960px) and (min-height:521px) and (pointer:coarse) { .keys { display:none; } }
+  @media (min-width:1400px) and (min-height:521px) { :root { --sw:380px; } }
+
+  @media (prefers-reduced-motion:reduce) { .card, button, .panel { transition:none; } .reveal .a { animation:none; } }
 </style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3c-.3 0-.6-.1-.8-.3C6.4 15.8 3 12.8 3 8.9 3 6.2 5.1 4 7.7 4c1.8 0 3.3 1 4.3 2.4C13 5 14.5 4 16.3 4 18.9 4 21 6.2 21 8.9c0 3.9-3.4 6.9-8.2 11.1-.2.2-.5.3-.8.3z"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.7-4.3L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.3L20 16m0 4v-4h-4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  </svg>
+
   <main class="lobbyView">
     <section class="hero">
-      <div class="logo"><i aria-hidden="true">♡</i><h1>Closer</h1></div>
+      <div class="logo"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><h1>Closer</h1></div>
       <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
       <ul class="perks">
-        <li><span class="i" aria-hidden="true">🃏</span><span><b>Always in sync.</b> Flip, skip or change the topic, and your partner sees it instantly.</span></li>
-        <li><span class="i" aria-hidden="true">💬</span><span><b>Just talk, or answer & reveal.</b> Write privately and see each other's answers only when you've both answered.</span></li>
-        <li><span class="i" aria-hidden="true">♡</span><span><b>Your story, saved.</b> With an account, your answers and favorites stay with you.</span></li>
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-sync"/></svg></span><span><b>Always in sync</b>Flip, skip or change the topic, and your partner sees it instantly.</span></li>
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-chat"/></svg></span><span><b>Just talk, or answer &amp; reveal</b>Write privately, then see each other's answers once you've both answered.</span></li>
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-heart"/></svg></span><span><b>Your story, saved</b>With an account, your answers and favorites stay with you.</span></li>
       </ul>
       <div class="deck" aria-hidden="true">
-        <div><small>Getting Closer</small>What's a moment with me you replay in your head when you miss me?</div>
-        <div><small>Us &amp; The Future</small>Where do you picture us in ten years, in as much detail as you can?</div>
-        <div>♡</div>
+        <div class="cb c1"></div>
+        <div class="cb c3"><svg class="ico"><use href="#i-heart"/></svg></div>
+        <div class="cf"><small>Getting Closer</small>What's a moment with me you replay when you miss me?</div>
       </div>
     </section>
 
@@ -228,22 +321,22 @@
     <form id="authBox" class="stack hidden" autocomplete="on">
       <div class="tabs"><button type="button" id="tabSignup" class="on">Sign up</button><button type="button" id="tabLogin">Log in</button></div>
       <div id="nameRow"><label for="authName">Your name</label><input id="authName" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name"></div>
-      <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
+      <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
       <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
       <button class="primary" id="authGo" type="submit">Create account</button>
-      <p class="hint">By signing up you agree to our <a href="/privacy">privacy policy</a>.</p>
+      <p class="hint" id="agree">By signing up you agree to our <a href="/privacy">privacy policy</a>.</p>
       <div class="or">or</div>
       <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
     </form>
 
     <!-- Guest rooms -->
     <div id="guestBox" class="stack hidden">
-      <div><label for="name">Your name</label><input id="name" maxlength="24" placeholder="e.g. Sam"></div>
+      <div><label for="name">Your name</label><input id="name" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name"></div>
       <button class="primary" id="create">Start a new room</button>
       <div class="or">or join your partner</div>
       <div class="row">
-        <input id="joinCode" class="code" maxlength="4" placeholder="CODE">
-        <button class="ghost" id="join" style="flex:0 0 96px">Join</button>
+        <input id="joinCode" class="code" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Room code">
+        <button class="ghost" id="join">Join</button>
       </div>
       <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
     </div>
@@ -251,29 +344,29 @@
     <!-- Signed in, not linked yet -->
     <div id="linkBox" class="stack hidden">
       <p class="hello">Hi <span id="helloName"></span>! Link with your partner</p>
-      <label>Your code: send it to your partner</label>
-      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode" style="flex:0 0 96px">Share</button></div>
+      <div><label>Your code: send it to your partner</label>
+      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode">Share</button></div></div>
       <div class="or">or enter theirs</div>
       <div class="row">
-        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters">
-        <button class="ghost" id="linkGo" style="flex:0 0 96px">Link</button>
+        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Partner's code">
+        <button class="ghost" id="linkGo">Link</button>
       </div>
       <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
-      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
-      <button class="link" type="button" data-logout>Log out</button>
+      <div><a class="link hidden" data-admin href="/admin">Admin dashboard</a>
+      <button class="link" type="button" data-logout>Log out</button></div>
     </div>
 
     <!-- Signed in and linked -->
     <div id="homeBox" class="stack hidden">
-      <p class="hello">You &amp; <span id="partnerName"></span> ♡</p>
+      <p class="hello">You &amp; <span id="partnerName"></span></p>
       <button class="primary" id="startCouple">Open our cards</button>
       <p class="hint">Your answers and favorites are saved to your account.</p>
-      <button class="link" type="button" id="unlink">Unlink partner</button>
-      <a class="link hidden" data-admin href="/admin" style="display:block;text-align:center">Admin dashboard</a>
-      <button class="link" type="button" data-logout>Log out</button>
+      <div><button class="link" type="button" id="unlink">Unlink partner</button>
+      <a class="link hidden" data-admin href="/admin">Admin dashboard</a>
+      <button class="link" type="button" data-logout>Log out</button></div>
     </div>
 
-    <div class="err" id="err"></div>
+    <div class="err" id="err" role="alert"></div>
   </div>
   </main>
   <p class="foot"><a href="/privacy">Privacy policy</a></p>
@@ -281,48 +374,51 @@
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
-      <span class="brand"><i aria-hidden="true">♡</i><span>Closer</span></span>
-      <span class="pill">Room <b id="code"></b></span>
-      <span class="pill" id="partners"><span class="dot"></span>Waiting for partner…</span>
+      <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
+      <span class="pill" id="roomPill">Room <b id="code"></b></span>
+      <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
+      <span class="pill" id="partners"><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></span>
     </div>
-    <div class="scene" id="scene" title="Tap to flip" role="button" aria-label="Flip the card">
+    <div class="scene" id="scene" title="Flip the card" role="button" tabindex="0" aria-label="Flip the card">
       <div class="card" id="card">
-        <div class="face back"><div class="mark">♡</div><div class="hint">Tap to reveal together</div></div>
+        <div class="face back"><div class="mark"><svg class="ico"><use href="#i-heart"/></svg></div><div class="tap"><span class="t-touch">Tap to reveal together</span><span class="t-mouse">Click or press Space to reveal</span></div></div>
         <div class="face front">
           <div class="cat" id="cat"></div>
-          <button class="fav" id="fav" title="Save to favorites" aria-label="Save to favorites">♥</button>
+          <button class="fav" id="fav" title="Save to favorites" aria-label="Save to favorites"><svg class="ico"><use href="#i-heart"/></svg></button>
           <div class="q" id="q"></div>
           <div class="num" id="num"></div>
         </div>
       </div>
     </div>
     <div class="side">
-      <div class="modes" role="tablist">
+      <label class="lbl" for="category" style="--o:0">Topic</label>
+      <span class="lbl" style="--o:2">Mode</span>
+      <div class="modes" role="group" aria-label="Mode">
         <button id="modeTalk" data-mode="talk">Just talk</button>
         <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
       </div>
       <div class="answer hidden" id="answer">
         <div id="answerForm" class="stack">
-          <textarea id="answerText" maxlength="1000" placeholder="Write your answer… your partner sees it once you've both answered"></textarea>
-          <button class="primary" id="lockIn">Lock in my answer</button>
+          <textarea id="answerText" maxlength="1000" placeholder="Write your answer…" aria-label="Your answer"></textarea>
+          <button class="primary" id="lockIn"><svg class="ico"><use href="#i-lock"/></svg>Lock in my answer</button>
         </div>
-        <div id="answerWait" class="hidden"><div class="mine" id="myAnswer"></div></div>
+        <div id="answerWait" class="hidden"><div class="who"><svg class="ico"><use href="#i-lock"/></svg>Your answer</div><div class="mine" id="myAnswer"></div></div>
         <div id="answerReveal" class="reveal hidden"></div>
         <p class="status" id="answerStatus"></p>
       </div>
       <div class="controls">
-        <button class="ghost" id="prev" aria-label="Previous question">←</button>
-        <button class="primary" id="next">Next question</button>
+        <button class="ghost" id="prev" aria-label="Previous question" title="Previous question"><svg class="ico"><use href="#i-left"/></svg></button>
+        <button class="primary" id="next">Next question<svg class="ico"><use href="#i-right"/></svg></button>
       </div>
       <div class="bar">
-        <select id="category" aria-label="Category"></select>
-        <button class="ghost" id="share">Share code</button>
+        <select id="category" aria-label="Topic"></select>
+        <button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       </div>
-      <div class="keys"><kbd>Space</kbd> flip &nbsp; <kbd>←</kbd><kbd>→</kbd> previous / next &nbsp; <kbd>F</kbd> favorite</div>
+      <div class="keys"><span><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
     </div>
   </div>
 
-  <div class="toast hidden" id="toast"></div>
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -341,6 +437,7 @@ if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
 function show(box) {
   for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
   $('err').textContent = '';
+  $('lobby').classList.add('ready');
   clearInterval(linkPoll);
 }
 function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
@@ -376,7 +473,8 @@ let signingUp = true;
 function setAuthTab(signup) {
   signingUp = signup;
   $('tabSignup').classList.toggle('on', signup); $('tabLogin').classList.toggle('on', !signup);
-  $('nameRow').classList.toggle('hidden', !signup);
+  $('nameRow').classList.toggle('hidden', !signup); $('agree').classList.toggle('hidden', !signup);
+  $('password').placeholder = signup ? 'At least 6 characters' : 'Your password';
   $('authGo').textContent = signup ? 'Create account' : 'Log in';
   $('password').autocomplete = signup ? 'new-password' : 'current-password';
   $('err').textContent = '';
@@ -482,11 +580,13 @@ let lastKey = '';
 function render(s) {
   const first = !room; room = s;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
-  $('code').parentElement.innerHTML = s.couple ? '♡ <b id="code">Just us</b>' : `Room <b id="code">${s.code}</b>`;
-  $('share').classList.toggle('hidden', !!s.couple);
+  $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
+  $('share').classList.toggle('hidden', !!s.couple); $('shareTop').classList.toggle('hidden', !!s.couple);
   const partner = s.partners.filter(p => p !== me);
   const together = s.partners.length === 2;
-  $('partners').innerHTML = `<span class="dot ${together ? 'on' : ''}"></span>` + (together ? `With ${escapeHtml(partner[0] || s.partners[1])}` : 'Waiting for partner…');
+  $('partners').innerHTML = together
+    ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner[0] || s.partners[1])}</b>`
+    : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
   if (first) $('category').innerHTML = s.categories.map(c => `<option>${c}</option>`).join('');
   $('category').value = s.category;
   $('cat').textContent = s.card.category;
@@ -520,7 +620,7 @@ function renderMode(s, partnerName = 'your partner') {
     s.revealed ? 'Now talk about it ♡' :
     s.partners.length < 2 ? 'Waiting for your partner to join…' :
     answered ? `Locked in. Waiting for ${partnerName}…` :
-    s.partnerAnswered ? `${partnerName} has answered. Your turn.` : '';
+    s.partnerAnswered ? `${partnerName} has answered. Your turn.` : `Hidden until you've both answered.`;
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -552,7 +652,7 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
 });
 $('category').onchange = e => act({ type: 'category', category: e.target.value });
-$('share').onclick = async () => {
+$('share').onclick = $('shareTop').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;
   try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
   catch { toast(`Code: ${room.code}`); }
