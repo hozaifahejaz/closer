@@ -128,6 +128,7 @@
   .modes button { flex:1; min-height:38px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
   .modes button.on { background:var(--raise); color:#fff; }
   @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
+  @media (max-width:340px) { .pick-opt small { display:none; } }
   .opt { order:6; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:0 4px 0 6px; font-size:13px; color:var(--muted); min-height:32px; }
   .switch { position:relative; flex:none; width:44px; min-height:0; height:26px; padding:0; border-radius:999px; background:var(--raise); border:1px solid var(--line2); transition:background .2s, border-color .2s; }
   .switch i { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#d9c8d5; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:transform .2s cubic-bezier(.2,.7,.2,1), background .2s; }
@@ -196,19 +197,52 @@
   .pick-head h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px, 6vw, 28px); margin:0; line-height:1.2; }
   .pick-head p { margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.45; }
   /* Only the list scrolls, so the heading and the Start button stay in view. */
-  .deck-list { display:grid; gap:8px; grid-auto-rows:max-content; align-content:start; flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -4px; padding:0 4px; scrollbar-width:thin; }
-  .deck-row { width:100%; min-height:60px; justify-content:flex-start; text-align:left; gap:14px; padding:12px 14px; background:var(--bg3); border:1px solid var(--line); border-radius:14px; font-weight:500; }
-  .deck-row .chk { flex:none; width:24px; height:24px; border-radius:8px; border:1.5px solid var(--line2); display:grid; place-items:center; color:transparent; transition:background .15s, border-color .15s; }
-  .deck-row .chk .ico { font-size:16px; stroke-width:2.6; }
-  .deck-row[aria-pressed="true"] { border-color:rgba(232,118,111,.55); background:linear-gradient(0deg, rgba(232,118,111,.07), rgba(232,118,111,.07)), var(--bg3); }
-  .deck-row[aria-pressed="true"] .chk { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#2b1320; }
-  .deck-row .txt { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .deck-row b { font-weight:600; font-size:15px; }
-  .deck-row small { color:var(--muted); font-size:13px; line-height:1.35; font-weight:400; }
-  .deck-row .cnt { flex:none; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
-  .deck-row.all { background:transparent; }
-  .deck-row.all b { font-size:16px; }
-  @media (hover:hover) { .deck-row:hover { border-color:var(--line2); } .deck-row[aria-pressed="true"]:hover { border-color:rgba(232,118,111,.8); } }
+  .deck-list { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px 14px; grid-auto-rows:max-content; align-content:start; flex:0 1 auto; min-height:0;
+    overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
+  /* Each deck is drawn as a small stack of cards: the face, with two cards peeking out behind it. */
+  .tile { --c1:#f08a7e; --c2:#c9486a; --b1:var(--c2); --b2:var(--c2); position:relative; display:block; width:100%; min-height:0; height:clamp(100px, calc((100vh - 460px) / 3), 172px); height:clamp(100px, calc((100dvh - 460px) / 3), 172px); padding:0; border:0; border-radius:16px;
+    background:none; color:#fff; text-align:left; font-weight:500; isolation:isolate; container:tile / size; transition:transform .25s cubic-bezier(.2,.7,.2,1); }
+  .tile::before, .tile::after { content:''; position:absolute; inset:0; z-index:-1; border-radius:16px; box-shadow:0 8px 16px -10px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.1);
+    transition:transform .25s cubic-bezier(.2,.7,.2,1), filter .25s; }
+  .tile::before { background:var(--b1); filter:brightness(.55) saturate(.8); transform:translate(1px,-4px) rotate(2.5deg); }
+  .tile::after { background:var(--b2); filter:brightness(.72) saturate(.85); transform:translate(-1px,-2px) rotate(-2deg); }
+  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; padding:12px; border-radius:16px; overflow:hidden; backface-visibility:visible; transform:none;
+    background:linear-gradient(0deg, rgba(20,8,20,.3), rgba(20,8,20,0) 60%), linear-gradient(155deg, var(--c1), var(--c2));
+    box-shadow:0 16px 28px -16px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.16); transition:filter .25s; }
+  .tile .tf::before { content:''; position:absolute; inset:6px; border:1px solid rgba(255,255,255,.2); border-radius:11px; pointer-events:none; }
+  .tile .top-row { display:flex; justify-content:space-between; align-items:flex-start; }
+  .tile .emb { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.18); font-size:16px; }
+  .tile .emb .ico { stroke-width:1.8; }
+  .tile .chk { width:24px; height:24px; border-radius:50%; border:1.5px solid rgba(255,255,255,.6); display:grid; place-items:center; color:transparent; transition:background .15s, color .15s, border-color .15s; }
+  .tile .chk .ico { font-size:15px; stroke-width:2.8; }
+  .tile .nm { margin-top:auto; font-family:var(--serif); font-weight:600; font-size:clamp(15px, 4.4vw, 18px); line-height:1.15; text-shadow:0 1px 8px rgba(0,0,0,.25); }
+  .tile .bl { display:none; margin-top:4px; font-size:12.5px; line-height:1.35; opacity:.88; }
+  .tile .ct { margin-top:6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; opacity:.85; font-variant-numeric:tabular-nums; }
+  .tile[aria-pressed="true"] { transform:translateY(-3px); }
+  .tile[aria-pressed="true"]::before { transform:translate(6px,-7px) rotate(5deg); }
+  .tile[aria-pressed="true"]::after { transform:translate(-4px,-4px) rotate(-3.5deg); }
+  .tile[aria-pressed="true"] .chk { background:#fff; border-color:#fff; color:var(--c2); }
+  .tile[aria-pressed="false"] .tf, .tile[aria-pressed="false"]::before, .tile[aria-pressed="false"]::after { filter:saturate(.25) brightness(.5); }
+  .tile[aria-pressed="false"] .tf { box-shadow:0 10px 20px -16px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.12); }
+  .tile.spent[aria-pressed="true"] .tf { filter:saturate(.6) brightness(.8); }
+  .tile.all { --c1:#e8766f; --c2:#6d3a78; --b1:linear-gradient(155deg,#4fc2b0,#2a7f8a); --b2:linear-gradient(155deg,#f0b35a,#c46a34); }
+  .tile.all .tf { background:linear-gradient(0deg, rgba(20,8,20,.3), rgba(20,8,20,0) 60%), var(--grad); }
+  .tile[data-deck="Who You Are"] { --c1:#9a7ff0; --c2:#5236a3; }
+  .tile[data-deck="Us & The Future"] { --c1:#eeaa52; --c2:#b35a2a; }
+  .tile[data-deck="Honest & Vulnerable"] { --c1:#c2567a; --c2:#5e1d3c; }
+  .tile[data-deck="Light & Playful"] { --c1:#45bfae; --c2:#23707e; }
+  @media (hover:hover) { .tile:hover { transform:translateY(-4px); } .tile[aria-pressed="false"]:hover .tf { filter:saturate(.45) brightness(.65); } }
+  /* The text inside each deck adapts to the size the deck ends up at. */
+  @container tile (min-height:150px) and (min-width:160px) { .tile .tf { padding:16px; } .tile .nm { font-size:19px; } }
+  @container tile (min-height:169px) and (min-width:160px) { .tile .bl { display:block; } }
+  @container tile (max-height:128px) { .tile .tf { padding:10px; } .tile .emb { width:26px; height:26px; font-size:13px; } .tile .chk { width:22px; height:22px; } .tile .nm { font-size:15px; } .tile .ct { margin-top:4px; font-size:10px; letter-spacing:.05em; } }
+  @container tile (max-height:112px) { .tile .emb { display:none; } .tile .top-row { position:absolute; top:9px; right:9px; } }
+  @container tile (max-height:112px) and (max-width:112px) { .tile .nm { font-size:14px; } }
+  @container tile (max-height:84px) { .tile .tf { padding:8px; } .tile .nm { font-size:12.5px; line-height:1.1; } .tile .ct { font-size:9px; margin-top:3px; } .tile .chk { width:18px; height:18px; } .tile .chk .ico { font-size:12px; } }
+  @container tile (max-width:80px) { .tile .nm { font-size:11.5px; } }
+  .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
+  .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
+  .pick-opt small { color:var(--muted); font-size:12.5px; font-weight:400; }
   .pick-foot { display:flex; gap:var(--gap); flex-shrink:0; }
   .pick-foot .ghost { flex:0 0 auto; padding:0 18px; background:var(--bg2); }
   .pick-foot .primary { flex:1; }
@@ -227,6 +261,8 @@
     .front { --fy:18px; }
     .lobbyView { gap:14px; }
     .sub { display:none; }
+    .pick-head p, .pick-opt small { display:none; }
+    .picker { gap:10px; }
   }
 
   /* Phones on their side: card on the left, controls on the right. */
@@ -235,11 +271,11 @@
     #game { max-width:980px; display:grid; grid-template-columns:minmax(0,1fr) minmax(250px, 42%); grid-template-rows:auto minmax(0,1fr); gap:10px 16px; }
     .top { grid-column:1 / -1; }
     .picker { grid-column:1 / -1; grid-row:2; }
-    .deck-list { grid-template-columns:1fr 1fr; }
     .picker { gap:10px; padding:14px 16px; }
-    .pick-head p, .deck-row small { display:none; }
-    .deck-row { min-height:46px; padding:8px 12px; }
-    .deck-row.all { grid-column:1 / -1; }
+    .pick-head p, .pick-opt small { display:none; }
+    .deck-list { grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; }
+    .tile { height:auto; aspect-ratio:1 / 1; }
+    .pick-opt { padding:6px 10px 6px 12px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
     .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
     .side > * { flex-shrink:0; }
@@ -259,6 +295,8 @@
 
   /* Tablets and up: more room to breathe. */
   @media (min-width:700px) and (min-height:521px) {
+    .deck-list { grid-template-columns:repeat(3, minmax(0,1fr)); gap:22px 18px; }
+    .tile { height:clamp(96px, calc((100vh - 460px) / 2), 200px); height:clamp(96px, calc((100dvh - 460px) / 2), 200px); }
     #game { max-width:580px; justify-content:center; }
     .scene { max-height:780px; }
     body.answer-mode .scene { max-height:none; }
@@ -297,7 +335,7 @@
     .brand .heart-badge { width:32px; height:32px; font-size:16px; border-radius:10px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
     .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:center; width:min(100%, 640px); max-height:100%; padding:30px; }
-    .deck-row { min-height:66px; }
+    .picker { width:min(100%, 720px); }
     .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
     .back::before { inset:14px; border-radius:18px; }
     .front .q { font-size:calc(var(--cw) * .058); }
@@ -345,6 +383,9 @@
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
     <symbol id="i-cards" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4.5 7.5v10A3.5 3.5 0 0 0 8 21h8"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><path d="M3 18.5h18M6.5 18.5a5.5 5.5 0 0 1 11 0M12 5v3M5.3 9.8l2 2M18.7 9.8l-2 2"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5c.6 4.4 2.9 6.9 8.5 8.5-5.6 1.6-7.9 4.1-8.5 8.5-.6-4.4-2.9-6.9-8.5-8.5 5.6-1.6 7.9-4.1 8.5-8.5z"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
 
@@ -445,6 +486,10 @@
         <p>Pick one, a few, or all of them. Your place in each is saved.</p>
       </div>
       <div class="deck-list" id="deckList" role="group" aria-labelledby="pickTitle"></div>
+      <div class="pick-opt hidden" id="freshOpt">
+        <span class="t"><span id="freshLbl">Only cards we haven't seen</span><small id="freshSub"></small></span>
+        <button class="switch" id="freshSwitch" role="switch" aria-checked="false" aria-labelledby="freshLbl"><i></i></button>
+      </div>
       <div class="pick-foot">
         <button class="ghost" id="pickCancel">Back</button>
         <button class="primary" id="pickGo">Start</button>
@@ -652,7 +697,7 @@ function render(s) {
   $('partners').innerHTML = together
     ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner[0] || s.partners[1])}</b>`
     : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
-  $('decksLabel').textContent = deckName(s.decks);
+  $('decksLabel').textContent = deckName(s.decks) + (s.fresh ? ' · new only' : '');
   renderPicker(s, first);
   $('cat').textContent = s.card.category;
   $('num').textContent = `${s.index + 1} / ${s.total}`;
@@ -701,8 +746,10 @@ const DECK_BLURBS = {
   'Honest & Vulnerable': 'The deeper things that are harder to say.',
   'Light & Playful': 'Fun, silly and nostalgic.',
 };
+const DECK_ICONS = { 'Getting Closer': 'i-chat', 'Who You Are': 'i-user', 'Us & The Future': 'i-sun', 'Honest & Vulnerable': 'i-heart', 'Light & Playful': 'i-spark' };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
-let pickSel = new Set(), picking = false;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+let pickSel = new Set(), pickFresh = false, picking = false;
 function renderPicker(s, first) {
   // Coming back to a room you've played before (and your partner isn't here yet):
   // offer the picker first, with "Continue" ready.
@@ -710,28 +757,39 @@ function renderPicker(s, first) {
   document.body.classList.toggle('choosing', s.choosing);
   $('picker').classList.toggle('hidden', !s.choosing);
   if (!s.choosing) { picking = false; return; }
-  if (!picking) { picking = true; pickSel = new Set(s.decks.length ? s.decks : s.deckList.map(d => d.name)); }
+  if (!picking) { picking = true; pickSel = new Set(s.decks.length ? s.decks : s.deckList.map(d => d.name)); pickFresh = s.fresh; }
+  // "Only cards we haven't seen" needs an account: guest rooms don't keep history.
+  const fresh = s.couple && pickFresh;
   $('pickCancel').classList.toggle('hidden', !s.started);
-  const all = s.deckList.length, total = s.deckList.reduce((n, d) => n + d.count, 0);
-  const row = (cls, pressed, name, blurb, count, attrs) =>
-    `<button class="deck-row ${cls}" aria-pressed="${pressed}" ${attrs}><span class="chk"><svg class="ico"><use href="#i-check"/></svg></span>` +
-    `<span class="txt"><b>${escapeHtml(name)}</b>${blurb ? `<small>${escapeHtml(blurb)}</small>` : ''}</span><span class="cnt">${count}</span></button>`;
-  $('deckList').innerHTML = row('all', pickSel.size === all, 'All decks', `${total} questions`, '', 'data-all') +
-    s.deckList.map(d => row('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.count, `data-deck="${escapeHtml(d.name)}"`)).join('');
+  const all = s.deckList.length;
+  const left = d => d.count - d.used;
+  const countLine = (count, unused) => !fresh ? plural(count, 'card', 'cards') : unused ? `${unused} new` : 'All seen';
+  const tile = (cls, pressed, name, blurb, icon, count, unused, attrs) =>
+    `<button class="tile ${cls}${fresh && !unused ? ' spent' : ''}" aria-pressed="${pressed}" ${attrs}><span class="tf">` +
+    `<span class="top-row"><span class="emb"><svg class="ico${icon === 'i-heart' ? ' fill' : ''}"><use href="#${icon}"/></svg></span><span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span>` +
+    `<span class="nm">${escapeHtml(name)}</span>${blurb ? `<span class="bl">${escapeHtml(blurb)}</span>` : ''}<span class="ct">${countLine(count, unused)}</span></span></button>`;
+  const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
+  $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'i-cards', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
+    s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', DECK_ICONS[d.name] || 'i-cards', d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
-  const count = picked.reduce((n, d) => n + d.count, 0);
-  $('pickGo').disabled = !picked.length;
+  const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(s.deckList, d => d.used);
+  $('freshOpt').classList.toggle('hidden', !s.couple);
+  $('freshSwitch').setAttribute('aria-checked', String(fresh));
+  $('freshSub').textContent = seen ? `You've seen ${seen} of ${sum(s.deckList, d => d.count)} so far` : 'Skip cards you two have already seen';
+  $('pickGo').disabled = !picked.length || (fresh && !unused);
   $('pickGo').textContent = !picked.length ? 'Pick at least one deck'
+    : fresh ? (unused ? `Start · ${unused} new` : `You've seen every card here`)
     : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : `Start · ${count} questions`;
 }
 $('deckList').onclick = e => {
-  const b = e.target.closest('.deck-row'); if (!b || !room) return;
+  const b = e.target.closest('.tile'); if (!b || !room) return;
   if (b.hasAttribute('data-all')) pickSel = pickSel.size === room.deckList.length ? new Set() : new Set(room.deckList.map(d => d.name));
   else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
   renderPicker(room, false);
 };
+$('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicker(room, false); };
 
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -766,7 +824,7 @@ document.addEventListener('keydown', e => {
 });
 $('decksBtn').onclick = () => act({ type: 'choose', on: true });
 $('pickCancel').onclick = () => act({ type: 'choose', on: false });
-$('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel] }); };
+$('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel], fresh: Boolean(room.couple && pickFresh) }); };
 $('share').onclick = $('shareTop').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;
   try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }

@@ -14,9 +14,10 @@ function shuffle(a) {
 }
 
 // A room plays one or more decks (categories); no decks chosen means all of them.
-function buildOrder(decks) {
+// `keep` can leave cards out (used for "only cards we haven't seen").
+function buildOrder(decks, keep = () => true) {
   const cats = decks.length ? decks : CATEGORIES;
-  return shuffle(cats.flatMap(c => DECK[c].map((q, i) => ({ c, i }))));
+  return shuffle(cats.flatMap(c => DECK[c].map((q, i) => ({ c, i }))).filter(keep));
 }
 const deckKey = decks => decks.length ? decks.join('|') : 'All';
 const deckLabel = decks => !decks.length ? 'All' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
@@ -47,17 +48,31 @@ export function upgradeRoom(room) {
   return room;
 }
 
+// A card counts as used once it has been shown face up in the room, or either
+// partner has answered it.
+const isUsed = (room, card) => Boolean(room.seen?.[cardKey(card)]) || cardKey(card) in room.answers;
+function markSeen(room) {
+  if (!room.flipped) return;
+  room.seen ||= {};
+  room.seen[cardKey(room.order[room.index])] = true;
+}
+
 // Switches decks, remembering where the room was in the old set and picking
-// up where it left off if it has played the new set before.
-function useDecks(room, decks) {
-  room.progress[deckKey(room.decks)] = { order: room.order, index: room.index };
-  const saved = room.progress[deckKey(decks)];
+// up where it left off if it has played the new set before. With `fresh`, it
+// deals only cards the room hasn't used yet (a fresh deal each time, not saved).
+function useDecks(room, decks, fresh) {
+  if (!room.fresh) room.progress[deckKey(room.decks)] = { order: room.order, index: room.index };
   room.decks = decks;
   room.category = deckLabel(decks);
+  room.fresh = fresh;
+  const saved = !fresh && room.progress[deckKey(decks)];
   if (saved) { room.order = saved.order; room.index = saved.index; }
-  else { room.order = buildOrder(decks); room.index = 0; }
-  delete room.progress[deckKey(decks)];
+  else { room.order = fresh ? buildOrder(decks, c => !isUsed(room, c)) : buildOrder(decks); room.index = 0; }
+  // A fresh deal leaves the saved place in this set alone, to come back to later.
+  if (!fresh) delete room.progress[deckKey(decks)];
 }
+const unusedCount = (room, decks) => (decks.length ? decks : CATEGORIES)
+  .reduce((n, c) => n + DECK[c].filter((q, i) => !isUsed(room, { c, i })).length, 0);
 
 // Rooms saved before the setting existed have no field: treat them as "tap to reveal" on.
 const tapToReveal = room => room.tapToReveal !== false;
@@ -79,13 +94,14 @@ export function publicState(room, players, viewerId) {
   return {
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
-    deckList: CATEGORIES.map(name => ({ name, count: DECK[name].length })),
+    deckList: CATEGORIES.map(name => ({ name, count: DECK[name].length, used: DECK[name].filter((q, i) => isUsed(room, { c: name, i })).length })),
+    fresh: Boolean(room.fresh),
     decks: room.decks,
     choosing: Boolean(room.choosing),
     started: room.started !== false,
     // Where the room is in every set of decks it has played, so the picker can offer "Continue".
     saved: Object.fromEntries([...Object.entries(room.progress).map(([k, p]) => [k, { index: p.index, total: p.order.length }]),
-      [deckKey(room.decks), { index: room.index, total: room.order.length }]]),
+      ...(room.fresh ? [] : [[deckKey(room.decks), { index: room.index, total: room.order.length }]])]),
     index: room.index,
     total: room.order.length,
     flipped: room.flipped,
@@ -102,7 +118,13 @@ export function publicState(room, players, viewerId) {
 
 // Applies one action. Returns false for anything unrecognised, otherwise an
 // object describing what (if anything) should be saved for a couple.
-export function applyAction(room, actorId, isPlayer, { type, category, decks, mode, text, on }) {
+export function applyAction(room, actorId, isPlayer, action) {
+  const result = act(room, actorId, isPlayer, action);
+  if (result) markSeen(room);
+  return result;
+}
+
+function act(room, actorId, isPlayer, { type, category, decks, fresh, mode, text, on }) {
   if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
   else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; freshCard(room); }
   else if (type === 'flip') { if (tapToReveal(room)) room.flipped = !room.flipped; }
@@ -110,12 +132,15 @@ export function applyAction(room, actorId, isPlayer, { type, category, decks, mo
   else if (type === 'decks' && Array.isArray(decks)) {
     const next = cleanDecks(decks);
     if (!next.length && decks.length && decks.length < CATEGORIES.length) return false; // nothing valid picked
-    if (deckKey(next) !== deckKey(room.decks)) { useDecks(room, next); freshCard(room); }
+    // Only couples (accounts) can deal just the cards they haven't used.
+    const onlyNew = fresh === true && Boolean(room.coupleId);
+    if (onlyNew && !unusedCount(room, next)) return false;
+    if (onlyNew || room.fresh || deckKey(next) !== deckKey(room.decks)) { useDecks(room, next, onlyNew); freshCard(room); }
     room.choosing = false;
     room.started = true;
   } else if (type === 'choose' && typeof on === 'boolean') room.choosing = on;
   else if (type === 'category' && (category === 'All' || CATEGORIES.includes(category))) {
-    useDecks(room, category === 'All' ? [] : [category]); freshCard(room);
+    useDecks(room, category === 'All' ? [] : [category], false); freshCard(room);
   } else if (type === 'favorite') {
     const q = questionText(room.order[room.index]);
     const on = !room.favorites.includes(q);
