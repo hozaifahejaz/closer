@@ -6,6 +6,7 @@ Two partners join the same room with a 4-letter code and see the same card at th
 There are two modes, and either partner can switch between them:
 - **Just talk**: you only see the questions. Good for a call or sitting together.
 - **Answer & reveal**: each of you writes an answer privately, and both answers appear once you've both locked in.
+- **Tap to reveal** (on by default): each new card starts face down until one of you taps it. Turn it off and every card arrives face up; moving to the next card still moves both of you.
 
 **Accounts (optional):** sign up with email and password, then link with your partner once using a 6-letter code. After that you both land in your own private room, and your answers and favorites are saved. Guests can still play with a room code, without saving anything.
 
