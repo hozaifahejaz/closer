@@ -68,7 +68,9 @@ export default {
 };
 
 const roomStub = (env, name) => env.ROOMS.get(env.ROOMS.idFromName(name));
-const statsStub = env => env.STATS.get(env.STATS.idFromName('stats'));
+// Live numbers live in one extra object of the same class, under a name no room can have.
+const STATS = '__stats';
+const statsStub = env => roomStub(env, STATS);
 
 // Passes who the player is to the room via headers the browser can't set on its own
 // (the Worker overwrites them on every request).
@@ -148,44 +150,42 @@ async function adminApi(request, url, db, env, token) {
 }
 
 // ---- Live numbers ----
-// One object keeps track of which rooms have people in them right now, and how
+// The stats object keeps track of which rooms have people in them right now, and how
 // many guest rooms are started each day. Rooms report to it as people come and go.
-export class Stats extends DurableObject {
-  async fetch(request) {
-    const url = new URL(request.url);
-    if (url.pathname === '/presence') {
-      const { room, couple, players } = await request.json();
-      if (players > 0) await this.ctx.storage.put(`live:${room}`, { couple, players, at: Date.now() });
-      else await this.ctx.storage.delete(`live:${room}`);
-      return json(200, { ok: true });
-    }
-    if (url.pathname === '/room-created') {
-      const key = `created:${new Date().toISOString().slice(0, 10)}`;
-      await this.ctx.storage.put(key, ((await this.ctx.storage.get(key)) || 0) + 1);
-      return json(200, { ok: true });
-    }
-    if (url.pathname === '/live') {
-      const live = await this.ctx.storage.list({ prefix: 'live:' });
-      const stale = Date.now() - 24 * 3600e3; // a room that never reported leaving
-      let rooms = 0, coupleRooms = 0, people = 0;
-      for (const [key, r] of live) {
-        if (r.at < stale) { await this.ctx.storage.delete(key); continue; }
-        rooms++; if (r.couple) coupleRooms++; people += r.players;
-      }
-      const created = await this.ctx.storage.list({ prefix: 'created:' });
-      const today = new Date().toISOString().slice(0, 10);
-      const week = new Date(Date.now() - 6 * 86400e3).toISOString().slice(0, 10);
-      let guestToday = 0, guestWeek = 0;
-      for (const [key, n] of created) {
-        const day = key.slice(8);
-        if (day === today) guestToday += n;
-        if (day >= week) guestWeek += n;
-        if (day < new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10)) await this.ctx.storage.delete(key);
-      }
-      return json(200, { rooms, coupleRooms, guestRooms: rooms - coupleRooms, people, guestRoomsToday: guestToday, guestRooms7d: guestWeek });
-    }
-    return json(404, { error: 'Not found' });
+async function statsFetch(ctx, request) {
+  const url = new URL(request.url);
+  if (url.pathname === '/presence') {
+    const { room, couple, players } = await request.json();
+    if (players > 0) await ctx.storage.put(`live:${room}`, { couple, players, at: Date.now() });
+    else await ctx.storage.delete(`live:${room}`);
+    return json(200, { ok: true });
   }
+  if (url.pathname === '/room-created') {
+    const key = `created:${new Date().toISOString().slice(0, 10)}`;
+    await ctx.storage.put(key, ((await ctx.storage.get(key)) || 0) + 1);
+    return json(200, { ok: true });
+  }
+  if (url.pathname === '/live') {
+    const live = await ctx.storage.list({ prefix: 'live:' });
+    const stale = Date.now() - 24 * 3600e3; // a room that never reported leaving
+    let rooms = 0, coupleRooms = 0, people = 0;
+    for (const [key, r] of live) {
+      if (r.at < stale) { await ctx.storage.delete(key); continue; }
+      rooms++; if (r.couple) coupleRooms++; people += r.players;
+    }
+    const created = await ctx.storage.list({ prefix: 'created:' });
+    const today = new Date().toISOString().slice(0, 10);
+    const week = new Date(Date.now() - 6 * 86400e3).toISOString().slice(0, 10);
+    let guestToday = 0, guestWeek = 0;
+    for (const [key, n] of created) {
+      const day = key.slice(8);
+      if (day === today) guestToday += n;
+      if (day >= week) guestWeek += n;
+      if (day < new Date(Date.now() - 60 * 86400e3).toISOString().slice(0, 10)) await ctx.storage.delete(key);
+    }
+    return json(200, { rooms, coupleRooms, guestRooms: rooms - coupleRooms, people, guestRoomsToday: guestToday, guestRooms7d: guestWeek });
+  }
+  return json(404, { error: 'Not found' });
 }
 
 // ---- One room ----
@@ -201,6 +201,7 @@ export class Room extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return statsFetch(this.ctx, request);
 
     if (url.pathname === '/create') {
       if (this.room) return json(409, { error: 'Code taken' });
@@ -270,8 +271,7 @@ export class Room extends DurableObject {
   reportPresence() {
     if (!this.room) return;
     const body = JSON.stringify({ room: this.room.code, couple: Boolean(this.room.coupleId), players: this.players().size });
-    this.ctx.waitUntil(this.env.STATS.get(this.env.STATS.idFromName('stats'))
-      .fetch('https://stats/presence', { method: 'POST', body }).catch(() => {}));
+    this.ctx.waitUntil(statsStub(this.env).fetch('https://stats/presence', { method: 'POST', body }).catch(() => {}));
   }
 
   // Only open sockets count: a closing socket may still be listed briefly.
