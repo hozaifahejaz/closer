@@ -9,7 +9,10 @@ import { DurableObject } from 'cloudflare:workers';
 import { randomCode, newRoom, publicState, applyAction } from './game.js';
 import { Db, DbError } from './db.js';
 
-const GUEST_ROOM_TTL = 6 * 3600e3; // guest rooms are forgotten after 6 idle hours
+// Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a week
+// (a couple's room is rebuilt from their saved answers next time they open it).
+const GUEST_ROOM_TTL = 6 * 3600e3;
+const COUPLE_ROOM_TTL = 7 * 86400e3;
 
 const json = (status, obj) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -299,12 +302,14 @@ export class Room extends DurableObject {
 
   async save() {
     await this.ctx.storage.put('room', this.room);
-    if (!this.room.coupleId) await this.ctx.storage.setAlarm(Date.now() + GUEST_ROOM_TTL);
+    await this.ctx.storage.setAlarm(Date.now() + this.ttl());
   }
 
+  ttl() { return this.room?.coupleId ? COUPLE_ROOM_TTL : GUEST_ROOM_TTL; }
+
   async alarm() {
-    // Guest room idle for too long: forget it, unless someone is still in it.
-    if (this.sockets().length) return this.ctx.storage.setAlarm(Date.now() + GUEST_ROOM_TTL);
+    // Idle for too long: forget the room, unless someone is still in it.
+    if (this.sockets().length) return this.ctx.storage.setAlarm(Date.now() + this.ttl());
     this.room = null;
     await this.ctx.storage.deleteAll();
   }
