@@ -184,7 +184,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let room = null, es = null, me = '';
+let room = null, me = '';
 let accounts = false, couple = false, token = null, account = null, linkPoll = null;
 try { token = localStorage.getItem('closer:token'); } catch {}
 let clientId;
@@ -274,9 +274,7 @@ $('shareMyCode').onclick = async () => {
 };
 $('startCouple').onclick = () => {
   couple = true; me = account.name; $('err').textContent = '';
-  es = new EventSource(`/api/couple/events?token=${encodeURIComponent(token)}`);
-  es.onmessage = e => render(JSON.parse(e.data));
-  es.onerror = () => { if (!room) { $('err').textContent = 'Could not open your room. Please try again.'; es.close(); } };
+  openSocket(`/api/couple/ws?token=${encodeURIComponent(token)}`, 'Could not open your room. Please try again.');
 };
 
 (async function init() {
@@ -301,13 +299,30 @@ $('join').onclick = () => {
   connect(code);
 };
 
+// One live connection to the room. Phones drop connections when they sleep or
+// switch networks, so it quietly reconnects; the room keeps its state meanwhile.
+let ws = null, wsPath = null, retry = 0;
+function openSocket(path, failMessage) {
+  wsPath = path;
+  const sock = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`);
+  sock.onopen = () => { retry = 0; };
+  sock.onmessage = e => render(JSON.parse(e.data));
+  sock.onclose = e => {
+    if (sock !== ws) return; // replaced by a newer connection
+    if (e.code === 4000) { toast('Opened on another device'); return; }
+    if (!room) { $('err').textContent = failMessage; return; }
+    setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
+  };
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && room && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
+});
+
 async function connect(code) {
   $('err').textContent = '';
   const check = await fetch(`/api/rooms/${code}`, { method: 'GET' });
   if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
-  es = new EventSource(`/api/rooms/${code}/events?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`);
-  es.onmessage = e => render(JSON.parse(e.data));
-  es.onerror = () => { if (!room) { $('err').textContent = 'Could not join (the room may be full).'; es.close(); } };
+  openSocket(`/api/rooms/${code}/ws?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`, 'Could not join (the room may be full).');
   history.replaceState(null, '', `?room=${code}`);
 }
 
@@ -357,9 +372,10 @@ function renderMode(s, partnerName = 'your partner') {
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-const act = body => couple
-  ? fetch('/api/couple/action', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
-  : fetch(`/api/rooms/${room.code}/action`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const act = body => {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(body));
+  else toast('Reconnecting…');
+};
 $('scene').onclick = e => { if (e.target.id !== 'fav') act({ type: 'flip' }); };
 $('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
 document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
