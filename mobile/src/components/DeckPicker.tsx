@@ -13,6 +13,9 @@ const BLURBS: Record<string, string> = {
   'Us & The Future': 'Dreams, plans and the life you are building.',
   'Honest & Vulnerable': 'The deeper things that are harder to say.',
   'Light & Playful': 'Fun, silly and nostalgic.',
+  'Desire & Intimacy': 'Touch, attraction and feeling wanted.',
+  'Conflict & Repair': 'How you fight, forgive and find your way back.',
+  'Life & Meaning': 'Big questions about life, death and what matters.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -41,11 +44,12 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Decks are upright cards (5:7), three to a row in two rows, sized to whatever height the screen leaves so nothing scrolls.
-  const COLS = 3, ROWS = 2, GAP = width < 360 ? 10 : 14;
-  const cardW = Math.max(60, Math.floor(Math.min((grid.w - GAP * (COLS - 1)) / COLS, ((grid.h - GAP * (ROWS - 1)) / ROWS) * (5 / 7), 190)));
+  // Decks (plus "All decks") are upright cards (5:7), three to a row, sized to whatever height the screen leaves so nothing scrolls.
+  const COLS = 3, ROWS = Math.ceil((list.length + 1) / COLS), GAP = width < 360 ? (ROWS > 2 ? 8 : 10) : ROWS > 2 ? 12 : 14;
+  const cardW = Math.max(50, Math.floor(Math.min((grid.w - GAP * (COLS - 1)) / COLS, ((grid.h - GAP * (ROWS - 1)) / ROWS) * (5 / 7), 190)));
   const cardH = Math.round(cardW * 7 / 5);
 
+  const fan = list.map(d => deckColors(d.name).c1);
   const toggle = (name: string | null) => {
     tap();
     if (name === null) setSel(sel.size === list.length ? new Set() : new Set(list.map(d => d.name)));
@@ -72,7 +76,7 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
         style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: cardW * 0.1, paddingHorizontal: cardW * 0.08 },
           on ? { backgroundColor: colors.card, borderColor: c2 + 'b3' } : st.cardOff, pressed && { transform: [{ scale: 0.97 }] }]}>
         <View style={{ marginBottom: cardW * 0.1, opacity: on ? (spent ? 0.5 : 1) : 0.4 }}>
-          <DeckArt deck={deck} size={cardW * 0.46} dim={!on} spent={spent} />
+          <DeckArt deck={deck} size={cardW * 0.46} dim={!on} spent={spent} fan={fan} />
         </View>
         <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }, !on && { color: colors.muted }]} numberOfLines={2}>{label}</Text>
         <Text style={[st.ct, { fontSize: countSize, color: on ? (spent ? colors.ink2 : c2) : colors.faint }]} numberOfLines={1}>
