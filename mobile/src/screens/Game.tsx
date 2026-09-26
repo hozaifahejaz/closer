@@ -59,7 +59,8 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   const me = conn.name;
   const partner = room.partners.find(p => p !== me) || (room.partners.length === 2 ? room.partners[1] : '');
   const together = room.partners.length === 2;
-  const cardKey = room.decks.join('|') + ':' + room.index;
+  // Includes the question: a fresh deal or a rebuilt room can put a different card at the same place.
+  const cardKey = room.decks.join('|') + ':' + room.index + ':' + (room.card?.text ?? '');
   const answerMode = room.mode === 'answer';
   const wide = width >= 760 && width > height * 1.05;
 
@@ -92,8 +93,8 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   );
 
   const card = (
-    <Card cardKey={cardKey} category={room.card.category} text={room.card.text} position={`${room.index + 1} / ${room.total}`}
-      flipped={room.flipped} tapToReveal={room.tapToReveal} favorite={room.favorites.includes(room.card.text)}
+    <Card cardKey={cardKey} category={room.card?.category ?? ''} text={room.card?.text ?? ''} position={`${room.index + 1} / ${room.total}`}
+      flipped={room.flipped} tapToReveal={room.tapToReveal} favorite={room.favorites.includes(room.card?.text ?? '')}
       onFlip={() => act({ type: 'flip' })} onFavorite={() => act({ type: 'favorite' })} onSwipe={dir => act({ type: dir })} />
   );
 
@@ -187,7 +188,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       <Animated.View pointerEvents="none" style={[st.toast, { opacity: toastOpacity, bottom: insets.bottom + 90 }]}>
         <Text style={st.toastText}>{toast}</Text>
       </Animated.View>
-      <DeckPicker room={room} send={act} />
+      <DeckPicker room={room} send={act} onLeave={() => onLeave()} banner={banner} />
     </View>
   );
 }

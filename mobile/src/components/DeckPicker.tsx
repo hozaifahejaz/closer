@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RoomState } from '../api';
@@ -19,7 +19,7 @@ const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(
 
 // Choosing decks is shared: when one of you opens the picker, it opens for both,
 // and starting deals the same cards to both phones.
-export function DeckPicker({ room, send }: { room: RoomState; send: (a: any) => void }) {
+export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; send: (a: any) => void; onLeave: () => void; banner?: ReactNode }) {
   const { width, height } = useWindowDimensions();
   const [grid, setGrid] = useState({ w: 0, h: 0 });
   const insets = useSafeAreaInsets();
@@ -51,7 +51,8 @@ export function DeckPicker({ room, send }: { room: RoomState; send: (a: any) => 
     if (name === null) setSel(sel.size === list.length ? new Set() : new Set(list.map(d => d.name)));
     else { const next = new Set(sel); next.has(name) ? next.delete(name) : next.add(name); setSel(next); }
   };
-  const close = () => { if (room.started) send({ type: 'choose', on: false }); };
+  // Before the first deal there is no card to go back to, so closing leaves the room.
+  const close = () => { if (room.started) send({ type: 'choose', on: false }); else onLeave(); };
   const start = () => { if (sel.size) send({ type: 'decks', decks: [...sel], fresh }); };
 
   const go = !picked.length ? 'Pick at least one deck'
@@ -95,12 +96,11 @@ export function DeckPicker({ room, send }: { room: RoomState; send: (a: any) => 
             <Text style={[st.title, short && { fontSize: 24 }]} accessibilityRole="header">Choose your decks</Text>
             {short ? null : <Text style={st.sub}>Pick one, a few, or all of them. Your place in each is saved.</Text>}
           </View>
-          {room.started ? (
-            <Pressable onPress={close} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel="Back to the card">
-              <Icon name="close" size={18} color={colors.muted} />
-            </Pressable>
-          ) : null}
+          <Pressable onPress={close} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel={room.started ? 'Back to the card' : 'Leave the room'}>
+            <Icon name="close" size={18} color={colors.muted} />
+          </Pressable>
         </View>
+        {banner}
         <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 16 })}>
           {grid.w ? (
             <View style={[st.cards, { width: cardW * COLS + GAP * (COLS - 1), gap: GAP }]}>
