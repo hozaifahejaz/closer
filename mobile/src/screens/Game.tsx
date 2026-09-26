@@ -122,12 +122,16 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
     </View>
   );
 
+  // The mode switch sits above the card.
+  const modes = (
+    <Segmented value={room.mode} onChange={mode => act({ type: 'mode', mode })}
+      options={[{ value: 'talk', label: 'Just talk' }, { value: 'answer', label: 'Answer & reveal' }]} />
+  );
+
   const side = (
     <View style={{ gap, flexShrink: 1, minHeight: 0 }}>
       {typing ? null : (
         <>
-          <Segmented value={room.mode} onChange={mode => act({ type: 'mode', mode })}
-            options={[{ value: 'talk', label: 'Just talk' }, { value: 'answer', label: 'Answer & reveal' }]} />
           {revealedTight ? null : <View style={st.opt}>
             <Text style={st.optText}>Tap to reveal each card</Text>
             <Toggle on={room.tapToReveal} onChange={on => act({ type: 'tapToReveal', on })} label="Tap to reveal each card" />
@@ -167,13 +171,14 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       {banner}
       {wide ? (
         <View style={[st.wide, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={st.wideCard}>{card}</View>
+          <View style={[st.wideCard, { gap: 12 }]}>{modes}<View style={{ flex: 1 }}>{card}</View></View>
           <View style={st.wideSide}>{side}</View>
         </View>
       ) : (
         // Everything fits the screen: the card takes whatever height is left.
         <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[st.column, { gap, paddingBottom: typing ? 8 : Math.max(insets.bottom, compact ? 10 : 16) }]}>
+            {typing ? null : modes}
             <View style={[st.cardArea, { minHeight: typing || room.revealed ? 90 : 120 }]}>{card}</View>
             {side}
           </View>
