@@ -43,6 +43,16 @@ function withCookie(response, url, token) {
   return r;
 }
 
+// Slows down password guessing, invite-code guessing and room spam. The limiters are
+// Cloudflare rate limiting bindings (see wrangler.jsonc); without them nothing is limited.
+async function tooMany(limiter, ...keys) {
+  if (!limiter) return false;
+  for (const key of keys) if (!(await limiter.limit({ key })).success) return true;
+  return false;
+}
+const clientIp = request => request.headers.get('CF-Connecting-IP') || 'local';
+const slowDown = () => json(429, { error: 'Too many tries. Please wait a minute and try again' });
+
 const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
 
 export default {
@@ -55,6 +65,7 @@ export default {
 
       // ---- Guest rooms ----
       if (url.pathname === '/api/rooms' && request.method === 'POST') {
+        if (await tooMany(env.ROOM_LIMIT, `rooms:${clientIp(request)}`)) return slowDown();
         for (let attempt = 0; attempt < 5; attempt++) {
           const code = randomCode(4);
           const res = await roomStub(env, code).fetch('https://room/create', { method: 'POST', body: JSON.stringify({ code }) });
@@ -107,11 +118,13 @@ function withPlayer(request, { id, name, token = '', couple = '' }) {
 async function accountApi(request, url, db, env) {
   if (url.pathname === '/api/signup' && request.method === 'POST') {
     const { email, password, name } = await readBody(request);
+    if (await tooMany(env.AUTH_LIMIT, `signup:${clientIp(request)}`)) return slowDown();
     const token = await db.rpc('sign_up', { p_email: String(email || ''), p_password: String(password || ''), p_name: String(name || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
   if (url.pathname === '/api/login' && request.method === 'POST') {
     const { email, password } = await readBody(request);
+    if (await tooMany(env.AUTH_LIMIT, `login:${clientIp(request)}`, `login:${String(email || '').trim().toLowerCase()}`)) return slowDown();
     const token = await db.rpc('log_in', { p_email: String(email || ''), p_password: String(password || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
@@ -134,11 +147,15 @@ async function accountApi(request, url, db, env) {
     return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
   }
   if (url.pathname === '/api/link' && request.method === 'POST') {
+    if (await tooMany(env.AUTH_LIMIT, `link:${state.id}`)) return slowDown();
     const partner = await db.rpc('link_partner', { p_token: token, p_code: String((await readBody(request)).code || '') });
     return json(200, { partner });
   }
   if (url.pathname === '/api/unlink' && request.method === 'POST') {
     await db.rpc('unlink_partner', { p_token: token });
+    // Their shared room stays saved (for if they link again), but nobody may stay in it.
+    if (state.couple_id) await roomStub(env, `couple:${state.couple_id}`)
+      .fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ all: true, reason: "You're no longer linked" }) });
     return json(200, { ok: true });
   }
   if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token, state);
@@ -297,8 +314,8 @@ export class Room extends DurableObject {
       return json(200, { ok: true });
     }
     if (url.pathname === '/admin/kick') {
-      const { player } = await request.json();
-      for (const ws of this.ctx.getWebSockets(player)) { try { ws.close(4001, 'You were removed from this room'); } catch {} }
+      const { player, all, reason = 'You were removed from this room' } = await request.json();
+      for (const ws of all ? this.ctx.getWebSockets() : this.ctx.getWebSockets(player)) { try { ws.close(4001, reason); } catch {} }
       this.broadcast();
       this.reportPresence();
       return json(200, { ok: true });
@@ -337,6 +354,7 @@ export class Room extends DurableObject {
   }
 
   async webSocketMessage(ws, message) {
+    if (!this.room) return; // closed a moment ago
     const player = ws.deserializeAttachment();
     let action;
     try { action = JSON.parse(message); } catch { return; }

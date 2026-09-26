@@ -663,7 +663,10 @@ function openSocket(path, failMessage) {
       history.replaceState(null, '', '/');
       document.body.classList.remove('in-game', 'answer-mode');
       $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
-      $('err').textContent = e.reason || 'This room was closed.';
+      const why = e.reason || 'This room was closed.';
+      $('err').textContent = why;
+      // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
+      if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
       return;
     }
     if (!room) { $('err').textContent = failMessage; return; }

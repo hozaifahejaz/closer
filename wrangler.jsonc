@@ -14,11 +14,20 @@
     "SUPABASE_URL": "https://cfdeugfpwqpgmmtdodfc.supabase.co",
     "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmZGV1Z2Zwd3FwZ21tdGRvZGZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTMxNzUsImV4cCI6MjEwNTkyOTE3NX0.jrZP6cVgtB7zYNbsaxBUSJygDf-HMuc7v6LvyhiNY7g"
   },
+  // Limits on sign-up/log-in/partner-code tries and on new guest rooms (see tooMany in worker/index.js).
+  "ratelimits": [
+    { "name": "AUTH_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "ROOM_LIMIT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }
+  ],
   "observability": { "enabled": true },
   // Settings for preview builds of pull requests. Previews don't inherit bindings or
   // vars, and they have no CLOSER_DB_KEY, so accounts are off there (guest rooms work).
   "previews": {
     "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+    "ratelimits": [
+      { "name": "AUTH_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+      { "name": "ROOM_LIMIT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }
+    ],
     "vars": {
       "SUPABASE_URL": "https://cfdeugfpwqpgmmtdodfc.supabase.co",
       "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmZGV1Z2Zwd3FwZ21tdGRvZGZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTMxNzUsImV4cCI6MjEwNTkyOTE3NX0.jrZP6cVgtB7zYNbsaxBUSJygDf-HMuc7v6LvyhiNY7g"
