@@ -70,7 +70,16 @@
     "What do you think I'm naturally good at? Are we good at any of the same things?",
     "How do you think I handle it when things go really wrong?",
     "When you're sick, do you want to be left alone or totally fussed over?",
-    "Are you a hugger? Do you like hugs from everyone, or just a few people?"
+    "Are you a hugger? Do you like hugs from everyone, or just a few people?",
+    "What's a part of you that you hope I never try to change?",
+    "What was the moment you knew you could trust me?",
+    "What has loving me taught you about yourself?",
+    "What do you think I need most right now, even if I haven't said it?",
+    "When did you realize I'd become family to you?",
+    "What's a way I make you feel safe that I probably don't even notice?",
+    "What do you think I see in you that you still can't see in yourself?",
+    "If you could make me feel one thing you feel about me, what would it be?",
+    "If I could see myself through your eyes for one minute, what would you want me to notice?"
   ],
   "Who You Are": [
     "What belief did you hold strongly five years ago that you've since let go of?",
@@ -150,7 +159,8 @@
     "What's the biggest disappointment of your life so far?",
     "What do you think is the best thing about being a guy?",
     "What do you think is the best thing about being a girl?",
-    "Do you think you're a pretty typical guy or girl in how you think and act?"
+    "Do you think you're a pretty typical guy or girl in how you think and act?",
+    "What's one thing about your childhood you really want me to understand?"
   ],
   "Us & The Future": [
     "Where do you picture us in ten years, in as much detail as you can?",
@@ -218,7 +228,11 @@
     "What kind of home do you picture us living in at sixty?",
     "What's something we should do every year, no matter what?",
     "What's a place you want us to see together someday?",
-    "When did you first feel ready for something serious and lasting?"
+    "When did you first feel ready for something serious and lasting?",
+    "What's something you hope I always remember about you, even if you change?",
+    "What's a dream of yours you'd want me to keep believing in, even if you stopped?",
+    "What's one small thing you'd love us to do every day for the rest of our lives?",
+    "What's one thing you want to get better at in how you love me?"
   ],
   "Honest & Vulnerable": [
     "Is there anything you've been wanting to say to me but haven't?",
@@ -286,7 +300,14 @@
     "Is there anyone who makes you feel like you're not good enough?",
     "Which scares you most: being alone, being rejected, or feeling unloved?",
     "If we lost everything, the house, the car, all of it, how would that hit you?",
-    "Do you feel worthy of love? Always, or only on good days?"
+    "Do you feel worthy of love? Always, or only on good days?",
+    "When do you feel like I love the real you, not just the best version of you?",
+    "What's something you're scared I'll stop doing one day?",
+    "What's something you're still learning to let me give you?",
+    "What's a wall you've let down with me that you've never let down for anyone else?",
+    "What's something you've been carrying alone that you'd let me help carry now?",
+    "What's something you've never said to me because you figured I already knew?",
+    "What would you tell me if you knew I'd really listen, without getting defensive?"
   ],
   "Light & Playful": [
     "If we swapped lives for a day, what's the first thing you'd do as me?",
@@ -485,7 +506,11 @@
     "After a big fight, what reminds you that we're still on the same team?",
     "What's a wound from before we met that I sometimes press on without knowing?",
     "What could we do this month to make our next disagreement kinder?",
-    "Be honest, do I nag you? About what?"
+    "Be honest, do I nag you? About what?",
+    "What's something you've forgiven me for that I never even knew about?",
+    "If you could redo one hard moment between us, which would it be and what would you change?",
+    "What do you think we're really good at fixing, and what still needs work?",
+    "What memory of us do you hold on to when things are hard between us?"
   ],
   "Life & Meaning": [
     "What do you think happens when we die, and how does that shape the way you live?",
@@ -538,7 +563,8 @@
     "When have you seen goodness somewhere you didn't expect it?",
     "What would you want a young person to understand about love before they fall into it?",
     "What do you think is the point of us?",
-    "If you had to give a million dollars away, who would get it?"
+    "If you had to give a million dollars away, who would get it?",
+    "What would you miss most about me if I were gone?"
   ],
   "Guess My Answer": [
     "Guess my go-to comfort food on a bad day.",
