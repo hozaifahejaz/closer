@@ -244,6 +244,7 @@
   .tile[data-deck="Dilemmas"] { --c1:#c79a6b; --c2:#7a5230; }
   .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
   .tile[data-deck="Midnight Questions"] { --c1:#6c6fd8; --c2:#2a2c72; }
+  .tile[data-deck="Money & Work"] { --c1:#4fa36b; --c2:#1f5a37; }
   /* Very small cards (small phones held sideways): drop the rule and tighten the type. */
   @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
   /* The tiniest cards (a small phone on its side) keep just the art and the name. */
@@ -763,10 +764,11 @@ const DECK_BLURBS = {
   'Dilemmas': 'Moral what-ifs with no right answer.',
   'Long Distance': 'For missing each other from miles away.',
   'Midnight Questions': 'The strange, big thoughts that come out late at night.',
+  'Money & Work': 'Jobs, ambition, spending and saving.',
 };
 // Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
 const DECK_ART = {
-  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8', '#c79a6b', '#4fb0d6', '#6c6fd8'].map((c, i, a) =>
+  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8', '#c79a6b', '#4fb0d6', '#6c6fd8', '#4fa36b'].map((c, i, a) =>
     `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - (a.length - 1) / 2) * 7})"/>`).join('')],
   'Getting Closer': ['14 12 92 66', '<circle class="tint" cx="48" cy="45" r="25"/><circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
     '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>'],
@@ -804,6 +806,10 @@ const DECK_ART = {
   'Midnight Questions': ['20 14 80 72', '<path class="tint" d="M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z"/><path d="M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z"/>' +
     '<path class="fill" d="M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z"/><path class="fill soft" d="M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z"/>' +
     '<circle class="fill soft" cx="74" cy="46" r="1.6"/><path class="soft" d="M30 82h60"/>'],
+  'Money & Work': ['14 22 94 68', '<path class="tint" d="M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z"/><path d="M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z"/>' +
+    '<path d="M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50"/><rect class="fill" x="42" y="54.5" width="8" height="7" rx="1.5"/>' +
+    '<path class="tint" d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z"/><ellipse cx="89" cy="56" rx="11" ry="4"/><path d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4"/>' +
+    '<path class="soft" d="M18 86h86"/>'],
 };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
