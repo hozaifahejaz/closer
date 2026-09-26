@@ -48,7 +48,7 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const picked = list.filter(d => sel.has(d.name));
   const key = picked.length === list.length ? 'All' : picked.map(d => d.name).join('|');
   const saved = room.saved[key];
-  const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(list, d => d.used);
+  const unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
   // Deck cards are upright (5:7) and sized like the website's picker: four to a row on phones and tablets,
   // six on wide screens, shrinking only until three rows (two on wide screens) fit, never below a minimum.
@@ -79,8 +79,8 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const start = () => { if (sel.size) send({ type: 'decks', decks: [...sel], fresh }); };
 
   const go = !picked.length ? 'Pick at least one deck'
-    : fresh ? (unused ? `Start · ${unused} new` : "You've seen every card here")
-    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : `Start · ${count} questions`;
+    : fresh ? (unused ? 'Start' : "You've seen every card here")
+    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : 'Start';
 
   const tile = (name: string | null, label: string, blurb: string, cards: number, fresh_: number, on: boolean) => {
     const spent = fresh && !fresh_;
