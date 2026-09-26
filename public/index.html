@@ -834,14 +834,14 @@ function renderPicker(s, first) {
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
-  const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(s.deckList, d => d.used);
+  const unused = sum(picked, left), seen = sum(s.deckList, d => d.used);
   $('freshOpt').classList.toggle('hidden', !s.couple);
   $('freshSwitch').setAttribute('aria-checked', String(fresh));
   $('freshSub').textContent = seen ? `You've seen ${seen} of ${sum(s.deckList, d => d.count)} so far` : 'Skip cards you two have already seen';
   $('pickGo').disabled = !picked.length || (fresh && !unused);
   $('pickGo').textContent = !picked.length ? 'Pick at least one deck'
-    : fresh ? (unused ? `Start · ${unused} new` : `You've seen every card here`)
-    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : `Start · ${count} questions`;
+    : fresh ? (unused ? 'Start' : `You've seen every card here`)
+    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : 'Start';
 }
 $('deckList').onclick = e => {
   const b = e.target.closest('.tile'); if (!b || !room) return;
