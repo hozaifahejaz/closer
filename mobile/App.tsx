@@ -20,7 +20,7 @@ import { Lobby } from './src/screens/Lobby';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Boot = { accounts: boolean; token: string | null; account: Account | null; clientId: string; name: string; notice: string };
+type Boot = { accounts: boolean; token: string | null; account: Account | null; clientId: string; name: string; notice: string; guest?: boolean };
 
 // Everything the website does on load: is the server offering accounts, is
 // someone signed in on this phone, and a stable id for guest rooms.
@@ -67,7 +67,8 @@ export default function App() {
   }, [state?.token, state?.account]);
 
   const onPlay = useCallback((c: Connection) => {
-    setState(s => s && { ...s, notice: '', name: c.kind === 'guest' ? c.name : s.name });
+    // Leaving a guest room comes back to the guest screen, not the sign-up form.
+    setState(s => s && { ...s, notice: '', name: c.kind === 'guest' ? c.name : s.name, guest: c.kind === 'guest' });
     setConn(c);
   }, []);
 
@@ -79,7 +80,7 @@ export default function App() {
       ) : conn ? (
         <Game conn={conn} onLeave={onLeave} />
       ) : (
-        <Lobby accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name}
+        <Lobby accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
           notice={state.notice} onSession={onSession} onPlay={onPlay} />
       )}
     </SafeAreaProvider>

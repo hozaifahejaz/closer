@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, AppState, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Account, api, ApiError } from '../api';
@@ -19,12 +19,13 @@ type Props = {
   notice: string; // e.g. "This room was closed", shown once when coming back from a room
   onSession: (token: string | null, account: Account | null) => void;
   onPlay: (conn: Connection) => void;
+  startAsGuest?: boolean; // just left a guest room
 };
 
-export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay }: Props) {
+export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const [guest, setGuest] = useState(!accounts);
+  const [guest, setGuest] = useState(!accounts || !!startAsGuest);
   const [signup, setSignup] = useState(true);
   const [name, setName] = useState(savedName);
   const [email, setEmail] = useState('');
@@ -53,10 +54,25 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   useEffect(() => {
     if (!waitingForPartner || !token) return;
     const t = setInterval(async () => {
-      try { const m = await api<Account>('/api/me', token); if (m.partner) onSession(token, m); } catch {}
+      try { const m = await api<Account>('/api/me', token); if (m.partner) onSession(token, m); }
+      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null); }
     }, 4000);
     return () => clearInterval(t);
   }, [waitingForPartner, token, onSession]);
+
+  // Signed in but Closer couldn't be reached at launch: keep trying quietly, so the
+  // person isn't left looking at the sign-up form as if they'd been logged out.
+  const offline = accounts && !!token && !account;
+  useEffect(() => {
+    if (!offline) return;
+    const retry = async () => {
+      try { onSession(token, await api<Account>('/api/me', token)); }
+      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null); }
+    };
+    const t = setInterval(retry, 8000);
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') retry(); });
+    return () => { clearInterval(t); sub.remove(); };
+  }, [offline, token, onSession]);
 
   const auth = () => run('auth', async () => {
     if (signup && !name.trim()) throw new Error('Add your name first.');
