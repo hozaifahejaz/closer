@@ -41,12 +41,12 @@ temporary override:
 ```bash
 cd mobile
 node -e 'const f="app.json",j=require("./"+f);j.expo.runtimeVersion="exposdk:57.0.0";require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")'
-EXPO_TOKEN=... npx eas-cli@latest update --branch expo-go --environment preview --message "..." --non-interactive
+EXPO_TOKEN=... npx eas-cli@latest update --channel expo-go --environment preview --message "..." --non-interactive
 git checkout app.json
 ```
 
-Open it in Expo Go with `exp://u.expo.dev/<project id>/group/<update group id>`
-(both are printed by `eas update`).
+Expo Go always loads the newest update on that channel from this link:
+`exp://u.expo.dev/f9f9c491-5905-4341-ad96-c1d9b85d48bf?runtime-version=exposdk%3A57.0.0&channel-name=expo-go`
 
 ## Code
 
