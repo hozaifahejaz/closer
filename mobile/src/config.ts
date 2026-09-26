@@ -1,9 +1,11 @@
 import { Platform } from 'react-native';
 
-// The apps talk to the same server (and so the same rooms, accounts and saved
-// answers) as the website. On web (only used for previews) the page is served
-// from the server itself, so it uses its own address.
-const LIVE = 'https://closer.hozaiphaa.workers.dev';
+// Experiments build: the app talks to the preview server built from the
+// `experiments` branch, never the live one. Previews have no database key, so
+// accounts are off there and only guest rooms work; no live data is touched.
+// On web (only used for previews) the page is served from the server itself,
+// so it uses its own address.
+const LIVE = 'https://experiments-closer.hozaiphaa.workers.dev';
 
 export const SERVER = Platform.OS === 'web' && typeof location !== 'undefined' ? location.origin : LIVE;
 export const WEBSITE = LIVE;
