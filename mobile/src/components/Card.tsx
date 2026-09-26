@@ -75,7 +75,8 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
   };
 
   // Bigger type on bigger cards, a little smaller for long questions.
-  const base = Math.max(21, Math.min(34, size.w * 0.074, size.h * 0.07));
+  const base = Math.max(17, Math.min(34, size.w * 0.074, size.h * 0.085));
+  const small = size.h < 260; // a short card while answering: tighter padding
   const qSize = shown.text.length > 110 ? base * 0.86 : shown.text.length > 80 ? base * 0.93 : base;
 
   return (
@@ -96,25 +97,26 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
             <LinearGradient colors={cardGradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 1 }} style={StyleSheet.absoluteFill} />
             <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']} start={{ x: 0.3, y: 0 }} end={{ x: 0.5, y: 0.6 }} style={StyleSheet.absoluteFill} />
             <View style={st.inset} />
-            <View><Icon name="heart" size={Math.min(64, size.w * 0.16)} color="#fff" strokeWidth={1.4} /></View>
-            <Text style={st.tap}>Tap to reveal together</Text>
+            <View><Icon name="heart" size={Math.min(64, size.w * 0.16, size.h * 0.3)} color="#fff" strokeWidth={1.4} /></View>
+            {size.h > 120 ? <Text style={st.tap}>Tap to reveal together</Text> : null}
           </View>
         </Animated.View>
 
         <Animated.View style={[st.face, frontStyle]} pointerEvents={flipped ? 'box-none' : 'none'}>
-          <View style={[st.clip, st.front]}>
+          <View style={[st.clip, st.front, small && { paddingTop: 14, paddingBottom: 12 }]}>
             <LinearGradient colors={[colors.cardGlow, colors.card]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.6 }} style={StyleSheet.absoluteFill} />
             <Text style={st.cat} numberOfLines={1}>{shown.category}</Text>
-            <Animated.View style={[st.qWrap, {
+            <Animated.View style={[st.qWrap, small && { marginHorizontal: 16, paddingVertical: 4 }, {
               opacity: swap,
               transform: [{ translateY: swap.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
             }]}>
-              <Text style={[st.q, { fontSize: qSize, lineHeight: qSize * 1.28 }]} accessibilityRole="header">{shown.text}</Text>
+              <Text style={[st.q, { fontSize: qSize, lineHeight: qSize * 1.28 }]} accessibilityRole="header"
+                numberOfLines={8} adjustsFontSizeToFit minimumFontScale={0.6}>{shown.text}</Text>
             </Animated.View>
             <Text style={st.num}>{shown.position}</Text>
-            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onFavorite(); }} hitSlop={8} style={st.fav}
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onFavorite(); }} hitSlop={8} style={[st.fav, small && { top: 2, right: 2, width: 38, height: 38 }]}
               accessibilityRole="button" accessibilityLabel={favorite ? 'Remove from favorites' : 'Save to favorites'} accessibilityState={{ selected: favorite }}>
-              <Icon name="heart" size={24} color={favorite ? colors.accent : '#cdb8c7'} fill={favorite} />
+              <Icon name="heart" size={small ? 20 : 24} color={favorite ? colors.accent : '#cdb8c7'} fill={favorite} />
             </Pressable>
           </View>
         </Animated.View>
@@ -124,7 +126,7 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
 }
 
 const st = StyleSheet.create({
-  wrap: { flex: 1, width: '100%', minHeight: 240 },
+  wrap: { flex: 1, width: '100%' },
   face: { ...StyleSheet.absoluteFill, borderRadius: radius.card, backgroundColor: colors.bg2,
     shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 24, shadowOffset: { width: 0, height: 18 }, elevation: 10 },
   clip: { flex: 1, borderRadius: radius.card, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
@@ -132,7 +134,7 @@ const st = StyleSheet.create({
   tap: { marginTop: 14, fontFamily: fonts.sansMedium, fontSize: 13, letterSpacing: 0.3, color: '#ffe6e6', opacity: 0.92 },
   front: { justifyContent: 'flex-start', paddingTop: 24, paddingBottom: 20, paddingHorizontal: 26, backgroundColor: colors.card },
   cat: { marginHorizontal: 34, fontFamily: fonts.sansBold, fontSize: 12, letterSpacing: 1.9, textTransform: 'uppercase', color: colors.rose, textAlign: 'center' },
-  qWrap: { flex: 1, justifyContent: 'center', paddingVertical: 12, maxWidth: 520 },
+  qWrap: { flex: 1, minHeight: 0, justifyContent: 'center', paddingVertical: 8, maxWidth: 520 },
   q: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center', letterSpacing: -0.1 },
   num: { fontFamily: fonts.sans, fontSize: 12, color: colors.ink2, letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   fav: { position: 'absolute', top: 8, right: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Action } from '../api';
 import { WEBSITE } from '../config';
 import { colors, fonts, radius } from '../theme';
 import { Connection, useRoom } from '../useRoom';
+import { useKeyboardVisible } from '../useKeyboard';
 import { AnswerPanel } from '../components/AnswerPanel';
 import { Card } from '../components/Card';
 import { DeckPicker } from '../components/DeckPicker';
@@ -19,7 +20,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   const { width, height } = useWindowDimensions();
   const [toast, setToast] = useState('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
-  const scroll = useRef<ScrollView>(null);
+  const keyboard = useKeyboardVisible();
   const first = useRef(true);
 
   const say = useCallback((msg: string) => {
@@ -96,31 +97,54 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       onFlip={() => act({ type: 'flip' })} onFavorite={() => act({ type: 'favorite' })} onSwipe={dir => act({ type: dir })} />
   );
 
+  // Short phones fold the two bottom rows into one; while typing an answer, only the card and the answer stay.
+  const compact = height < 760;
+  const typing = keyboard && answerMode;
+  // Once both answers are showing on a short phone, they get the room the switch row would take.
+  const revealedTight = compact && answerMode && !!room.revealed;
+  const gap = compact ? 10 : 12;
+  const decksButton = (
+    <Pressable onPress={() => { tap(); act({ type: 'choose', on: true }); }}
+      style={({ pressed }) => [st.deckBtn, compact && st.iconBtn, pressed && { opacity: 0.85 }]}
+      accessibilityRole="button" accessibilityLabel={`Choose decks. Now playing ${deckName(room.decks)}`}>
+      <Icon name="cards" size={18} color={colors.accent2} />
+      {compact ? null : <Text numberOfLines={1} style={st.deckText}>{deckName(room.decks)}{room.fresh ? ' · new only' : ''}</Text>}
+      {compact ? null : <View style={st.chev} />}
+    </Pressable>
+  );
+  const btnH = compact ? { minHeight: 48 } : null;
+  const nav = (
+    <View style={st.row}>
+      <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={() => act({ type: 'prev' })} style={[{ width: compact ? 48 : 56, paddingHorizontal: 0 }, btnH]} />
+      <Button title={compact ? 'Next' : 'Next question'} accessibilityLabel="Next question" iconRight="right" onPress={() => act({ type: 'next' })} style={[{ flex: 1 }, btnH]} />
+      {compact ? decksButton : null}
+      {compact && !room.couple ? <Button kind="ghost" title="" icon="share" accessibilityLabel="Invite your partner" onPress={invite} style={[st.iconBtn, btnH]} /> : null}
+    </View>
+  );
+
   const side = (
-    <View style={{ gap: 12 }}>
-      <Segmented value={room.mode} onChange={mode => act({ type: 'mode', mode })}
-        options={[{ value: 'talk', label: 'Just talk' }, { value: 'answer', label: 'Answer & reveal' }]} />
-      <View style={st.opt}>
-        <Text style={st.optText}>Tap to reveal each card</Text>
-        <Toggle on={room.tapToReveal} onChange={on => act({ type: 'tapToReveal', on })} label="Tap to reveal each card" />
-      </View>
+    <View style={{ gap, flexShrink: 1, minHeight: 0 }}>
+      {typing ? null : (
+        <>
+          <Segmented value={room.mode} onChange={mode => act({ type: 'mode', mode })}
+            options={[{ value: 'talk', label: 'Just talk' }, { value: 'answer', label: 'Answer & reveal' }]} />
+          {revealedTight ? null : <View style={st.opt}>
+            <Text style={st.optText}>Tap to reveal each card</Text>
+            <Toggle on={room.tapToReveal} onChange={on => act({ type: 'tapToReveal', on })} label="Tap to reveal each card" />
+          </View>}
+        </>
+      )}
       {answerMode ? (
-        <AnswerPanel room={room} cardKey={cardKey} partnerName={partner || 'your partner'} onLockIn={text => act({ type: 'answer', text })}
-          onFocus={() => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 250)} />
+        <AnswerPanel room={room} cardKey={cardKey} partnerName={partner || 'your partner'} compact={compact || typing}
+          onLockIn={text => act({ type: 'answer', text })} />
       ) : null}
-      <View style={st.row}>
-        <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={() => act({ type: 'prev' })} style={{ width: 56, paddingHorizontal: 0 }} />
-        <Button title="Next question" iconRight="right" onPress={() => act({ type: 'next' })} style={{ flex: 1 }} />
-      </View>
-      <View style={st.row}>
-        <Pressable onPress={() => { tap(); act({ type: 'choose', on: true }); }} style={({ pressed }) => [st.deckBtn, pressed && { opacity: 0.85 }]}
-          accessibilityRole="button" accessibilityLabel={`Choose decks. Now playing ${deckName(room.decks)}`}>
-          <Icon name="cards" size={18} color={colors.accent2} />
-          <Text numberOfLines={1} style={st.deckText}>{deckName(room.decks)}{room.fresh ? ' · new only' : ''}</Text>
-          <View style={st.chev} />
-        </Pressable>
-        {!room.couple ? <Button kind="ghost" title="Invite" icon="share" onPress={invite} /> : null}
-      </View>
+      {typing ? null : nav}
+      {typing || compact ? null : (
+        <View style={st.row}>
+          {decksButton}
+          {!room.couple ? <Button kind="ghost" title="Invite" icon="share" onPress={invite} /> : null}
+        </View>
+      )}
     </View>
   );
 
@@ -144,17 +168,15 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       {wide ? (
         <View style={[st.wide, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={st.wideCard}>{card}</View>
-          <ScrollView style={st.wideSide} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 8 }} keyboardShouldPersistTaps="handled">
-            {side}
-          </ScrollView>
+          <View style={st.wideSide}>{side}</View>
         </View>
       ) : (
+        // Everything fits the screen: the card takes whatever height is left.
         <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView ref={scroll} contentContainerStyle={[st.column, { paddingBottom: Math.max(insets.bottom, 16) }]}
-            keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={answerMode}>
-            <View style={[st.cardArea, { minHeight: answerMode ? Math.min(360, height * 0.4) : Math.min(520, height * 0.46) }]}>{card}</View>
+          <View style={[st.column, { gap, paddingBottom: typing ? 8 : Math.max(insets.bottom, compact ? 10 : 16) }]}>
+            <View style={[st.cardArea, { minHeight: typing || room.revealed ? 90 : 120 }]}>{card}</View>
             {side}
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       )}
       <Animated.View pointerEvents="none" style={[st.toast, { opacity: toastOpacity, bottom: insets.bottom + 90 }]}>
@@ -183,11 +205,12 @@ const st = StyleSheet.create({
     borderRadius: 12, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line },
   bannerText: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.soft, flexShrink: 1 },
   bannerBtn: { fontFamily: fonts.sansBold, fontSize: 13, color: colors.accent2 },
-  column: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 6, gap: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  column: { flex: 1, paddingHorizontal: 16, paddingTop: 4, width: '100%', maxWidth: 560, alignSelf: 'center' },
   cardArea: { flex: 1 },
   wide: { flex: 1, flexDirection: 'row', gap: 28, paddingHorizontal: 28, paddingTop: 8, maxWidth: 1280, width: '100%', alignSelf: 'center' },
   wideCard: { flex: 1.25, maxWidth: 720 },
-  wideSide: { flex: 1, maxWidth: 400 },
+  wideSide: { flex: 1, maxWidth: 400, justifyContent: 'center' },
+  iconBtn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: 48, minHeight: 48, paddingHorizontal: 0, justifyContent: 'center', gap: 0 },
   opt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 4 },
   optText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.soft },
   row: { flexDirection: 'row', gap: 10 },

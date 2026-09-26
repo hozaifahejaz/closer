@@ -111,47 +111,50 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   };
 
   const wide = width >= 820;
+  // Short screens drop field labels (the placeholders say the same) and tighten spacing, so every view fits without scrolling.
+  const compact = height < 720 && !wide;
+  const [heroH, setHeroH] = useState(0);
   const view = account ? (account.partner ? 'home' : 'link') : guest ? 'guest' : 'auth';
 
   const panel = (
-    <View style={st.panel}>
+    <View style={[st.panel, compact && { padding: 16 }]}>
       {view === 'auth' && (
-        <View style={st.stack}>
+        <View style={[st.stack, compact && { gap: 10 }]}>
           <Segmented value={signup ? 'signup' : 'login'} onChange={v => { setSignup(v === 'signup'); setErr(''); }}
             options={[{ value: 'signup', label: 'Sign up' }, { value: 'login', label: 'Log in' }]} />
-          {signup ? <Field label="Your name" value={name} onChangeText={setName} maxLength={24} placeholder="e.g. Sam" autoComplete="given-name"
+          {signup ? <Field label={compact ? undefined : 'Your name'} value={name} onChangeText={setName} maxLength={24} placeholder={compact ? 'Your name' : 'e.g. Sam'} inputStyle={compact && st.inputCompact} autoComplete="given-name"
             textContentType="givenName" returnKeyType="next" onSubmitEditing={() => mail.current?.focus()} /> : null}
           <View>
-            <Text style={st.label}>Email</Text>
-            <TextInput ref={mail} value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none"
+            {compact ? null : <Text style={st.label}>Email</Text>}
+            <TextInput ref={mail} value={email} onChangeText={setEmail} placeholder={compact ? 'Email' : 'you@example.com'} keyboardType="email-address" autoCapitalize="none"
               autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="next" onSubmitEditing={() => pw.current?.focus()}
-              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={st.input} />
+              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]} />
           </View>
           <View>
-            <Text style={st.label}>Password</Text>
-            <TextInput ref={pw} value={password} onChangeText={setPassword} secureTextEntry placeholder={signup ? 'At least 6 characters' : 'Your password'}
+            {compact ? null : <Text style={st.label}>Password</Text>}
+            <TextInput ref={pw} value={password} onChangeText={setPassword} secureTextEntry placeholder={signup ? (compact ? 'Password (6+ characters)' : 'At least 6 characters') : (compact ? 'Password' : 'Your password')}
               autoComplete={signup ? 'new-password' : 'current-password'} textContentType={signup ? 'newPassword' : 'password'} returnKeyType="go" onSubmitEditing={auth}
-              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={st.input} />
+              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]} />
           </View>
-          <Button title={signup ? 'Create account' : 'Log in'} onPress={auth} busy={busy === 'auth'} />
+          <Button title={signup ? 'Create account' : 'Log in'} onPress={auth} busy={busy === 'auth'} style={compact && st.btnCompact} />
           {signup ? (
             <Text style={st.hint}>By signing up you agree to our{' '}
               <Text style={st.a} onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} accessibilityRole="link">privacy policy</Text>.</Text>
           ) : null}
           <Or>or</Or>
-          <Button kind="ghost" title="Play as a guest" onPress={() => { setGuest(true); setErr(''); }} />
+          <Button kind="ghost" title="Play as a guest" onPress={() => { setGuest(true); setErr(''); }} style={compact && st.btnCompact} />
         </View>
       )}
 
       {view === 'guest' && (
-        <View style={st.stack}>
-          <Field label="Your name" value={name} onChangeText={setName} maxLength={24} placeholder="e.g. Sam" autoComplete="given-name" textContentType="givenName" />
-          <Button title="Start a new room" onPress={create} busy={busy === 'create'} />
+        <View style={[st.stack, compact && { gap: 10 }]}>
+          <Field label={compact ? undefined : 'Your name'} value={name} onChangeText={setName} maxLength={24} placeholder={compact ? 'Your name' : 'e.g. Sam'} inputStyle={compact && st.inputCompact} autoComplete="given-name" textContentType="givenName" />
+          <Button title="Start a new room" onPress={create} busy={busy === 'create'} style={compact && st.btnCompact} />
           <Or>or join your partner</Or>
           <View style={st.row}>
             <TextInput value={joinCode} onChangeText={t => setJoinCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={4} placeholder="CODE"
               autoCapitalize="characters" autoCorrect={false} returnKeyType="join" onSubmitEditing={join} accessibilityLabel="Room code"
-              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, st.code]} />
+              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
             <Button kind="ghost" title="Join" onPress={join} busy={busy === 'join'} style={{ minWidth: 92 }} />
           </View>
           {accounts ? <Button kind="link" title="Sign up or log in instead" onPress={() => { setGuest(false); setErr(''); }} /> : null}
@@ -159,7 +162,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       )}
 
       {view === 'link' && account && (
-        <View style={st.stack}>
+        <View style={[st.stack, compact && { gap: 10 }]}>
           <Text style={st.hello}>Hi {account.name}! Link with your partner</Text>
           <View>
             <Text style={st.label}>Your code: send it to your partner</Text>
@@ -172,7 +175,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           <View style={st.row}>
             <TextInput value={partnerCode} onChangeText={t => setPartnerCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={6} placeholder="CODE"
               autoCapitalize="characters" autoCorrect={false} returnKeyType="done" onSubmitEditing={linkPartner} accessibilityLabel="Partner's code"
-              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, st.code]} />
+              placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
             <Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} style={{ minWidth: 92 }} />
           </View>
           <Text style={st.hint}>You only do this once. After that you'll always land in your shared room.</Text>
@@ -181,7 +184,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       )}
 
       {view === 'home' && account?.partner && (
-        <View style={st.stack}>
+        <View style={[st.stack, compact && { gap: 10 }]}>
           <View style={st.couple}>
             <View style={st.avatars}>
               <View style={st.avatar}><Text style={st.avatarText}>{account.name.slice(0, 1).toUpperCase()}</Text></View>
@@ -189,7 +192,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
             </View>
             <Text style={st.hello}>You & {account.partner.name}</Text>
           </View>
-          <Button title="Open our cards" iconRight="right" onPress={() => onPlay({ kind: 'couple', token: token!, name: account.name })} />
+          <Button title="Open our cards" iconRight="right" onPress={() => onPlay({ kind: 'couple', token: token!, name: account.name })} style={compact && st.btnCompact} />
           <Text style={st.hint}>Your answers and favorites are saved to your account.</Text>
           <View style={st.links}>
             <Button kind="link" title="Unlink partner" onPress={unlink} />
@@ -202,16 +205,19 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
     </View>
   );
 
+  const pad = { paddingLeft: Math.max(insets.left, 16), paddingRight: Math.max(insets.right, 16) };
   return (
     <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
-        contentContainerStyle={[st.page, wide && st.pageWide, {
-          paddingTop: insets.top + (height > 700 ? 36 : 16), paddingBottom: insets.bottom + 24,
-          paddingLeft: Math.max(insets.left, 18), paddingRight: Math.max(insets.right, 18),
-        }]}>
-        <Hero wide={wide} compact={height < 640 && !wide} />
+      {/* Laid out to fit the screen; it only scrolls if the keyboard leaves too little room. */}
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false} alwaysBounceVertical={false}
+        contentContainerStyle={[st.page, wide && st.pageWide, pad, { paddingTop: insets.top + (compact ? 8 : 20), paddingBottom: insets.bottom + (compact ? 10 : 20) }]}>
+        {wide ? <Hero level={3} wide /> : (
+          // The hero takes whatever height the panel leaves, and shows less of itself on shorter screens.
+          <View style={st.heroBox} onLayout={e => setHeroH(e.nativeEvent.layout.height)}>
+            <Hero level={heroH >= 300 ? 3 : heroH >= 118 ? 2 : heroH >= 52 ? 1 : 0} wide={false} />
+          </View>
+        )}
         {panel}
-        <Text style={st.foot} onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} accessibilityRole="link">Privacy policy</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -223,12 +229,14 @@ const PERKS: [IconName, string, string][] = [
   ['heart', 'Your story, saved', 'With an account, your answers and favorites stay with you.'],
 ];
 
-function Hero({ wide, compact }: { wide: boolean; compact: boolean }) {
+// level 3: logo, tagline and the card illustration (or the perks, side by side on tablets); 2: logo and tagline; 1: logo; 0: nothing.
+function Hero({ level, wide }: { level: number; wide: boolean }) {
+  if (!level) return null;
   return (
     <View style={[st.hero, wide && st.heroWide]}>
-      <View style={st.logo}><HeartBadge size={compact ? 34 : 42} /><Text style={[st.h1, compact && { fontSize: 34 }]}>Closer</Text></View>
-      <Text style={[st.sub, wide && { textAlign: 'left' }]}>Deep questions for two. Same card, same moment, wherever you are.</Text>
-      {!compact && !wide ? <MiniDeck /> : null}
+      <View style={st.logo}><HeartBadge size={level > 1 ? 42 : 32} /><Text style={[st.h1, level === 1 && { fontSize: 32 }]}>Closer</Text></View>
+      {level > 1 ? <Text style={[st.sub, wide && { textAlign: 'left' }]}>Deep questions for two. Same card, same moment, wherever you are.</Text> : null}
+      {level > 2 && !wide ? <MiniDeck /> : null}
       {wide ? (
         <View style={{ marginTop: 28, gap: 18 }}>
           {PERKS.map(([icon, title, body]) => (
@@ -261,8 +269,9 @@ function MiniDeck() {
 
 const st = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
-  page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 24 },
-  pageWide: { flexDirection: 'row', flexWrap: 'wrap', gap: 64 },
+  page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  heroBox: { flex: 1, minHeight: 0, width: '100%', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  pageWide: { flexDirection: 'row', gap: 64 },
   hero: { alignItems: 'center', maxWidth: 440 },
   heroWide: { alignItems: 'flex-start', maxWidth: 460, flexShrink: 1 },
   logo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -272,7 +281,7 @@ const st = StyleSheet.create({
   perkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
   perkTitle: { fontFamily: fonts.sansBold, fontSize: 15, color: colors.text },
   perkBody: { marginTop: 2, fontFamily: fonts.sans, fontSize: 15, lineHeight: 22, color: '#d9c8d5' },
-  mini: { marginTop: 22, width: 260, height: 150, alignItems: 'center', justifyContent: 'center' },
+  mini: { marginTop: 18, width: 260, height: 150, alignItems: 'center', justifyContent: 'center' },
   miniCard: { position: 'absolute', width: 150, height: 140, borderRadius: 16 },
   miniBack: { alignItems: 'flex-end', justifyContent: 'center', paddingRight: 14 },
   miniFront: { backgroundColor: colors.card, padding: 14, justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
@@ -284,6 +293,8 @@ const st = StyleSheet.create({
   label: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.muted, marginBottom: 6 },
   input: { minHeight: 50, borderRadius: radius.control - 2, backgroundColor: colors.bg3, borderWidth: 1, borderColor: colors.line, color: colors.text,
     paddingHorizontal: 14, fontFamily: fonts.sans, fontSize: 16 },
+  inputCompact: { minHeight: 46 },
+  btnCompact: { minHeight: 48 },
   code: { flex: 1, minWidth: 0, textAlign: 'center', fontFamily: fonts.sansBold, fontSize: 18, letterSpacing: 5 },
   bigcode: { flex: 1, minHeight: 52, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent, backgroundColor: colors.bg3, alignItems: 'center', justifyContent: 'center' },
   bigcodeText: { fontFamily: fonts.sansBold, fontSize: 24, letterSpacing: 7, color: colors.text, paddingLeft: 7 },
@@ -297,5 +308,4 @@ const st = StyleSheet.create({
   avatarText: { fontFamily: fonts.serifBold, fontSize: 21, color: '#fff' },
   links: { flexDirection: 'row', justifyContent: 'center', gap: 18, flexWrap: 'wrap' },
   err: { marginTop: 14, fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 20, color: colors.bad, textAlign: 'center' },
-  foot: { fontFamily: fonts.sans, fontSize: 13, color: colors.faint, textDecorationLine: 'underline', width: '100%', textAlign: 'center' },
 });

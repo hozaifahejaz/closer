@@ -79,11 +79,11 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
   );
 }
 
-export function Field({ label, style, ...props }: TextInputProps & { label?: string; style?: StyleProp<ViewStyle> }) {
+export function Field({ label, style, inputStyle, ...props }: TextInputProps & { label?: string; style?: StyleProp<ViewStyle>; inputStyle?: StyleProp<any> }) {
   return (
     <View style={style}>
       {label ? <Text style={s.label}>{label}</Text> : null}
-      <TextInput placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={s.input} {...props} />
+      <TextInput placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[s.input, inputStyle]} {...props} />
     </View>
   );
 }
