@@ -95,18 +95,18 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
       <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
         accessibilityLabel={`${label}. ${blurb}`}
         style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: cardW * (tiny ? 0.085 : 0.1), paddingHorizontal: cardW * (micro ? 0.04 : tiny ? 0.06 : 0.08) },
-          on ? { backgroundColor: colors.card, borderColor: c2 + 'b3' } : st.cardOff, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ marginBottom: cardW * (tiny ? 0.07 : 0.1), opacity: on ? (spent ? 0.5 : 1) : 0.4 }}>
-          <DeckArt deck={deck} size={cardW * (tiny && !micro ? 0.5 : 0.46)} dim={!on} spent={spent} fan={fan} />
+          { backgroundColor: colors.card, borderColor: c2 + 'b3' }, pressed && { transform: [{ scale: 0.97 }] }]}>
+        <View style={{ marginBottom: cardW * (tiny ? 0.07 : 0.1), opacity: spent ? 0.5 : 1 }}>
+          <DeckArt deck={deck} size={cardW * (tiny && !micro ? 0.5 : 0.46)} spent={spent} fan={fan} />
         </View>
-        <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }, !on && { color: colors.muted }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
+        <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
         {micro ? null : (
-          <Text style={[st.ct, { fontSize: countSize, color: on ? (spent ? colors.ink2 : c2) : colors.faint }, tiny && { letterSpacing: 0.7, marginTop: 3 }]} numberOfLines={1}>
+          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2 }, tiny && { letterSpacing: 0.7, marginTop: 3 }]} numberOfLines={1}>
             {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
           </Text>
         )}
         <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: micro ? 5 : Math.max(7, cardW * 0.07), right: micro ? 5 : Math.max(7, cardW * 0.07) },
-          on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: colors.line2 }]}>
+          on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
           {on ? <Icon name="check" size={chk * 0.7} color="#fff" strokeWidth={3} /> : null}
         </View>
       </Pressable>
@@ -177,7 +177,6 @@ const st = StyleSheet.create({
   fade: { position: 'absolute', left: 0, right: 0, height: 36 },
   card: { borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  cardOff: { backgroundColor: colors.bg3, borderColor: colors.line2, shadowOpacity: 0, elevation: 0 },
   chk: { position: 'absolute', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   nm: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center' },
   ct: { marginTop: 4, fontFamily: fonts.sansBold, letterSpacing: 1.4, textTransform: 'uppercase', fontVariant: ['tabular-nums'] },
