@@ -98,11 +98,13 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
       </>;
       break;
     case 'Guess My Answer': {
-      viewBox = '16 16 88 72';
-      const bubble = 'M30 24h60a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H56L42 82V70H30a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8z';
+      viewBox = '12 20 86 76';
+      const ask = 'M23 24h36a7 7 0 0 1 7 7v20a7 7 0 0 1-7 7H40L28 68V58h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z';
       body = <>
-        <Path {...tinted} d={bubble} /><Path {...stroke} d={bubble} />
-        <Path {...stroke} d="M52 39a8 8 0 1 1 11 7.4c-2 .9-3 2.4-3 4.6v2" /><Circle cx="60" cy="59" r="2.2" fill={line} />
+        <Path {...tinted} d={ask} /><Path {...stroke} d={ask} />
+        <Path {...stroke} d="M35 35a6 6 0 1 1 8.5 5.5c-1.6.8-2.5 2-2.5 3.8v1.2" /><Circle cx="41" cy="50.5" r="2" fill={line} />
+        <Path {...soft} d="M68 62h20a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6h-1v8l-9-8H68a6 6 0 0 1-6-6V68a6 6 0 0 1 6-6z" />
+        {[71, 78, 85].map(x => <Circle key={x} cx={x} cy="73" r="1.8" fill={line} />)}
       </>;
       break;
     }
@@ -114,14 +116,17 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
         <Path {...tinted} d="M60 52H36l-8 8 8 8h24z" /><Path {...stroke} d="M60 52H36l-8 8 8 8h24z" /><Path {...soft} d="M44 86h32" />
       </>;
       break;
-    case 'Weekly Check-in':
+    case 'Weekly Check-in': {
       viewBox = '22 16 76 72';
+      const days = [[42, 51], [51, 51], [60, 51], [69, 51], [78, 51], [42, 63], [51, 63], [60, 63], [78, 63], [42, 75], [51, 75], [60, 75]];
       body = <>
-        <Rect x="32" y="28" width="56" height="54" rx="6" {...tinted} /><Rect x="32" y="28" width="56" height="54" rx="6" {...stroke} />
+        <Path {...tinted} d="M38 28h44a6 6 0 0 1 6 6v8H32v-8a6 6 0 0 1 6-6z" /><Rect x="32" y="28" width="56" height="54" rx="6" {...stroke} />
         <Path {...stroke} d="M32 42h56M46 22v12M74 22v12" />
-        <Path fill={line} d="M60 74c-.5 0-10-6-10-12.5 0-3.2 2.5-5.7 5.5-5.7 2 0 3.5 1.1 4.5 2.6 1-1.5 2.5-2.6 4.5-2.6 3 0 5.5 2.5 5.5 5.7 0 6.5-9.5 12.5-10 12.5z" />
+        {days.map(([x, y]) => <Circle key={`${x}-${y}`} cx={x} cy={y} r="1.7" fill={line} opacity={0.45} />)}
+        <Path fill={line} d="M69 72c-.4 0-8-4.8-8-10 0-2.6 2-4.6 4.4-4.6 1.6 0 2.8.9 3.6 2.1.8-1.2 2-2.1 3.6-2.1 2.4 0 4.4 2 4.4 4.6 0 5.2-7.6 10-8 10z" />
       </>;
       break;
+    }
     default: // All decks: a fan with one card per deck colour
       body = <>
         {fan.map((c, i) => (

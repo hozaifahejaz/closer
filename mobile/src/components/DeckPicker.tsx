@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RoomState } from '../api';
 import { colors, fonts, radius } from '../theme';
@@ -47,15 +48,20 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Decks (plus "All decks") are upright cards (5:7), sized to whatever the screen leaves so nothing scrolls.
-  // Try 2 to 6 columns and keep whichever gives the biggest cards (3x3 for nine on a phone, 4x3 for twelve on a small one).
-  const tiles = list.length + 1;
-  const fit = (cols: number) => {
-    const rows = Math.ceil(tiles / cols), gap = width < 360 || rows > 3 || cols > 3 ? 8 : rows > 2 ? 12 : 14;
-    return { cols, gap, w: Math.floor(Math.min((grid.w - gap * (cols - 1)) / cols, ((grid.h - gap * (rows - 1)) / rows) * (5 / 7), 190)) };
+  // Deck cards are upright (5:7) and sized like the website's picker: four to a row on phones and tablets,
+  // six on wide screens, shrinking only until three rows (two on wide screens) fit, never below a minimum.
+  // More decks than that scroll, with a soft fade at the edge that has more.
+  const layout = width >= 960 ? { cols: 6, gx: 18, gy: 18, rows: 2, min: 90 }
+    : width >= 700 ? { cols: 4, gx: 20, gy: 22, rows: 3, min: 96 }
+    : { cols: 4, gx: 12, gy: 16, rows: 3, min: 64 };
+  const COLS = layout.cols;
+  const cardW = Math.floor(Math.min((grid.w - layout.gx * (COLS - 1)) / COLS, 190,
+    Math.max(layout.min, ((grid.h - layout.gy * (layout.rows - 1)) / layout.rows) * (5 / 7))));
+  const [edge, setEdge] = useState({ above: false, below: false });
+  const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
+    if (above !== edge.above || below !== edge.below) setEdge({ above, below });
   };
-  const best = [2, 3, 4, 5, 6].map(fit).reduce((a, b) => (b.w > a.w + 2 ? b : a));
-  const COLS = best.cols, GAP = best.gap, cardW = Math.max(44, best.w);
   const cardH = Math.round(cardW * 7 / 5);
 
   const fan = list.map(d => deckColors(d.name).c1);
@@ -118,15 +124,20 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
           </Pressable>
         </View>
         {banner}
-        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 16 })}>
+        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 20 })}>
           {grid.w ? (
-            <View style={[st.cards, { width: cardW * COLS + GAP * (COLS - 1), gap: GAP }]}>
-              {[
-            tile(null, 'All decks', 'Every question, shuffled together.', sum(list, d => d.count), sum(list, left), sel.size === list.length),
-            ...list.map(d => tile(d.name, d.name, BLURBS[d.name] || '', d.count, left(d), sel.has(d.name))),
-          ]}
-            </View>
+            <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > grid.h + 22 }))}
+              scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+              <View style={[st.cards, { width: cardW * COLS + layout.gx * (COLS - 1), columnGap: layout.gx, rowGap: layout.gy }]}>
+                {[
+                  tile(null, 'All decks', 'Every question, shuffled together.', sum(list, d => d.count), sum(list, left), sel.size === list.length),
+                  ...list.map(d => tile(d.name, d.name, BLURBS[d.name] || '', d.count, left(d), sel.has(d.name))),
+                ]}
+              </View>
+            </ScrollView>
           ) : null}
+          {edge.above ? <LinearGradient pointerEvents="none" colors={[colors.bg, colors.bg + '00']} style={[st.fade, { top: 0 }]} /> : null}
+          {edge.below ? <LinearGradient pointerEvents="none" colors={[colors.bg + '00', colors.bg]} style={[st.fade, { bottom: 0 }]} /> : null}
         </View>
         <View style={[st.foot, short && { gap: 10, paddingTop: 10 }, { paddingBottom: Math.max(insets.bottom, short ? 10 : 16) }]}>
           {room.couple ? (
@@ -152,8 +163,11 @@ const st = StyleSheet.create({
   title: { fontFamily: fonts.serifBold, fontSize: 28, color: colors.text, letterSpacing: -0.3 },
   sub: { marginTop: 4, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.muted },
   x: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  grid: { flex: 1, minHeight: 0, paddingHorizontal: 14, paddingVertical: 8, width: '100%', maxWidth: 980, alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
-  cards: { flexDirection: 'row', flexWrap: 'wrap' },
+  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 980, alignSelf: 'center' },
+  scroll: { flex: 1 },
+  scrollIn: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  fade: { position: 'absolute', left: 0, right: 0, height: 36 },
   card: { borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   cardOff: { backgroundColor: colors.bg3, borderColor: colors.line2, shadowOpacity: 0, elevation: 0 },
