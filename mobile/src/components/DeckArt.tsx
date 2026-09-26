@@ -17,6 +17,7 @@ export const DECK_COLORS: Record<string, { c1: string; c2: string }> = {
   'Weekly Check-in': { c1: '#8a96b8', c2: '#3e4a6e' },
   Dilemmas: { c1: '#c79a6b', c2: '#7a5230' },
   'Long Distance': { c1: '#4fb0d6', c2: '#1c5f7d' },
+  'Midnight Questions': { c1: '#6c6fd8', c2: '#2a2c72' },
 };
 export const deckColors = (name: string) => DECK_COLORS[name] || DECK_COLORS['Getting Closer'];
 
@@ -147,6 +148,17 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
         {pins.map(d => <G key={d}><Path {...tinted} d={d} /><Path {...stroke} d={d} /></G>)}
         <Circle cx="36" cy="63" r="3" {...stroke} /><Circle cx="84" cy="43" r="3" {...stroke} />
         <Path fill={line} d="M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z" />
+      </>;
+      break;
+    }
+    case 'Midnight Questions': {
+      viewBox = '20 14 80 72';
+      const moon = 'M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z';
+      body = <>
+        <Path {...tinted} d={moon} /><Path {...stroke} d={moon} />
+        <Path fill={line} d="M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z" />
+        <Path fill={line} opacity={0.45} d="M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z" />
+        <Circle cx="74" cy="46" r="1.6" fill={line} opacity={0.45} /><Path {...soft} d="M30 82h60" />
       </>;
       break;
     }

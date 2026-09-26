@@ -22,6 +22,7 @@ const BLURBS: Record<string, string> = {
   'Weekly Check-in': 'A few minutes each week to stay in step.',
   Dilemmas: 'Moral what-ifs with no right answer.',
   'Long Distance': 'For missing each other from miles away.',
+  'Midnight Questions': 'The strange, big thoughts that come out late at night.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
