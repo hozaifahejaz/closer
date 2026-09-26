@@ -28,7 +28,7 @@ For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY
 - `worker/game.js`: the game rules (deck order, flip, answers, favorites). `worker/db.js`: calls the account functions in Supabase.
 - `public/index.html`: the whole app (lobby, flip card, controls), mobile-first.
 - `supabase/schema.sql`: accounts, partner links, saved answers and favorites.
-- `questions.json`: 250 questions across 5 decks of 50. Edit freely.
+- `questions.json`: 425 questions across 8 decks. Always add new questions at the end of a deck. To remove one, replace it with `null` rather than deleting it: cards are numbered by their place in the deck, and saved answers and progress refer to those numbers.
 - `server.js` + `supabase.js` + `render.yaml`: the older Node version for Render, kept until the Cloudflare move is done.
 
 ## Admin dashboard

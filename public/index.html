@@ -198,12 +198,12 @@
   .pick-head h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px, 6vw, 28px); margin:0; line-height:1.2; }
   .pick-head p { margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.45; }
   /* Only the list scrolls, so the heading and the Start button stay in view. */
-  /* Decks are upright playing cards. The column width is capped by the screen height, so
-     the two rows of cards fit without scrolling wherever there's room. */
-  .deck-list { --cw:max(76px, calc((100vh - 430px) * .357)); --cw:max(76px, calc((100dvh - 430px) * .357));
-    display:grid; grid-template-columns:repeat(3, minmax(0, var(--cw))); justify-content:center; gap:16px 12px; grid-auto-rows:max-content; align-content:start;
+  /* Decks are upright playing cards, --cols to a row with a short last row centred. The card
+     width is capped by the screen height, so the rows fit without scrolling wherever there's room. */
+  .deck-list { --cols:3; --gx:12px; --cw:max(64px, calc((100vh - 462px) * .238)); --cw:max(64px, calc((100dvh - 462px) * .238));
+    display:flex; flex-wrap:wrap; justify-content:center; gap:16px var(--gx); align-content:start;
     flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
-  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; width:100%; min-height:0; aspect-ratio:5 / 7; padding:0; border:0; border-radius:12px; background:none;
+  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; flex:none; width:min(var(--cw), calc((100% - (var(--cols) - 1) * var(--gx)) / var(--cols) - .5px)); min-height:0; aspect-ratio:5 / 7; padding:0; border:0; border-radius:12px; background:none;
     color:var(--ink); font-weight:500; isolation:isolate; container:tile / inline-size; transition:transform .2s; }
   .tile:active { transform:scale(.97); }
   .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:10cqw 8cqw; border-radius:12px;
@@ -236,8 +236,13 @@
   .tile[data-deck="Us & The Future"] { --c1:#eeaa52; --c2:#a4531f; }
   .tile[data-deck="Honest & Vulnerable"] { --c1:#c2567a; --c2:#7a2a4b; }
   .tile[data-deck="Light & Playful"] { --c1:#45bfae; --c2:#1d6a74; }
+  .tile[data-deck="Desire & Intimacy"] { --c1:#e8735a; --c2:#a33b24; }
+  .tile[data-deck="Conflict & Repair"] { --c1:#6f9cf0; --c2:#2f53a3; }
+  .tile[data-deck="Life & Meaning"] { --c1:#8fb86a; --c2:#4b6e2e; }
   /* Very small cards (small phones held sideways): drop the rule and tighten the type. */
   @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
+  /* The tiniest cards (a small phone on its side) keep just the art and the name. */
+  @container tile (max-width:56px) { .tile .tf { padding:6cqw 4cqw; } .tile .art { width:44%; margin:0 0 6cqw; } .tile .nm { font-size:8.5px; line-height:1.1; } .tile .ct { display:none; } .tile .chk { width:11px; height:11px; top:5px; right:5px; } }
   @media (hover:hover) { .tile:hover .tf { border-color:var(--c1); } .tile[aria-pressed="false"]:hover .art { opacity:.55; } }
   .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
   .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
@@ -272,7 +277,7 @@
     .picker { grid-column:1 / -1; grid-row:2; }
     .picker { gap:10px; padding:14px 16px; }
     .pick-head p, .pick-opt small { display:none; }
-    .deck-list { --cw:max(56px, calc((100vh - 262px) * .714)); --cw:max(56px, calc((100dvh - 262px) * .714)); grid-template-columns:repeat(6, minmax(0, var(--cw))); gap:10px; }
+    .deck-list { --cols:9; --gx:8px; --cw:max(52px, calc((100vh - 262px) * .714)); --cw:max(52px, calc((100dvh - 262px) * .714)); gap:8px; }
     .pick-opt { padding:6px 10px 6px 12px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
     .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
@@ -293,7 +298,7 @@
 
   /* Tablets and up: more room to breathe. */
   @media (min-width:700px) and (min-height:521px) {
-    .deck-list { --cw:max(110px, calc((100vh - 470px) * .357)); --cw:max(110px, calc((100dvh - 470px) * .357)); gap:22px 20px; }
+    .deck-list { --gx:20px; --cw:max(96px, calc((100vh - 514px) * .238)); --cw:max(96px, calc((100dvh - 514px) * .238)); gap:22px var(--gx); }
     #game { max-width:580px; justify-content:center; }
     .scene { max-height:780px; }
     body.answer-mode .scene { max-height:none; }
@@ -333,7 +338,7 @@
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
     .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:center; width:min(100%, 640px); max-height:100%; padding:30px; }
     .picker { width:min(100%, 900px); }
-    .deck-list { --cw:max(96px, calc((100vh - 400px) * .714)); --cw:max(96px, calc((100dvh - 400px) * .714)); grid-template-columns:repeat(6, minmax(0, var(--cw))); gap:18px; }
+    .deck-list { --cols:5; --gx:18px; --cw:max(90px, calc((100vh - 418px) * .357)); --cw:max(90px, calc((100dvh - 418px) * .357)); gap:18px; }
     .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
     .back::before { inset:14px; border-radius:18px; }
     .front .q { font-size:calc(var(--cw) * .058); }
@@ -744,11 +749,14 @@ const DECK_BLURBS = {
   'Us & The Future': 'Dreams, plans and the life you are building.',
   'Honest & Vulnerable': 'The deeper things that are harder to say.',
   'Light & Playful': 'Fun, silly and nostalgic.',
+  'Desire & Intimacy': 'Touch, attraction and feeling wanted.',
+  'Conflict & Repair': 'How you fight, forgive and find your way back.',
+  'Life & Meaning': 'Big questions about life, death and what matters.',
 };
 // Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
 const DECK_ART = {
-  'All': ['18 14 84 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae'].map((c, i) =>
-    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - 2) * 16})"/>`).join('')],
+  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a'].map((c, i) =>
+    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - 3.5) * 10})"/>`).join('')],
   'Getting Closer': ['14 12 92 66', '<circle class="tint" cx="48" cy="45" r="25"/><circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
     '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>'],
   'Who You Are': ['24 8 72 72', '<path d="M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6"/>' +
@@ -761,6 +769,13 @@ const DECK_ART = {
   'Light & Playful': ['26 8 68 80', '<ellipse class="tint" cx="47" cy="32" rx="13" ry="16"/><ellipse class="tint" cx="73" cy="27" rx="13" ry="16"/>' +
     '<ellipse cx="47" cy="32" rx="13" ry="16"/><ellipse cx="73" cy="27" rx="13" ry="16"/>' +
     '<path d="M44.5 48.5h5l-2.5-3zM70.5 43.5h5l-2.5-3z"/><path d="M47 48.5c-4 12 16 16 11 33M73 43.5c4 12-18 18-13 38"/>'],
+  'Desire & Intimacy': ['24 10 72 80', '<path class="tint" d="M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z"/><path d="M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z"/>' +
+    '<path class="fill" d="M60 31c3.5 4.5 5 7.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-5.5 5-10z"/><path d="M60 50v5"/><rect x="48" y="55" width="24" height="31" rx="2.5"/>' +
+    '<path class="soft" d="M48 62c3 0 3 6 6.5 6s3-6 6.5-6M36 34l-5-3M84 34l5-3M34 46h-6M86 46h6"/>'],
+  'Conflict & Repair': ['12 30 96 56', '<path class="tint" d="M22 66C34 34 86 34 98 66z"/><path d="M14 66h92M22 66C34 34 86 34 98 66"/>' +
+    '<path class="soft" d="M36 66V53M48 66V46M60 66V42.5M72 66V46M84 66V53"/><path d="M26 66v12M94 66v12"/><path class="soft" d="M16 82h18M48 84h24M86 82h18"/>'],
+  'Life & Meaning': ['22 10 76 80', '<circle class="tint" cx="60" cy="38" r="23"/><circle cx="60" cy="38" r="23"/><path d="M60 50v36M60 68l-9-9M60 62l8-8"/>' +
+    '<path class="soft" d="M50 30a10 10 0 0 1 10-7M34 86h52M52 86c3-3 5-3 8-3s5 0 8 3"/>'],
 };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;

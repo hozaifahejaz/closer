@@ -13,11 +13,16 @@ function shuffle(a) {
   return a;
 }
 
+// A retired question stays in questions.json as null, so every other card keeps
+// its number (answers and saved places refer to cards by deck and number).
+const live = card => DECK[card.c]?.[card.i] != null;
+const cards = c => DECK[c].map((q, i) => ({ c, i })).filter(live);
+
 // A room plays one or more decks (categories); no decks chosen means all of them.
 // `keep` can leave cards out (used for "only cards we haven't seen").
 function buildOrder(decks, keep = () => true) {
   const cats = decks.length ? decks : CATEGORIES;
-  return shuffle(cats.flatMap(c => DECK[c].map((q, i) => ({ c, i }))).filter(keep));
+  return shuffle(cats.flatMap(cards).filter(keep));
 }
 const deckKey = decks => decks.length ? decks.join('|') : 'All';
 const deckLabel = decks => !decks.length ? 'All' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
@@ -47,18 +52,36 @@ export function upgradeRoom(room) {
     room.choosing = false;
     room.started = true;
   }
-  // Cards added to a deck since the room was dealt go at the end of its order,
-  // so nobody loses their place. A new-cards-only deal gets just the unseen ones.
-  room.order = topUp(room.order, room.decks, c => !room.fresh || !isUsed(room, c));
-  for (const [key, p] of Object.entries(room.progress)) p.order = topUp(p.order, key === 'All' ? [] : key.split('|'));
+  const current = room.order[room.index];
+  const now = refresh(room.order, room.index, room.decks, c => !room.fresh || !isUsed(room, c));
+  if (now) {
+    if (!now.order.length) { room.fresh = false; Object.assign(room, refresh([], 0, room.decks)); }
+    else Object.assign(room, now);
+    if (room.order[room.index] !== current) freshCard(room);
+  }
+  for (const [key, p] of Object.entries(room.progress)) {
+    const next = refresh(p.order, p.index, key === 'All' ? [] : key.split('|'));
+    if (next?.order.length) room.progress[key] = next;
+    else if (next) delete room.progress[key];
+  }
   return room;
 }
-function topUp(order, decks, keep = () => true) {
+// Brings a dealt order up to date with questions.json, keeping the room's place:
+// retired cards drop out, and cards added since are shuffled into the cards still
+// to come. A new-cards-only deal gets just the unseen ones. Returns null if nothing changed.
+function refresh(order, index, decks, keep = () => true) {
   const known = decks.filter(c => DECK[c]);
-  if (decks.length && !known.length) return order;
+  if (decks.length && !known.length) return null;
+  const kept = order.filter(live);
   const have = new Set(order.map(cardKey));
   const missing = buildOrder(known, c => !have.has(cardKey(c)) && keep(c));
-  return missing.length ? order.concat(missing) : order;
+  if (kept.length === order.length && !missing.length) return null;
+  // Every retired card before the current one moves it back a place; if the current
+  // card itself was retired, the room lands on the card after it.
+  index -= order.slice(0, index).filter(c => !live(c)).length;
+  const next = kept.slice();
+  for (const card of missing) next.splice(index + 1 + Math.floor(Math.random() * (next.length - index)), 0, card);
+  return { order: next, index: Math.max(0, Math.min(index, next.length - 1)) };
 }
 
 // A card counts as used once it has been shown face up in the room, or either
@@ -85,7 +108,7 @@ function useDecks(room, decks, fresh) {
   if (!fresh) delete room.progress[deckKey(decks)];
 }
 const unusedCount = (room, decks) => (decks.length ? decks : CATEGORIES)
-  .reduce((n, c) => n + DECK[c].filter((q, i) => !isUsed(room, { c, i })).length, 0);
+  .reduce((n, c) => n + cards(c).filter(card => !isUsed(room, card)).length, 0);
 
 // Rooms saved before the setting existed have no field: treat them as "tap to reveal" on.
 const tapToReveal = room => room.tapToReveal !== false;
@@ -107,7 +130,7 @@ export function publicState(room, players, viewerId) {
   return {
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
-    deckList: CATEGORIES.map(name => ({ name, count: DECK[name].length, used: DECK[name].filter((q, i) => isUsed(room, { c: name, i })).length })),
+    deckList: CATEGORIES.map(name => ({ name, count: cards(name).length, used: cards(name).filter(card => isUsed(room, card)).length })),
     fresh: Boolean(room.fresh),
     decks: room.decks,
     choosing: Boolean(room.choosing),
