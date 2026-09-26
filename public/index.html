@@ -246,6 +246,8 @@
   .tile[data-deck="Guess My Answer"] { --c1:#e2b33c; --c2:#8a6512; }
   .tile[data-deck="Would You Rather"] { --c1:#d673c4; --c2:#86287a; }
   .tile[data-deck="Weekly Check-in"] { --c1:#8a96b8; --c2:#3e4a6e; }
+  .tile[data-deck="Dilemmas"] { --c1:#c79a6b; --c2:#7a5230; }
+  .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
   /* Very small cards (small phones held sideways): drop the rule and tighten the type. */
   @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
   /* The tiniest cards (a small phone on its side) keep just the art and the name. */
@@ -762,11 +764,13 @@ const DECK_BLURBS = {
   'Guess My Answer': 'Guess what your partner will say, then find out.',
   'Would You Rather': 'Quick either-or picks to argue about.',
   'Weekly Check-in': 'A few minutes each week to stay in step.',
+  'Dilemmas': 'Moral what-ifs with no right answer.',
+  'Long Distance': 'For missing each other from miles away.',
 };
 // Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
 const DECK_ART = {
-  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8'].map((c, i, a) =>
-    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - (a.length - 1) / 2) * 8})"/>`).join('')],
+  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8', '#c79a6b', '#4fb0d6'].map((c, i, a) =>
+    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - (a.length - 1) / 2) * 7})"/>`).join('')],
   'Getting Closer': ['14 12 92 66', '<circle class="tint" cx="48" cy="45" r="25"/><circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
     '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>'],
   'Who You Are': ['24 8 72 72', '<path d="M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6"/>' +
@@ -794,6 +798,12 @@ const DECK_ART = {
   'Weekly Check-in': ['22 16 76 72', '<path class="tint" d="M38 28h44a6 6 0 0 1 6 6v8H32v-8a6 6 0 0 1 6-6z"/><rect x="32" y="28" width="56" height="54" rx="6"/>' +
     '<path d="M32 42h56M46 22v12M74 22v12"/><g class="fill soft"><circle cx="42" cy="51" r="1.7"/><circle cx="51" cy="51" r="1.7"/><circle cx="60" cy="51" r="1.7"/><circle cx="69" cy="51" r="1.7"/><circle cx="78" cy="51" r="1.7"/><circle cx="42" cy="63" r="1.7"/><circle cx="51" cy="63" r="1.7"/><circle cx="60" cy="63" r="1.7"/><circle cx="78" cy="63" r="1.7"/><circle cx="42" cy="75" r="1.7"/><circle cx="51" cy="75" r="1.7"/><circle cx="60" cy="75" r="1.7"/></g>' +
     '<path class="fill" d="M69 72c-.4 0-8-4.8-8-10 0-2.6 2-4.6 4.4-4.6 1.6 0 2.8.9 3.6 2.1.8-1.2 2-2.1 3.6-2.1 2.4 0 4.4 2 4.4 4.6 0 5.2-7.6 10-8 10z"/>'],
+  'Dilemmas': ['20 24 80 60', '<path d="M60 36v42M48 78h24M35 40l50-8"/><circle class="fill" cx="60" cy="36" r="2.6"/>' +
+    '<path class="soft" d="M35 40l-8 16M35 40l8 16M85 32l-8 16M85 32l8 16"/>' +
+    '<path class="tint" d="M24 56a11 6 0 0 0 22 0z"/><path d="M24 56a11 6 0 0 0 22 0z"/><path class="tint" d="M74 48a11 6 0 0 0 22 0z"/><path d="M74 48a11 6 0 0 0 22 0z"/>'],
+  'Long Distance': ['22 16 76 66', '<path class="soft" stroke-dasharray="3 5" d="M36 50C40 28 66 20 82 30"/>' +
+    '<path class="tint" d="M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><path d="M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><circle cx="36" cy="63" r="3"/><path class="tint" d="M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><path d="M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><circle cx="84" cy="43" r="3"/>' +
+    '<path class="fill" d="M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z"/>'],
 };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -820,7 +830,7 @@ function renderPicker(s, first) {
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
   $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
     s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
-  deckEdges();
+  fitDeckRows(); deckEdges();
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
@@ -839,13 +849,25 @@ $('deckList').onclick = e => {
   else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
   renderPicker(room, false);
 };
+// At most 12 tiles show at once (3 rows of 4 on phones, 2 of 6 on desktop, 1 of 12 sideways).
+// Past that the list scrolls, with a peek of the next row, instead of the tiles shrinking.
+const MAX_VISIBLE_TILES = 12;
+const fitDeckRows = () => {
+  const L = $('deckList'), tiles = L.querySelectorAll('.tile');
+  if (tiles.length <= MAX_VISIBLE_TILES) { L.style.maxHeight = ''; return; }
+  const cs = getComputedStyle(L), cols = parseInt(cs.getPropertyValue('--cols')) || 4;
+  const rows = Math.max(1, Math.floor(MAX_VISIBLE_TILES / cols)), h = tiles[0].getBoundingClientRect().height;
+  if (!h) return;
+  const gap = parseFloat(cs.rowGap) || 0, peek = Math.min(h * .3, 40);
+  L.style.maxHeight = `${parseFloat(cs.paddingTop) + rows * h + rows * gap + peek}px`;
+};
 const deckEdges = () => {
   const L = $('deckList');
   L.classList.toggle('more-above', L.scrollTop > 2);
   L.classList.toggle('more-below', L.scrollTop + L.clientHeight < L.scrollHeight - 2);
 };
 $('deckList').addEventListener('scroll', deckEdges, { passive: true });
-addEventListener('resize', deckEdges);
+addEventListener('resize', () => { fitDeckRows(); deckEdges(); });
 $('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicker(room, false); };
 
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
