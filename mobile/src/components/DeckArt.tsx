@@ -12,6 +12,9 @@ export const DECK_COLORS: Record<string, { c1: string; c2: string }> = {
   'Desire & Intimacy': { c1: '#e8735a', c2: '#a33b24' },
   'Conflict & Repair': { c1: '#6f9cf0', c2: '#2f53a3' },
   'Life & Meaning': { c1: '#8fb86a', c2: '#4b6e2e' },
+  'Guess My Answer': { c1: '#e2b33c', c2: '#8a6512' },
+  'Would You Rather': { c1: '#d673c4', c2: '#86287a' },
+  'Weekly Check-in': { c1: '#8a96b8', c2: '#3e4a6e' },
 };
 export const deckColors = (name: string) => DECK_COLORS[name] || DECK_COLORS['Getting Closer'];
 
@@ -94,10 +97,35 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
         <Path {...soft} d="M50 30a10 10 0 0 1 10-7M34 86h52M52 86c3-3 5-3 8-3s5 0 8 3" />
       </>;
       break;
+    case 'Guess My Answer': {
+      viewBox = '16 16 88 72';
+      const bubble = 'M30 24h60a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H56L42 82V70H30a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8z';
+      body = <>
+        <Path {...tinted} d={bubble} /><Path {...stroke} d={bubble} />
+        <Path {...stroke} d="M52 39a8 8 0 1 1 11 7.4c-2 .9-3 2.4-3 4.6v2" /><Circle cx="60" cy="59" r="2.2" fill={line} />
+      </>;
+      break;
+    }
+    case 'Would You Rather':
+      viewBox = '20 16 80 76';
+      body = <>
+        <Path {...stroke} d="M60 22v64" />
+        <Path {...tinted} d="M60 30h24l8 8-8 8H60z" /><Path {...stroke} d="M60 30h24l8 8-8 8H60z" />
+        <Path {...tinted} d="M60 52H36l-8 8 8 8h24z" /><Path {...stroke} d="M60 52H36l-8 8 8 8h24z" /><Path {...soft} d="M44 86h32" />
+      </>;
+      break;
+    case 'Weekly Check-in':
+      viewBox = '22 16 76 72';
+      body = <>
+        <Rect x="32" y="28" width="56" height="54" rx="6" {...tinted} /><Rect x="32" y="28" width="56" height="54" rx="6" {...stroke} />
+        <Path {...stroke} d="M32 42h56M46 22v12M74 22v12" />
+        <Path fill={line} d="M60 74c-.5 0-10-6-10-12.5 0-3.2 2.5-5.7 5.5-5.7 2 0 3.5 1.1 4.5 2.6 1-1.5 2.5-2.6 4.5-2.6 3 0 5.5 2.5 5.5 5.7 0 6.5-9.5 12.5-10 12.5z" />
+      </>;
+      break;
     default: // All decks: a fan with one card per deck colour
       body = <>
         {fan.map((c, i) => (
-          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * Math.min(16, 70 / Math.max(1, fan.length - 1))})`}>
+          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
             <Rect x="-12" y="-56" width="24" height="34" rx="3" fill={spent ? '#b9adb6' : c} opacity={dim ? 0.5 : 1} stroke="#fffaf4" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
           </G>
         ))}

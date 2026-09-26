@@ -16,6 +16,9 @@ const BLURBS: Record<string, string> = {
   'Desire & Intimacy': 'Touch, attraction and feeling wanted.',
   'Conflict & Repair': 'How you fight, forgive and find your way back.',
   'Life & Meaning': 'Big questions about life, death and what matters.',
+  'Guess My Answer': 'Guess what your partner will say, then find out.',
+  'Would You Rather': 'Quick either-or picks to argue about.',
+  'Weekly Check-in': 'A few minutes each week to stay in step.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -44,9 +47,15 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const count = sum(picked, d => d.count), unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Decks (plus "All decks") are upright cards (5:7), three to a row, sized to whatever height the screen leaves so nothing scrolls.
-  const COLS = 3, ROWS = Math.ceil((list.length + 1) / COLS), GAP = width < 360 ? (ROWS > 2 ? 8 : 10) : ROWS > 2 ? 12 : 14;
-  const cardW = Math.max(50, Math.floor(Math.min((grid.w - GAP * (COLS - 1)) / COLS, ((grid.h - GAP * (ROWS - 1)) / ROWS) * (5 / 7), 190)));
+  // Decks (plus "All decks") are upright cards (5:7), sized to whatever the screen leaves so nothing scrolls.
+  // Try 2 to 6 columns and keep whichever gives the biggest cards (3x3 for nine on a phone, 4x3 for twelve on a small one).
+  const tiles = list.length + 1;
+  const fit = (cols: number) => {
+    const rows = Math.ceil(tiles / cols), gap = width < 360 || rows > 3 || cols > 3 ? 8 : rows > 2 ? 12 : 14;
+    return { cols, gap, w: Math.floor(Math.min((grid.w - gap * (cols - 1)) / cols, ((grid.h - gap * (rows - 1)) / rows) * (5 / 7), 190)) };
+  };
+  const best = [2, 3, 4, 5, 6].map(fit).reduce((a, b) => (b.w > a.w + 2 ? b : a));
+  const COLS = best.cols, GAP = best.gap, cardW = Math.max(44, best.w);
   const cardH = Math.round(cardW * 7 / 5);
 
   const fan = list.map(d => deckColors(d.name).c1);
@@ -67,22 +76,26 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
     const spent = fresh && !fresh_;
     const deck = name ?? 'All';
     const { c2 } = deckColors(deck);
-    const nameSize = Math.max(10, Math.min(17, cardW * 0.11));
-    const countSize = Math.max(7, Math.min(10.5, cardW * 0.068));
-    const chk = Math.max(14, Math.min(20, cardW * 0.13));
+    // Tiny cards (twelve decks on a small phone) tighten up like the website's: smaller type, and no count below 56px.
+    const tiny = cardW < 80, micro = cardW < 56;
+    const nameSize = micro ? 8.5 : tiny ? 9.5 : Math.max(10, Math.min(17, cardW * 0.11));
+    const countSize = tiny ? 7 : Math.max(7, Math.min(10.5, cardW * 0.068));
+    const chk = micro ? 11 : Math.max(13, Math.min(20, cardW * 0.13));
     return (
       <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
         accessibilityLabel={`${label}. ${blurb}`}
-        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: cardW * 0.1, paddingHorizontal: cardW * 0.08 },
+        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: cardW * (tiny ? 0.085 : 0.1), paddingHorizontal: cardW * (micro ? 0.04 : tiny ? 0.06 : 0.08) },
           on ? { backgroundColor: colors.card, borderColor: c2 + 'b3' } : st.cardOff, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ marginBottom: cardW * 0.1, opacity: on ? (spent ? 0.5 : 1) : 0.4 }}>
-          <DeckArt deck={deck} size={cardW * 0.46} dim={!on} spent={spent} fan={fan} />
+        <View style={{ marginBottom: cardW * (tiny ? 0.07 : 0.1), opacity: on ? (spent ? 0.5 : 1) : 0.4 }}>
+          <DeckArt deck={deck} size={cardW * (tiny && !micro ? 0.5 : 0.46)} dim={!on} spent={spent} fan={fan} />
         </View>
-        <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }, !on && { color: colors.muted }]} numberOfLines={2}>{label}</Text>
-        <Text style={[st.ct, { fontSize: countSize, color: on ? (spent ? colors.ink2 : c2) : colors.faint }]} numberOfLines={1}>
-          {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
-        </Text>
-        <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: Math.max(7, cardW * 0.07), right: Math.max(7, cardW * 0.07) },
+        <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }, !on && { color: colors.muted }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
+        {micro ? null : (
+          <Text style={[st.ct, { fontSize: countSize, color: on ? (spent ? colors.ink2 : c2) : colors.faint }, tiny && { letterSpacing: 0.7, marginTop: 3 }]} numberOfLines={1}>
+            {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
+          </Text>
+        )}
+        <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: micro ? 5 : Math.max(7, cardW * 0.07), right: micro ? 5 : Math.max(7, cardW * 0.07) },
           on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: colors.line2 }]}>
           {on ? <Icon name="check" size={chk * 0.7} color="#fff" strokeWidth={3} /> : null}
         </View>
