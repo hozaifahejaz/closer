@@ -20,6 +20,8 @@ const BLURBS: Record<string, string> = {
   'Guess My Answer': 'Guess what your partner will say, then find out.',
   'Would You Rather': 'Quick either-or picks to argue about.',
   'Weekly Check-in': 'A few minutes each week to stay in step.',
+  Dilemmas: 'Moral what-ifs with no right answer.',
+  'Long Distance': 'For missing each other from miles away.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -50,7 +52,8 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const short = height < 720;
   // Deck cards are upright (5:7) and sized like the website's picker: four to a row on phones and tablets,
   // six on wide screens, shrinking only until three rows (two on wide screens) fit, never below a minimum.
-  // More decks than that scroll, with a soft fade at the edge that has more.
+  // The size never depends on how many decks there are: twelve (three rows of four) show at full size,
+  // and any more scroll, with a soft fade at the edge that has more.
   const layout = width >= 960 ? { cols: 6, gx: 18, gy: 18, rows: 2, min: 90 }
     : width >= 700 ? { cols: 4, gx: 20, gy: 22, rows: 3, min: 96 }
     : { cols: 4, gx: 12, gy: 16, rows: 3, min: 64 };
@@ -63,6 +66,7 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
     if (above !== edge.above || below !== edge.below) setEdge({ above, below });
   };
   const cardH = Math.round(cardW * 7 / 5);
+  const visibleH = layout.rows * cardH + (layout.rows - 1) * layout.gy + 20;
 
   const fan = list.map(d => deckColors(d.name).c1);
   const toggle = (name: string | null) => {
@@ -126,18 +130,21 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
         {banner}
         <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 20 })}>
           {grid.w ? (
-            <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > grid.h + 22 }))}
-              scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
-              <View style={[st.cards, { width: cardW * COLS + layout.gx * (COLS - 1), columnGap: layout.gx, rowGap: layout.gy }]}>
-                {[
-                  tile(null, 'All decks', 'Every question, shuffled together.', sum(list, d => d.count), sum(list, left), sel.size === list.length),
-                  ...list.map(d => tile(d.name, d.name, BLURBS[d.name] || '', d.count, left(d), sel.has(d.name))),
-                ]}
-              </View>
-            </ScrollView>
+            // At most three rows (two on wide screens) show at once; the box is exactly that tall and the rest scroll.
+            <View style={{ height: Math.min(grid.h + 20, visibleH), width: '100%' }}>
+              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > Math.min(grid.h + 20, visibleH) + 2 }))}
+                scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
+                <View style={[st.cards, { width: cardW * COLS + layout.gx * (COLS - 1), columnGap: layout.gx, rowGap: layout.gy }]}>
+                  {[
+                    tile(null, 'All decks', 'Every question, shuffled together.', sum(list, d => d.count), sum(list, left), sel.size === list.length),
+                    ...list.map(d => tile(d.name, d.name, BLURBS[d.name] || '', d.count, left(d), sel.has(d.name))),
+                  ]}
+                </View>
+              </ScrollView>
+              {edge.above ? <LinearGradient pointerEvents="none" colors={[colors.bg, colors.bg + '00']} style={[st.fade, { top: 0 }]} /> : null}
+              {edge.below ? <LinearGradient pointerEvents="none" colors={[colors.bg + '00', colors.bg]} style={[st.fade, { bottom: 0 }]} /> : null}
+            </View>
           ) : null}
-          {edge.above ? <LinearGradient pointerEvents="none" colors={[colors.bg, colors.bg + '00']} style={[st.fade, { top: 0 }]} /> : null}
-          {edge.below ? <LinearGradient pointerEvents="none" colors={[colors.bg + '00', colors.bg]} style={[st.fade, { bottom: 0 }]} /> : null}
         </View>
         <View style={[st.foot, short && { gap: 10, paddingTop: 10 }, { paddingBottom: Math.max(insets.bottom, short ? 10 : 16) }]}>
           {room.couple ? (
@@ -163,7 +170,7 @@ const st = StyleSheet.create({
   title: { fontFamily: fonts.serifBold, fontSize: 28, color: colors.text, letterSpacing: -0.3 },
   sub: { marginTop: 4, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.muted },
   x: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 980, alignSelf: 'center' },
+  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 980, alignSelf: 'center', justifyContent: 'center', overflow: 'hidden' },
   scroll: { flex: 1 },
   scrollIn: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },

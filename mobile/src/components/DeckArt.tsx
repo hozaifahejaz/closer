@@ -15,6 +15,8 @@ export const DECK_COLORS: Record<string, { c1: string; c2: string }> = {
   'Guess My Answer': { c1: '#e2b33c', c2: '#8a6512' },
   'Would You Rather': { c1: '#d673c4', c2: '#86287a' },
   'Weekly Check-in': { c1: '#8a96b8', c2: '#3e4a6e' },
+  Dilemmas: { c1: '#c79a6b', c2: '#7a5230' },
+  'Long Distance': { c1: '#4fb0d6', c2: '#1c5f7d' },
 };
 export const deckColors = (name: string) => DECK_COLORS[name] || DECK_COLORS['Getting Closer'];
 
@@ -127,10 +129,31 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
       </>;
       break;
     }
+    case 'Dilemmas': {
+      viewBox = '20 24 80 60';
+      const pans = ['M24 56a11 6 0 0 0 22 0z', 'M74 48a11 6 0 0 0 22 0z'];
+      body = <>
+        <Path {...stroke} d="M60 36v42M48 78h24M35 40l50-8" /><Circle cx="60" cy="36" r="2.6" fill={line} />
+        <Path {...soft} d="M35 40l-8 16M35 40l8 16M85 32l-8 16M85 32l8 16" />
+        {pans.map(d => <G key={d}><Path {...tinted} d={d} /><Path {...stroke} d={d} /></G>)}
+      </>;
+      break;
+    }
+    case 'Long Distance': {
+      viewBox = '22 16 76 66';
+      const pins = ['M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z', 'M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z'];
+      body = <>
+        <Path {...soft} strokeDasharray="3 5" d="M36 50C40 28 66 20 82 30" />
+        {pins.map(d => <G key={d}><Path {...tinted} d={d} /><Path {...stroke} d={d} /></G>)}
+        <Circle cx="36" cy="63" r="3" {...stroke} /><Circle cx="84" cy="43" r="3" {...stroke} />
+        <Path fill={line} d="M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z" />
+      </>;
+      break;
+    }
     default: // All decks: a fan with one card per deck colour
       body = <>
         {fan.map((c, i) => (
-          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
+          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 11 ? 7 : fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
             <Rect x="-12" y="-56" width="24" height="34" rx="3" fill={spent ? '#b9adb6' : c} opacity={dim ? 0.5 : 1} stroke="#fffaf4" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
           </G>
         ))}
