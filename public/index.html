@@ -200,7 +200,7 @@
   /* Only the list scrolls, so the heading and the Start button stay in view. */
   /* Decks are upright playing cards, --cols to a row with a short last row centred. The card
      width is capped by the screen height, so the rows fit without scrolling wherever there's room. */
-  .deck-list { --cols:3; --gx:12px; --cw:max(64px, calc((100vh - 462px) * .238)); --cw:max(64px, calc((100dvh - 462px) * .238));
+  .deck-list { --cols:4; --gx:12px; --cw:max(64px, calc((100vh - 462px) * .238)); --cw:max(64px, calc((100dvh - 462px) * .238));
     display:flex; flex-wrap:wrap; justify-content:center; gap:16px var(--gx); align-content:start;
     flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
   .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; flex:none; width:min(var(--cw), calc((100% - (var(--cols) - 1) * var(--gx)) / var(--cols) - .5px)); min-height:0; aspect-ratio:5 / 7; padding:0; border:0; border-radius:12px; background:none;
@@ -239,6 +239,9 @@
   .tile[data-deck="Desire & Intimacy"] { --c1:#e8735a; --c2:#a33b24; }
   .tile[data-deck="Conflict & Repair"] { --c1:#6f9cf0; --c2:#2f53a3; }
   .tile[data-deck="Life & Meaning"] { --c1:#8fb86a; --c2:#4b6e2e; }
+  .tile[data-deck="Guess My Answer"] { --c1:#e2b33c; --c2:#8a6512; }
+  .tile[data-deck="Would You Rather"] { --c1:#d673c4; --c2:#86287a; }
+  .tile[data-deck="Weekly Check-in"] { --c1:#8a96b8; --c2:#3e4a6e; }
   /* Very small cards (small phones held sideways): drop the rule and tighten the type. */
   @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
   /* The tiniest cards (a small phone on its side) keep just the art and the name. */
@@ -277,7 +280,7 @@
     .picker { grid-column:1 / -1; grid-row:2; }
     .picker { gap:10px; padding:14px 16px; }
     .pick-head p, .pick-opt small { display:none; }
-    .deck-list { --cols:9; --gx:8px; --cw:max(52px, calc((100vh - 262px) * .714)); --cw:max(52px, calc((100dvh - 262px) * .714)); gap:8px; }
+    .deck-list { --cols:12; --gx:8px; --cw:max(52px, calc((100vh - 262px) * .714)); --cw:max(52px, calc((100dvh - 262px) * .714)); gap:8px; }
     .pick-opt { padding:6px 10px 6px 12px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
     .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
@@ -298,7 +301,7 @@
 
   /* Tablets and up: more room to breathe. */
   @media (min-width:700px) and (min-height:521px) {
-    .deck-list { --gx:20px; --cw:max(96px, calc((100vh - 514px) * .238)); --cw:max(96px, calc((100dvh - 514px) * .238)); gap:22px var(--gx); }
+    .deck-list { --cols:4; --gx:20px; --cw:max(96px, calc((100vh - 514px) * .238)); --cw:max(96px, calc((100dvh - 514px) * .238)); gap:22px var(--gx); }
     #game { max-width:580px; justify-content:center; }
     .scene { max-height:780px; }
     body.answer-mode .scene { max-height:none; }
@@ -338,7 +341,7 @@
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
     .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:center; width:min(100%, 640px); max-height:100%; padding:30px; }
     .picker { width:min(100%, 900px); }
-    .deck-list { --cols:5; --gx:18px; --cw:max(90px, calc((100vh - 418px) * .357)); --cw:max(90px, calc((100dvh - 418px) * .357)); gap:18px; }
+    .deck-list { --cols:6; --gx:18px; --cw:max(90px, calc((100vh - 418px) * .357)); --cw:max(90px, calc((100dvh - 418px) * .357)); gap:18px; }
     .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
     .back::before { inset:14px; border-radius:18px; }
     .front .q { font-size:calc(var(--cw) * .058); }
@@ -752,11 +755,14 @@ const DECK_BLURBS = {
   'Desire & Intimacy': 'Touch, attraction and feeling wanted.',
   'Conflict & Repair': 'How you fight, forgive and find your way back.',
   'Life & Meaning': 'Big questions about life, death and what matters.',
+  'Guess My Answer': 'Guess what your partner will say, then find out.',
+  'Would You Rather': 'Quick either-or picks to argue about.',
+  'Weekly Check-in': 'A few minutes each week to stay in step.',
 };
 // Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
 const DECK_ART = {
-  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a'].map((c, i) =>
-    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - 3.5) * 10})"/>`).join('')],
+  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8'].map((c, i, a) =>
+    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - (a.length - 1) / 2) * 8})"/>`).join('')],
   'Getting Closer': ['14 12 92 66', '<circle class="tint" cx="48" cy="45" r="25"/><circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
     '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>'],
   'Who You Are': ['24 8 72 72', '<path d="M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6"/>' +
@@ -776,6 +782,14 @@ const DECK_ART = {
     '<path class="soft" d="M36 66V53M48 66V46M60 66V42.5M72 66V46M84 66V53"/><path d="M26 66v12M94 66v12"/><path class="soft" d="M16 82h18M48 84h24M86 82h18"/>'],
   'Life & Meaning': ['22 10 76 80', '<circle class="tint" cx="60" cy="38" r="23"/><circle cx="60" cy="38" r="23"/><path d="M60 50v36M60 68l-9-9M60 62l8-8"/>' +
     '<path class="soft" d="M50 30a10 10 0 0 1 10-7M34 86h52M52 86c3-3 5-3 8-3s5 0 8 3"/>'],
+  'Guess My Answer': ['16 16 88 72', '<path class="tint" d="M30 24h60a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H56L42 82V70H30a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8z"/>' +
+    '<path d="M30 24h60a8 8 0 0 1 8 8v30a8 8 0 0 1-8 8H56L42 82V70H30a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8z"/>' +
+    '<path d="M52 39a8 8 0 1 1 11 7.4c-2 .9-3 2.4-3 4.6v2"/><circle class="fill" cx="60" cy="59" r="2.2"/>'],
+  'Would You Rather': ['20 16 80 76', '<path d="M60 22v64"/><path class="tint" d="M60 30h24l8 8-8 8H60z"/><path d="M60 30h24l8 8-8 8H60z"/>' +
+    '<path class="tint" d="M60 52H36l-8 8 8 8h24z"/><path d="M60 52H36l-8 8 8 8h24z"/><path class="soft" d="M44 86h32"/>'],
+  'Weekly Check-in': ['22 16 76 72', '<rect class="tint" x="32" y="28" width="56" height="54" rx="6"/><rect x="32" y="28" width="56" height="54" rx="6"/>' +
+    '<path d="M32 42h56M46 22v12M74 22v12"/>' +
+    '<path class="fill" d="M60 74c-.5 0-10-6-10-12.5 0-3.2 2.5-5.7 5.5-5.7 2 0 3.5 1.1 4.5 2.6 1-1.5 2.5-2.6 4.5-2.6 3 0 5.5 2.5 5.5 5.7 0 6.5-9.5 12.5-10 12.5z"/>'],
 };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
