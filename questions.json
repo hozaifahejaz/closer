@@ -65,7 +65,12 @@
     "What's a place you'd love to take me that I've never been?",
     "What's one thing about our weekends you'd never change?",
     "What's a small surprise from me that would make your whole day?",
-    "What's the best day we've had together so far?"
+    "What's the best day we've had together so far?",
+    "Do I remind you of anyone from your past? In what way?",
+    "What do you think I'm naturally good at? Are we good at any of the same things?",
+    "How do you think I handle it when things go really wrong?",
+    "When you're sick, do you want to be left alone or totally fussed over?",
+    "Are you a hugger? Do you like hugs from everyone, or just a few people?"
   ],
   "Who You Are": [
     "What belief did you hold strongly five years ago that you've since let go of?",
@@ -130,7 +135,19 @@
     "What's a small habit that makes your days go better?",
     null,
     "What always makes you feel better when you're low?",
-    "What's a place that feels like it made you who you are?"
+    "What's a place that feels like it made you who you are?",
+    "Have you ever been in an actual fight? What happened?",
+    "How often is your gut right? When was it totally wrong?",
+    "Are you good in an emergency? What's the scariest one you've been through?",
+    "Which feeling is hardest for you to control, and which is hardest to show?",
+    "What's the most thoughtful thing you've ever done for someone?",
+    "How do you handle big changes? Do you adapt fast or need time?",
+    "Do you think things through before you say them, or just blurt them out?",
+    "Are you more introvert or extrovert? Does it change depending on who's around?",
+    "What are you humble about, and when do you catch yourself being a bit full of yourself?",
+    "Where are you super independent, and where do you lean on other people?",
+    "Do you think you're more sensitive than people realize?",
+    "What's the biggest disappointment of your life so far?"
   ],
   "Us & The Future": [
     "Where do you picture us in ten years, in as much detail as you can?",
@@ -197,7 +214,8 @@
     "What's a little luxury you'd love for us to have one day?",
     "What kind of home do you picture us living in at sixty?",
     "What's something we should do every year, no matter what?",
-    "What's a place you want us to see together someday?"
+    "What's a place you want us to see together someday?",
+    "When did you first feel ready for something serious and lasting?"
   ],
   "Honest & Vulnerable": [
     "Is there anything you've been wanting to say to me but haven't?",
@@ -259,7 +277,13 @@
     "When I'm upset, what story do you tell yourself about what it says about you?",
     "When do you most need a hug but don't ask for one?",
     null,
-    "What would you want me to do when you shut down?"
+    "What would you want me to do when you shut down?",
+    "What are you most selfish about, honestly?",
+    "When did you last feel like you were about to lose it?",
+    "Is there anyone who makes you feel like you're not good enough?",
+    "Which scares you most: being alone, being rejected, or feeling unloved?",
+    "If we lost everything, the house, the car, all of it, how would that hit you?",
+    "Do you feel worthy of love? Always, or only on good days?"
   ],
   "Light & Playful": [
     "If we swapped lives for a day, what's the first thing you'd do as me?",
@@ -343,7 +367,16 @@
     "If any animal were allowed as a pet, which would you pick?",
     "What's a weird job you'd happily try for a week?",
     "What's a board or card game you'd challenge me to, and would you win?",
-    "If you could wake up tomorrow fluent in any language, which would it be?"
+    "If you could wake up tomorrow fluent in any language, which would it be?",
+    "Does public speaking scare you? What's the worst speech you've ever given?",
+    "If any book you wrote was guaranteed to be a hit, what would you write about?",
+    "Do you like your name? What would you have picked for yourself?",
+    "Be honest, do you exaggerate stories to make them better?",
+    "If you'd been born in a different country, which one would you pick?",
+    "If you had a huge budget to throw one party for all your friends, what would it be like?",
+    "Are you more of a peacekeeper or a troublemaker?",
+    "What's the one thing you have zero self-control around?",
+    "What are you secretly super competitive about?"
   ],
   "Desire & Intimacy": [
     "When do you feel most desired by me?",
@@ -447,7 +480,8 @@
     "How do you know when you've truly forgiven me?",
     "After a big fight, what reminds you that we're still on the same team?",
     "What's a wound from before we met that I sometimes press on without knowing?",
-    "What could we do this month to make our next disagreement kinder?"
+    "What could we do this month to make our next disagreement kinder?",
+    "Be honest, do I nag you? About what?"
   ],
   "Life & Meaning": [
     "What do you think happens when we die, and how does that shape the way you live?",
@@ -499,7 +533,8 @@
     "What does it mean to you to truly know someone?",
     "When have you seen goodness somewhere you didn't expect it?",
     "What would you want a young person to understand about love before they fall into it?",
-    "What do you think is the point of us?"
+    "What do you think is the point of us?",
+    "If you had to give a million dollars away, who would get it?"
   ],
   "Guess My Answer": [
     "Guess my go-to comfort food on a bad day.",
@@ -551,7 +586,10 @@
     "Guess my go-to excuse to get out of plans.",
     "Guess what I'd miss most if we moved abroad.",
     "Guess my honest answer: who apologizes first more often?",
-    "Guess what I'd write in a note to my younger self."
+    "Guess what I'd write in a note to my younger self.",
+    "Guess whether I'm an optimist, a pessimist or a realist.",
+    "Guess how good I am at keeping a juicy secret.",
+    "Guess whether I'd call myself a leader or a follower."
   ],
   "Would You Rather": [
     "Would you rather relive our first date or skip ahead to see our 50th anniversary?",
@@ -603,7 +641,9 @@
     "Would you rather know how our story ends or be surprised the whole way?",
     "Would you rather wake up at sunrise together or stay up to watch it?",
     "Would you rather get a love letter every year or a surprise date every month?",
-    "Would you rather grow old in the city we met in or somewhere completely new?"
+    "Would you rather grow old in the city we met in or somewhere completely new?",
+    "Would you rather have a calm, steady relationship or an exciting one with some rocky patches?",
+    "Would you rather go to a big party or have one long, deep chat with a friend?"
   ],
   "Weekly Check-in": [
     "From 1 to 10, how connected did you feel to us this week, and why?",
@@ -707,7 +747,8 @@
     "Would you accept a lot of money to never speak to your best friend again?",
     "Is loyalty to family more important than doing what's right?",
     "Would you want me to be honest if I stopped finding you attractive for a while?",
-    "If you had to choose between my happiness and yours, which would you pick?"
+    "If you had to choose between my happiness and yours, which would you pick?",
+    "Do you give money to people asking on the street? Why or why not?"
   ],
   "Long Distance": [
     "What time of day do you miss me the most?",
@@ -814,6 +855,7 @@
     "What's one question you hope I never stop asking you?",
     "If you could leave one sentence for a stranger to find in 100 years, what would it say?",
     "What do you think you'd be afraid of if no one had ever taught you to fear anything?",
-    "If you got one secret extra hour every night that no one else knew about, how would you use it?"
+    "If you got one secret extra hour every night that no one else knew about, how would you use it?",
+    "Do you have a dream that keeps coming back? What happens in it?"
   ]
 }
