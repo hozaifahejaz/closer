@@ -225,14 +225,9 @@
   .tile .chk { position:absolute; top:max(7px, 7cqw); right:max(7px, 7cqw); width:clamp(13px, 13cqw, 20px); height:clamp(13px, 13cqw, 20px); border-radius:50%; display:grid; place-items:center;
     border:1px solid color-mix(in srgb, var(--c2) 45%, transparent); color:transparent; transition:background .15s, color .15s, border-color .15s; }
   .tile .chk .ico { width:70%; height:70%; stroke-width:3; }
-  .tile[aria-pressed="true"] .tf { border-color:color-mix(in srgb, var(--c2) 70%, transparent); }
+  /* Picked and unpicked decks look the same; only the tick shows which are picked. */
+  .tile .tf { border-color:color-mix(in srgb, var(--c2) 70%, transparent); }
   .tile[aria-pressed="true"] .chk { background:var(--c2); border-color:var(--c2); color:#fff; }
-  /* Decks that aren't picked fade back into the panel. */
-  .tile[aria-pressed="false"] .tf { background:var(--bg3); border-color:var(--line2); box-shadow:none; }
-  .tile[aria-pressed="false"] .art { opacity:.35; filter:grayscale(.6) brightness(1.6); }
-  .tile[aria-pressed="false"] .nm { color:var(--muted); }
-  .tile[aria-pressed="false"] .ct { color:var(--faint); }
-  .tile[aria-pressed="false"] .chk { border-color:var(--line2); }
   .tile.spent .art { filter:grayscale(1); opacity:.5; }
   .tile.spent .ct { color:var(--ink2); }
   .tile.all { --c1:#9b5aa6; --c2:#5a2d66; }
@@ -252,7 +247,7 @@
   @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
   /* The tiniest cards (a small phone on its side) keep just the art and the name. */
   @container tile (max-width:56px) { .tile .tf { padding:6cqw 4cqw; } .tile .art { width:44%; margin:0 0 6cqw; } .tile .nm { font-size:8.5px; line-height:1.1; } .tile .ct { display:none; } .tile .chk { width:11px; height:11px; top:5px; right:5px; } }
-  @media (hover:hover) { .tile:hover .tf { border-color:var(--c1); } .tile[aria-pressed="false"]:hover .art { opacity:.55; } }
+  @media (hover:hover) { .tile:hover .tf { border-color:var(--c1); } }
   .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
   .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
   .pick-opt small { color:var(--muted); font-size:12.5px; font-weight:400; }
