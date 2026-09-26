@@ -12,7 +12,9 @@
     "ios": {
       "bundleIdentifier": "com.hozaifahejaz.closer",
       "supportsTablet": true,
-      "config": { "usesNonExemptEncryption": false }
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.hozaifahejaz.closer",
@@ -40,6 +42,18 @@
           "backgroundColor": "#1d1420"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f9f9c491-5905-4341-ad96-c1d9b85d48bf"
+      }
+    },
+    "owner": "hozaifahs-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f9f9c491-5905-4341-ad96-c1d9b85d48bf"
+    }
   }
 }

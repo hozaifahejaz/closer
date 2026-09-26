@@ -31,6 +31,23 @@ The admin dashboard stays on the website.
    ```
 3. Scan the QR code (Camera app on iPhone, Expo Go on Android).
 
+### Without a computer (EAS Update)
+
+The app is linked to the Expo project `@hozaifahs-team/closer`. Expo Go only
+loads updates whose runtime version is `exposdk:<SDK>`, while `app.json` keeps
+the `appVersion` policy for real builds, so publish an Expo Go preview with a
+temporary override:
+
+```bash
+cd mobile
+node -e 'const f="app.json",j=require("./"+f);j.expo.runtimeVersion="exposdk:57.0.0";require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")'
+EXPO_TOKEN=... npx eas-cli@latest update --branch expo-go --environment preview --message "..." --non-interactive
+git checkout app.json
+```
+
+Open it in Expo Go with `exp://u.expo.dev/<project id>/group/<update group id>`
+(both are printed by `eas update`).
+
 ## Code
 
 - `App.tsx`: loading fonts, restoring the sign-in, switching between lobby and room
