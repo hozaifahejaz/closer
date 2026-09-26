@@ -203,6 +203,10 @@
   .deck-list { --cols:4; --gx:12px; --cw:max(64px, calc((100vh - 462px) * .238)); --cw:max(64px, calc((100dvh - 462px) * .238));
     display:flex; flex-wrap:wrap; justify-content:center; gap:16px var(--gx); align-content:start;
     flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
+  /* When there are more decks than fit, the list scrolls and fades at the edge that has more. */
+  .deck-list.more-below { -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent); mask-image:linear-gradient(#000 calc(100% - 36px), transparent); }
+  .deck-list.more-above { -webkit-mask-image:linear-gradient(transparent, #000 36px); mask-image:linear-gradient(transparent, #000 36px); }
+  .deck-list.more-above.more-below { -webkit-mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); }
   .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; flex:none; width:min(var(--cw), calc((100% - (var(--cols) - 1) * var(--gx)) / var(--cols) - .5px)); min-height:0; aspect-ratio:5 / 7; padding:0; border:0; border-radius:12px; background:none;
     color:var(--ink); font-weight:500; isolation:isolate; container:tile / inline-size; transition:transform .2s; }
   .tile:active { transform:scale(.97); }
@@ -816,6 +820,7 @@ function renderPicker(s, first) {
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
   $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
     s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
+  deckEdges();
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
@@ -834,6 +839,13 @@ $('deckList').onclick = e => {
   else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
   renderPicker(room, false);
 };
+const deckEdges = () => {
+  const L = $('deckList');
+  L.classList.toggle('more-above', L.scrollTop > 2);
+  L.classList.toggle('more-below', L.scrollTop + L.clientHeight < L.scrollHeight - 2);
+};
+$('deckList').addEventListener('scroll', deckEdges, { passive: true });
+addEventListener('resize', deckEdges);
 $('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicker(room, false); };
 
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
