@@ -85,13 +85,11 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
     const spent = fresh && !fresh_;
     const deck = name ?? 'All';
     const { c2 } = deckColors(deck);
-    // Type and art scale with the card; roomy cards also say what the deck is about.
+    // Type and art scale with the card; each card shows just the deck's name and card count.
     const m = Math.min(cardW, cardH * 1.1);
     const low = cardH < 150;
     const nameSize = Math.max(14, Math.min(23, cardW * 0.1, cardH * 0.12));
     const countSize = Math.max(9, Math.min(11.5, cardW * 0.056, cardH * 0.07));
-    const blurbSize = Math.max(11.5, Math.min(14, cardW * 0.054, cardH * 0.064));
-    const showBlurb = cardW >= 170 && cardH >= 200;
     const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
     const chk = Math.max(18, Math.min(26, m * 0.12));
     const inset = Math.max(8, Math.min(14, m * 0.06));
@@ -104,7 +102,6 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
           <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
         </View>
         <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
-        {showBlurb ? <Text style={[st.bl, { fontSize: blurbSize, lineHeight: blurbSize * 1.35, marginTop: Math.min(8, cardH * 0.03) }]} numberOfLines={2}>{blurb}</Text> : null}
         {cardH < 110 ? null : (
           <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(12, cardH * (low ? 0.02 : 0.04)) }]} numberOfLines={1}>
             {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
@@ -183,7 +180,6 @@ const st = StyleSheet.create({
   card: { borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   chk: { position: 'absolute', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  bl: { fontFamily: fonts.sans, color: '#6a5a6b', textAlign: 'center', maxWidth: 230 },
   nm: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center' },
   ct: { marginTop: 4, fontFamily: fonts.sansBold, letterSpacing: 1.4, textTransform: 'uppercase', fontVariant: ['tabular-nums'] },
   foot: { paddingHorizontal: 20, paddingTop: 12, gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, width: '100%', maxWidth: 620, alignSelf: 'center' },
