@@ -18,6 +18,7 @@ export const DECK_COLORS: Record<string, { c1: string; c2: string }> = {
   Dilemmas: { c1: '#c79a6b', c2: '#7a5230' },
   'Long Distance': { c1: '#4fb0d6', c2: '#1c5f7d' },
   'Midnight Questions': { c1: '#6c6fd8', c2: '#2a2c72' },
+  'Money & Work': { c1: '#4fa36b', c2: '#1f5a37' },
 };
 export const deckColors = (name: string) => DECK_COLORS[name] || DECK_COLORS['Getting Closer'];
 
@@ -159,6 +160,18 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
         <Path fill={line} d="M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z" />
         <Path fill={line} opacity={0.45} d="M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z" />
         <Circle cx="74" cy="46" r="1.6" fill={line} opacity={0.45} /><Path {...soft} d="M30 82h60" />
+      </>;
+      break;
+    }
+    case 'Money & Work': {
+      viewBox = '14 22 94 68';
+      const bag = 'M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z';
+      body = <>
+        <Path {...tinted} d={bag} /><Path {...stroke} d={bag} />
+        <Path {...stroke} d="M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50" /><Rect x="42" y="54.5" width="8" height="7" rx="1.5" fill={line} />
+        <Path {...tinted} d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z" /><Ellipse cx="89" cy="56" rx="11" ry="4" {...stroke} />
+        <Path {...stroke} d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4" />
+        <Path {...soft} d="M18 86h86" />
       </>;
       break;
     }

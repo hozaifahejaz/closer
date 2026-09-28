@@ -23,6 +23,7 @@ const BLURBS: Record<string, string> = {
   Dilemmas: 'Moral what-ifs with no right answer.',
   'Long Distance': 'For missing each other from miles away.',
   'Midnight Questions': 'The strange, big thoughts that come out late at night.',
+  'Money & Work': 'Jobs, ambition, spending and saving.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -30,7 +31,7 @@ const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(
 // Choosing decks is shared: when one of you opens the picker, it opens for both,
 // and starting deals the same cards to both phones.
 export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; send: (a: any) => void; onLeave: () => void; banner?: ReactNode }) {
-  const { width, height } = useWindowDimensions();
+  const { height } = useWindowDimensions();
   const [grid, setGrid] = useState({ w: 0, h: 0 });
   const insets = useSafeAreaInsets();
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -51,23 +52,20 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Deck cards are upright (5:7) and sized like the website's picker: four to a row on phones and tablets,
-  // six on wide screens, shrinking only until three rows (two on wide screens) fit, never below a minimum.
-  // The size never depends on how many decks there are: twelve (three rows of four) show at full size,
-  // and any more scroll, with a soft fade at the edge that has more.
-  const layout = width >= 960 ? { cols: 6, gx: 18, gy: 18, rows: 2, min: 90 }
-    : width >= 700 ? { cols: 4, gx: 20, gy: 22, rows: 3, min: 96 }
-    : { cols: 4, gx: 12, gy: 16, rows: 3, min: 64 };
+  // Six decks show at a time, filling the space between the heading and the Start button:
+  // 2 across and 3 down on phones, 3 by 2 when the space is wider than tall, 6 in a row when it's
+  // very wide (a phone on its side). A sliver of the next row peeks out to show the rest scroll.
+  const aspect = grid.h ? grid.w / grid.h : 0;
+  const layout = aspect >= 3 ? { cols: 6, rows: 1, gap: 10 } : aspect >= 1.2 ? { cols: 3, rows: 2, gap: 16 } : { cols: 2, rows: 3, gap: 12 };
   const COLS = layout.cols;
-  const cardW = Math.floor(Math.min((grid.w - layout.gx * (COLS - 1)) / COLS, 190,
-    Math.max(layout.min, ((grid.h - layout.gy * (layout.rows - 1)) / layout.rows) * (5 / 7))));
+  const peek = Math.max(14, Math.min(30, grid.h * 0.05));
+  const cardW = Math.floor((grid.w - layout.gap * (COLS - 1)) / COLS);
+  const cardH = Math.floor(Math.max(112, (grid.h - peek - layout.rows * layout.gap) / layout.rows));
   const [edge, setEdge] = useState({ above: false, below: false });
   const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
     const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
     if (above !== edge.above || below !== edge.below) setEdge({ above, below });
   };
-  const cardH = Math.round(cardW * 7 / 5);
-  const visibleH = layout.rows * cardH + (layout.rows - 1) * layout.gy + 20;
 
   const fan = list.map(d => deckColors(d.name).c1);
   const toggle = (name: string | null) => {
@@ -87,26 +85,32 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
     const spent = fresh && !fresh_;
     const deck = name ?? 'All';
     const { c2 } = deckColors(deck);
-    // Tiny cards (twelve decks on a small phone) tighten up like the website's: smaller type, and no count below 56px.
-    const tiny = cardW < 80, micro = cardW < 56;
-    const nameSize = micro ? 8.5 : tiny ? 9.5 : Math.max(10, Math.min(17, cardW * 0.11));
-    const countSize = tiny ? 7 : Math.max(7, Math.min(10.5, cardW * 0.068));
-    const chk = micro ? 11 : Math.max(13, Math.min(20, cardW * 0.13));
+    // Type and art scale with the card; roomy cards also say what the deck is about.
+    const m = Math.min(cardW, cardH * 1.1);
+    const low = cardH < 150;
+    const nameSize = Math.max(14, Math.min(23, cardW * 0.1, cardH * 0.12));
+    const countSize = Math.max(9, Math.min(11.5, cardW * 0.056, cardH * 0.07));
+    const blurbSize = Math.max(11.5, Math.min(14, cardW * 0.054, cardH * 0.064));
+    const showBlurb = cardW >= 170 && cardH >= 200;
+    const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
+    const chk = Math.max(18, Math.min(26, m * 0.12));
+    const inset = Math.max(8, Math.min(14, m * 0.06));
     return (
       <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
         accessibilityLabel={`${label}. ${blurb}`}
-        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: cardW * (tiny ? 0.085 : 0.1), paddingHorizontal: cardW * (micro ? 0.04 : tiny ? 0.06 : 0.08) },
+        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: low ? 8 : cardH * 0.08, paddingHorizontal: low ? 6 : cardW * 0.08 },
           { backgroundColor: colors.card, borderColor: c2 + 'b3' }, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ marginBottom: cardW * (tiny ? 0.07 : 0.1), opacity: spent ? 0.5 : 1 }}>
-          <DeckArt deck={deck} size={cardW * (tiny && !micro ? 0.5 : 0.46)} spent={spent} fan={fan} />
+        <View style={{ marginBottom: Math.min(22, cardH * (low ? 0.04 : 0.06)), opacity: spent ? 0.5 : 1 }}>
+          <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
         </View>
         <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
-        {micro ? null : (
-          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2 }, tiny && { letterSpacing: 0.7, marginTop: 3 }]} numberOfLines={1}>
+        {showBlurb ? <Text style={[st.bl, { fontSize: blurbSize, lineHeight: blurbSize * 1.35, marginTop: Math.min(8, cardH * 0.03) }]} numberOfLines={2}>{blurb}</Text> : null}
+        {cardH < 110 ? null : (
+          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(12, cardH * (low ? 0.02 : 0.04)) }]} numberOfLines={1}>
             {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
           </Text>
         )}
-        <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: micro ? 5 : Math.max(7, cardW * 0.07), right: micro ? 5 : Math.max(7, cardW * 0.07) },
+        <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: inset, right: inset },
           on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
           {on ? <Icon name="check" size={chk * 0.7} color="#fff" strokeWidth={3} /> : null}
         </View>
@@ -129,13 +133,13 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
           </Pressable>
         </View>
         {banner}
-        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 20 })}>
+        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 10 })}>
           {grid.w ? (
-            // At most three rows (two on wide screens) show at once; the box is exactly that tall and the rest scroll.
-            <View style={{ height: Math.min(grid.h + 20, visibleH), width: '100%' }}>
-              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > Math.min(grid.h + 20, visibleH) + 2 }))}
-                scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never">
-                <View style={[st.cards, { width: cardW * COLS + layout.gx * (COLS - 1), columnGap: layout.gx, rowGap: layout.gy }]}>
+            <View style={{ flex: 1, width: '100%' }}>
+              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > grid.h + 10 + 2 }))}
+                scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never"
+                snapToInterval={cardH + layout.gap} decelerationRate="fast" snapToAlignment="start">
+                <View style={[st.cards, { width: cardW * COLS + layout.gap * (COLS - 1), columnGap: layout.gap, rowGap: layout.gap }]}>
                   {[
                     tile(null, 'All decks', 'Every question, shuffled together.', sum(list, d => d.count), sum(list, left), sel.size === list.length),
                     ...list.map(d => tile(d.name, d.name, BLURBS[d.name] || '', d.count, left(d), sel.has(d.name))),
@@ -171,14 +175,15 @@ const st = StyleSheet.create({
   title: { fontFamily: fonts.serifBold, fontSize: 28, color: colors.text, letterSpacing: -0.3 },
   sub: { marginTop: 4, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.muted },
   x: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 980, alignSelf: 'center', justifyContent: 'center', overflow: 'hidden' },
+  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1060, alignSelf: 'center', overflow: 'hidden' },
   scroll: { flex: 1 },
-  scrollIn: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
+  scrollIn: { alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   fade: { position: 'absolute', left: 0, right: 0, height: 36 },
-  card: { borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+  card: { borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   chk: { position: 'absolute', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  bl: { fontFamily: fonts.sans, color: '#6a5a6b', textAlign: 'center', maxWidth: 230 },
   nm: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center' },
   ct: { marginTop: 4, fontFamily: fonts.sansBold, letterSpacing: 1.4, textTransform: 'uppercase', fontVariant: ['tabular-nums'] },
   foot: { paddingHorizontal: 20, paddingTop: 12, gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, width: '100%', maxWidth: 620, alignSelf: 'center' },
