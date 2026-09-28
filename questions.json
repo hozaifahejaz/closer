@@ -1475,5 +1475,93 @@
     "What's the coolest project you've ever worked on?",
     "What's the craziest thing that ever happened at a job you had?",
     "What's the most ambitious thing you've ever attempted?"
+  ],
+  "Alien Interview": [
+    "How would you explain to an alien why people kiss?",
+    "If aliens studied me for a week, what would their report say?",
+    "How would you explain \"being in love\" to an alien in one sentence?",
+    "How would you explain to an alien why people say \"I'm fine\" when they're not?",
+    "An alien wants to meet one of my friends. Who do you send, and why?",
+    "How would you explain jealousy to an alien without making us look silly?",
+    "If an alien asked what makes me human, what would you point to?"
+  ],
+  "Genie Wishes": [
+    "You get three wishes, but one must be for me. What is it?",
+    "What do you think I'd wish for first?",
+    "If you could wish one skill into me instantly, what would it be?",
+    "The genie offers to make one of your fears disappear. Which one?",
+    "What would you wish for right now, in this exact moment?"
+  ],
+  "Amnesia": [
+    "If I lost my memory, how would you make me fall for you again?",
+    "What story about us would you tell me first?",
+    "What would you hope I never remember?",
+    "Which photo would you show me first to help me remember us?",
+    "How would you prove to me that we're really together?",
+    "If you could only tell me three facts about us, which three?"
+  ],
+  "Act It Out": [
+    "Act out how I wake up in the morning.",
+    "Act out my face when my food arrives.",
+    "Act out how I talk on the phone to my family.",
+    "Act out our first date in 30 seconds.",
+    "Act out how I look when I'm pretending to listen.",
+    "Act out how I text when I'm annoyed.",
+    "Act out how I order at a restaurant.",
+    "Act out how I apologize when I know I'm wrong.",
+    "Act out how I apologize when I think I'm right.",
+    "Act out how I flirt with you.",
+    "Act out how I try to win an argument.",
+    "Act out me losing a board game.",
+    "Show me how I act when a baby looks at me.",
+    "Act out how I comfort you when you're sad."
+  ],
+  "Job Interview": [
+    "Why should I hire you as my partner? Go.",
+    "Where do you see yourself in five years... with me?",
+    "Tell me about a time you went above and beyond for me.",
+    "Describe a conflict with me and how you handled it.",
+    "How do you prioritize me when you're busy?",
+    "Rate your communication skills from 1 to 10 and explain."
+  ],
+  "Unsent": [
+    "What would you write to me on my worst day?",
+    "What would you write to my parents about me?",
+    "What would you write to the kid version of me?",
+    "What would you write to the person you were five years ago?",
+    "What voice note would you leave me if you knew I'd hear it in a year?",
+    "What would you write to me if I were leaving for a year?",
+    "What would you write to your parents that you'd never say out loud?",
+    "What would you say to me if you knew I'd forget it instantly?",
+    "What would you write to me right now if we weren't in the same room?"
+  ],
+  "Bad Advice": [
+    "Tell me the worst possible way to apologize to you.",
+    "Give me terrible advice for winning an argument with you.",
+    "Give me terrible advice for picking a movie for us."
+  ],
+  "How Much Would You Pay": [
+    "How much would you pay to skip laundry forever?",
+    "How much would you pay to know what I'm thinking right now?",
+    "How much would you pay to relive our first date?",
+    "How much would you pay to know how we'll be in 20 years?"
+  ],
+  "The Worst": [
+    "What's the worst date you've ever been on, not counting me?",
+    "What's the worst photo of you that exists?",
+    "What's the worst idea we've ever had together?"
+  ],
+  "Tiny Vows": [
+    "What tiny promise can you make me for this week?",
+    "What vow would you make about saying sorry?",
+    "Now make me promise you something. What is it?"
+  ],
+  "Comfort Codes": [
+    "What should I never say when you're upset?",
+    "How can you tell I need comfort before I say anything?",
+    "What's the first sign that you're having a rough day?",
+    "Do you want me to fix it or just listen? How can I tell which?",
+    "Would you rather I make you laugh or sit quietly with you?",
+    "How can I comfort you when we're far apart?"
   ]
 }
