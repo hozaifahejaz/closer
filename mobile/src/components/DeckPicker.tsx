@@ -52,15 +52,16 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Six decks show at a time, filling the space between the heading and the Start button:
-  // 2 across and 3 down on phones, 3 by 2 when the space is wider than tall, 6 in a row when it's
-  // very wide (a phone on its side). A sliver of the next row peeks out to show the rest scroll.
+  // Six decks show at a time as upright playing cards (5:7), as big as the space between the heading
+  // and the Start button allows: 2 across and 3 down on tall spaces, 3 by 2 on wide ones, 6 in a row
+  // when it's very wide. A sliver of the next row peeks out to show the rest scroll.
   const aspect = grid.h ? grid.w / grid.h : 0;
-  const layout = aspect >= 3 ? { cols: 6, rows: 1, gap: 10 } : aspect >= 1.2 ? { cols: 3, rows: 2, gap: 16 } : { cols: 2, rows: 3, gap: 12 };
+  const layout = aspect >= 15 / 7 ? { cols: 6, rows: 1, gap: 10 } : aspect >= 1 ? { cols: 3, rows: 2, gap: 16 } : { cols: 2, rows: 3, gap: 12 };
   const COLS = layout.cols;
   const peek = Math.max(14, Math.min(30, grid.h * 0.05));
-  const cardW = Math.floor((grid.w - layout.gap * (COLS - 1)) / COLS);
-  const cardH = Math.floor(Math.max(112, (grid.h - peek - layout.rows * layout.gap) / layout.rows));
+  const rowH = Math.max(110, (grid.h - peek - layout.rows * layout.gap) / layout.rows);
+  const cardW = Math.floor(Math.min(rowH * 5 / 7, (grid.w - layout.gap * (COLS - 1)) / COLS));
+  const cardH = Math.round(cardW * 7 / 5);
   const [edge, setEdge] = useState({ above: false, below: false });
   const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
     const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
