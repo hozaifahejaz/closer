@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Duet Deck · Deep Questions for Two</title>
+<meta name="description" content="Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.">
+<meta name="theme-color" content="#1d1420">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Duet Deck">
+<meta property="og:title" content="Duet Deck · Deep Questions for Two">
+<meta property="og:description" content="Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.">
+<meta property="og:site_name" content="Duet Deck">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --raise:#3a2640; --card:#fbf3ea; --ink:#2b1d2e; --ink2:#8f7a8d;
+    --muted:#a893a9; --faint:#7d6a7e; --text:#f4e9ef; --accent:#e8766f; --accent2:#f3b27a; --rose:#b8527a; --plum:#6d3a78;
+    --line:#3d2b41; --line2:#553d5a; --ok:#7fd6a0; --bad:#ff9a8f;
+    --grad:linear-gradient(150deg,var(--accent),var(--rose) 55%,var(--plum));
+    --pad:clamp(12px, 4vw, 20px); --radius:18px; --gap:10px;
+    --serif:Fraunces,Georgia,"Times New Roman",serif;
+    --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  * { box-sizing:border-box; }
+  html { background:var(--bg); -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body { margin:0; min-height:100vh; min-height:100dvh; font-family:var(--sans); color:var(--text); line-height:1.4;
+    -webkit-tap-highlight-color:transparent; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    background:radial-gradient(1200px 600px at 50% -10%, #43263f 0%, transparent 60%), radial-gradient(900px 500px at 100% 110%, #2c1a35 0%, transparent 60%), var(--bg);
+    background-attachment:fixed;
+    display:flex; flex-direction:column; align-items:center;
+    padding:max(16px, env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left)); }
+  button, select, a, .scene { touch-action:manipulation; }
+  :focus-visible { outline:2px solid var(--accent2); outline-offset:2px; }
+  .hidden { display:none !important; }
+  .ico { width:1em; height:1em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ico.fill { fill:currentColor; stroke:none; }
+  .heart-badge { display:grid; place-items:center; background:var(--grad); color:#fff; flex:none; }
+  .duet-badge .mark-duet { width:80%; height:80%; display:block; }
+  .brand > span:not(.heart-badge) { white-space:nowrap; }
+
+  /* ---------- Lobby ---------- */
+  .lobbyView { width:100%; max-width:1120px; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+  .hero { text-align:center; max-width:520px; }
+  .logo { display:inline-flex; align-items:center; gap:12px; }
+  .logo .heart-badge { width:36px; height:36px; border-radius:11px; font-size:18px; box-shadow:0 8px 22px -8px var(--accent); }
+  h1 { font-family:var(--serif); font-weight:600; font-size:clamp(28px, 7vw, 34px); margin:0; letter-spacing:.2px; line-height:1.1; }
+  .sub { color:var(--muted); margin:10px auto 0; font-size:clamp(14px, 3.6vw, 15px); line-height:1.5; max-width:34ch; }
+  .perks { display:none; list-style:none; padding:0; margin:28px 0 0; text-align:left; }
+  .perks li { display:flex; gap:14px; align-items:flex-start; color:#d9c8d5; line-height:1.5; font-size:15px; }
+  .perks li + li { margin-top:16px; }
+  .perks b { color:var(--text); font-weight:600; display:block; }
+  .perks .i { flex:none; width:36px; height:36px; border-radius:11px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-size:17px; color:var(--accent2); }
+  .deck { display:none; }
+
+  .panel { width:100%; max-width:420px; background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:22px; padding:clamp(18px, 5vw, 26px);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    opacity:0; transition:opacity .25s; }
+  .panel.ready { opacity:1; }
+  label, .lbl { font-size:13px; font-weight:500; color:var(--muted); display:block; margin-bottom:7px; }
+  input, select, textarea { width:100%; min-height:46px; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit;
+    -webkit-appearance:none; appearance:none; transition:border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(232,118,111,.18); }
+  select { cursor:pointer; background-image:linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:calc(100% - 20px) 52%, calc(100% - 15px) 52%; background-size:5px 5px; background-repeat:no-repeat; padding-right:38px; text-overflow:ellipsis; }
+  input::placeholder, textarea::placeholder { color:var(--faint); }
+  input.code { text-transform:uppercase; letter-spacing:.4em; text-indent:.4em; text-align:center; font-weight:600; }
+  input.code::placeholder { letter-spacing:.3em; font-weight:500; }
+  button { font-family:inherit; font-size:15px; font-weight:600; border:0; border-radius:12px; min-height:46px; padding:12px 16px; cursor:pointer; color:var(--text);
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:transform .08s, filter .15s, background .15s, border-color .15s, color .15s; }
+  button:active { transform:scale(.98); }
+  button:disabled { opacity:.5; cursor:default; }
+  .primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#2b1320; width:100%; display:flex; box-shadow:0 10px 24px -14px var(--accent); }
+  .ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  @media (hover:hover) {
+    .primary:hover { filter:brightness(1.06); }
+    .ghost:hover { background:var(--bg2); border-color:var(--line2); }
+    .link:hover { color:var(--text); }
+  }
+  .or { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:18px 0; }
+  .or::before, .or::after { content:''; flex:1; height:1px; background:var(--line); }
+  .row { display:flex; gap:var(--gap); } .row > * { flex:1; min-width:0; }
+  .row > button { flex:0 0 96px; }
+  .stack > * + * { margin-top:14px; }
+  .stack > .or { margin:18px 0; }
+  .stack > .hint { margin-top:10px; }
+  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:13px; padding:4px; }
+  .tabs button { flex:1; min-height:40px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; }
+  .tabs button.on { background:var(--raise); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.05) inset; }
+  .wide { width:100%; display:flex; }
+  .link { background:none; color:var(--muted); font-weight:500; font-size:14px; min-height:40px; padding:6px; width:100%; text-decoration:underline; text-decoration-color:rgba(168,147,169,.45); text-underline-offset:3px; display:flex; text-align:center; }
+  a.link { align-items:center; justify-content:center; }
+  .stack > .link + .link { margin-top:0; }
+  .hello { font-family:var(--serif); font-size:22px; font-weight:500; text-align:center; margin:2px 0 4px; line-height:1.3; }
+  .hint { font-size:13px; color:var(--muted); text-align:center; margin:0; line-height:1.5; }
+  .hint a, .foot a { color:var(--muted); text-underline-offset:2px; }
+  .bigcode { display:flex; align-items:center; justify-content:center; min-height:52px; font-size:clamp(20px, 7vw, 26px); font-weight:600; letter-spacing:.3em; text-indent:.3em; background:var(--bg3); border:1px dashed var(--accent); border-radius:12px; padding:8px; }
+  .err { color:var(--bad); font-size:13px; min-height:18px; margin-top:10px; text-align:center; }
+  .err:empty { margin-top:0; min-height:0; }
+  .foot { font-size:13px; margin:20px 0 0; color:var(--muted); }
+  body.in-game .lobbyView, body.in-game .foot { display:none; }
+
+  /* ---------- Game ---------- */
+  /* Phones: one column that fills exactly one screen; the card takes the space left over. */
+  body.in-game { height:100vh; height:100dvh; padding-top:max(10px, env(safe-area-inset-top)); }
+  body.in-game.answer-mode { height:auto; min-height:100vh; min-height:100dvh; }
+  #game { width:100%; max-width:480px; flex:1; min-height:0; display:flex; flex-direction:column; gap:var(--gap); }
+  .side { display:contents; }
+  .top { order:0; display:flex; align-items:center; gap:8px; min-height:34px; }
+  .brand { font-family:var(--serif); font-weight:600; font-size:20px; margin-right:auto; display:inline-flex; align-items:center; gap:9px; }
+  .brand .heart-badge { width:28px; height:28px; border-radius:9px; font-size:14px; }
+  .pill { font-size:13px; line-height:1; padding:8px 12px; border-radius:999px; background:var(--bg2); border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex:none; display:inline-flex; align-items:center; gap:6px; }
+  .pill b { color:#fff; font-weight:600; letter-spacing:.14em; }
+  .pill b.name { letter-spacing:0; overflow:hidden; text-overflow:ellipsis; }
+  .top #partners { flex:0 1 auto; min-width:0; }
+  .pill-btn { min-height:0; font-weight:600; color:var(--text); cursor:pointer; }
+  #shareTop { display:none; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#6b5a6d; flex:none; }
+  .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .lbl { display:none; }
+  @media (max-width:400px) { .wide-only { display:none; } }
+  @media (max-width:380px) { .brand > span:not(.heart-badge) { display:none; } .pill { padding:7px 10px; font-size:12px; } }
+
+  .modes { order:1; display:flex; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:13px; padding:4px; }
+  .modes button { flex:1; min-height:38px; background:transparent; color:var(--muted); padding:8px 10px; font-size:14px; border-radius:9px; white-space:nowrap; }
+  .modes button.on { background:var(--raise); color:#fff; }
+  @media (max-width:360px) { .modes button { padding:8px 4px; font-size:13px; } }
+  @media (max-width:340px) { .pick-opt small { display:none; } }
+  @media (max-width:300px) { .pick-foot .ghost { padding:0 12px; } .pick-foot .primary { padding:0 10px; font-size:15px; } }
+  .opt { order:6; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:0 4px 0 6px; font-size:13px; color:var(--muted); min-height:32px; }
+  .switch { position:relative; flex:none; width:44px; min-height:0; height:26px; padding:0; border-radius:999px; background:var(--raise); border:1px solid var(--line2); transition:background .2s, border-color .2s; }
+  .switch i { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#d9c8d5; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:transform .2s cubic-bezier(.2,.7,.2,1), background .2s; }
+  .switch[aria-checked="true"] { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; }
+  .switch[aria-checked="true"] i { transform:translateX(18px); background:#fff; }
+  .switch:active { transform:none; }
+  /* Tap to reveal off: cards arrive face up, so the card isn't a button any more. */
+  body.auto-reveal .scene { cursor:default; }
+  .q.swap { animation:swap .35s ease both; }
+  @keyframes swap { from { opacity:0; transform:translateY(4px); } }
+  @media (max-width:699px) and (min-height:521px) { body.answer-mode .front .q { font-size:clamp(18px, 5.2vw, 26px); } }
+
+  .scene { order:2; flex:1 1 auto; min-height:200px; max-height:680px; perspective:1600px; display:grid; cursor:pointer; -webkit-user-select:none; user-select:none; border-radius:24px; }
+  .scene:focus-visible { outline-offset:4px; }
+  body.answer-mode .scene { min-height:180px; max-height:none; }
+  /* The scene is a grid so the card stretches to it even when the page height is auto (answer mode). */
+  .card { position:relative; min-width:0; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.7,.2,1); }
+  .card.flipped { transform:rotateY(180deg); }
+  .face { position:absolute; inset:0; border-radius:24px; -webkit-backface-visibility:hidden; backface-visibility:hidden; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    padding:clamp(52px, 9vh, 64px) clamp(22px, 7vw, 44px); text-align:center; box-shadow:0 28px 56px -26px rgba(0,0,0,.75), 0 2px 6px rgba(0,0,0,.18); overflow:hidden; }
+  .back { background:var(--grad); color:#fff; }
+  .back::before { content:''; position:absolute; inset:12px; border:1px solid rgba(255,255,255,.28); border-radius:16px; }
+  .back::after { content:''; position:absolute; inset:0; background:radial-gradient(420px 260px at 30% 0%, rgba(255,255,255,.18), transparent 70%); pointer-events:none; }
+  .back .mark { font-size:clamp(44px, 12vw, 60px); opacity:.95; }
+  .back .mark .ico { stroke-width:1.4; }
+  .back .tap { margin-top:14px; font-size:13px; font-weight:500; letter-spacing:.02em; color:#ffe6e6; opacity:.9; }
+  .t-mouse { display:none; }
+  .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); background-image:radial-gradient(600px 300px at 50% 0%, #fff9f2 0%, transparent 70%); }
+  /* Front: category, question and count stack in normal flow so a long question on a small card never runs into them. */
+  .face.front { justify-content:flex-start; padding:var(--fy, 24px) var(--fx, clamp(20px, 6vw, 40px)) calc(var(--fy, 24px) - 2px); }
+  .front .cat { margin:0 30px; min-height:16px; font-size:12px; line-height:1.3; text-transform:uppercase; letter-spacing:.16em; color:var(--rose); font-weight:600; }
+  .front .q { font-family:var(--serif); font-size:clamp(21px, 5.6vw, 30px); line-height:1.28; font-weight:500; max-width:22ch; text-wrap:balance; letter-spacing:-.005em; margin:auto 0; padding:14px 0; }
+  .front .num { font-size:12px; color:var(--ink2); font-variant-numeric:tabular-nums; letter-spacing:.04em; }
+  .fav { position:absolute; top:8px; right:8px; min-height:44px; width:44px; padding:0; background:none; border:0; font-size:22px; color:#cdb8c7; border-radius:12px; }
+  .fav .ico { stroke-width:1.8; }
+  .fav.on { color:var(--accent); }
+  .fav.on .ico { fill:currentColor; }
+  @media (hover:hover) { .fav:hover { color:var(--accent); } }
+
+  .answer { order:3; flex-shrink:0; background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:14px; }
+  .answer textarea { min-height:84px; resize:none; font:16px/1.45 var(--sans); display:block; }
+  .answer .status { font-size:13px; color:var(--muted); margin:10px 0 0; text-align:center; line-height:1.4; }
+  .answer .status:empty { display:none; }
+  .answer .mine { font-size:15px; line-height:1.45; color:var(--text); background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .who { font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:var(--rose); font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+  #answerWait .who { color:var(--muted); }
+  .reveal { display:grid; gap:10px; }
+  .reveal .a { background:var(--card); color:var(--ink); border-radius:14px; padding:14px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.45; font-size:15px; animation:pop .35s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal .a + .a { animation-delay:.08s; }
+  @keyframes pop { from { opacity:0; transform:translateY(6px) scale(.98); } }
+
+  .controls { order:4; display:flex; gap:var(--gap); flex-shrink:0; }
+  .controls .ghost { flex:0 0 60px; padding:0; font-size:20px; }
+  .controls .primary { flex:1; }
+  .controls .primary .ico { font-size:18px; }
+  .bar { order:5; display:flex; gap:var(--gap); flex-shrink:0; }
+  .deck-btn { flex:1; min-width:0; justify-content:flex-start; font-weight:500; background:var(--bg3); padding:0 14px; }
+  .deck-btn .ico { font-size:17px; color:var(--accent2); }
+  .deck-btn span:not(.chev) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deck-btn .chev { margin-left:auto; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:rotate(-45deg); flex:none; }
+
+  /* Deck picker: replaces the card and controls until the room starts. */
+  .picker { order:2; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:14px; overflow:hidden; background:var(--bg2); border:1px solid var(--line); border-radius:24px;
+    padding:clamp(16px, 5vw, 24px); box-shadow:0 28px 56px -30px rgba(0,0,0,.7); }
+  body.choosing .scene, body.choosing .side { display:none; }
+  .pick-head h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px, 6vw, 28px); margin:0; line-height:1.2; }
+  .pick-head p { margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.45; }
+  /* Only the list scrolls, so the heading and the Start button stay in view. */
+  /* The list fills the rest of the panel and shows four decks at a time as upright cards: 2 by 2 on
+     tall spaces, 4 in a row on wide ones. Cards are playing-card shaped (5:7) when height is what
+     limits them, and grow taller (up to 4:7) to fill the space when width is. A sliver of the next
+     row peeks out to show the rest scroll. */
+  .deck-wrap { flex:1 1 0; min-height:0; container:decks / size; margin:0 -8px; }
+  .deck-list { --cols:2; --rows:2; --g:12px; --pad:8px; --peek:clamp(14px, 5cqh, 30px);
+    --rh:max(130px, calc((100cqh - var(--pad) - var(--peek) - var(--rows) * var(--g)) / var(--rows)));
+    --cw:min(calc(var(--rh) * 5 / 7), calc((100cqw - 16px - (var(--cols) - 1) * var(--g)) / var(--cols)));
+    height:100%; display:grid; grid-template-columns:repeat(var(--cols), var(--cw)); grid-auto-rows:min(var(--rh), calc(var(--cw) * 7 / 4)); justify-content:center; gap:var(--g); align-content:start;
+    overflow-y:auto; overscroll-behavior:contain; padding:var(--pad) 8px; scroll-padding-top:var(--pad); scroll-snap-type:y proximity; scrollbar-width:thin; }
+  @container decks (min-aspect-ratio:10 / 7) { .deck-list { --cols:4; --rows:1; --g:16px; } }
+  @container decks (min-width:700px) { .deck-list { --g:20px; } }
+  /* When there are more decks than fit, the list scrolls and fades at the edge that has more. */
+  .deck-list.more-below { -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent); mask-image:linear-gradient(#000 calc(100% - 36px), transparent); }
+  .deck-list.more-above { -webkit-mask-image:linear-gradient(transparent, #000 36px); mask-image:linear-gradient(transparent, #000 36px); }
+  .deck-list.more-above.more-below { -webkit-mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; min-width:0; min-height:0; padding:0; border:0; border-radius:16px; background:none; scroll-snap-align:start;
+    color:var(--ink); font-weight:500; isolation:isolate; container:tile / size; transition:transform .2s; }
+  .tile:active { transform:scale(.97); }
+  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:8cqh 8cqw; border-radius:16px;
+    background:var(--card); border:1px solid transparent; box-shadow:0 10px 22px -16px rgba(0,0,0,.9); transition:background .25s, border-color .25s, box-shadow .25s; }
+  .tile .ct { flex:none; font-size:clamp(9px, min(5.6cqw, 7cqh), 11.5px); font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--c2); font-variant-numeric:tabular-nums; white-space:nowrap; margin-top:min(4cqh, 12px); transition:color .25s; }
+  .tile .art { position:relative; flex:none; width:min(44cqw, 36cqh); aspect-ratio:1; margin:0 0 min(6cqh, 22px); transition:opacity .3s, filter .3s; }
+  .tile .art svg { position:absolute; inset:0; width:100%; height:100%; fill:none; stroke:var(--c2); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
+  .tile .art svg * { vector-effect:non-scaling-stroke; }
+  .tile .art .fill { fill:var(--c2); stroke:none; }
+  .tile .art .tint { fill:var(--c1); stroke:none; opacity:.28; }
+  .tile .art .soft { opacity:.45; }
+  .tile .art .gold { stroke:#c8912a; stroke-width:2; }
+  .tile .art .card { stroke:#fffaf4; stroke-width:1.2; }
+  .tile .nm { flex:none; font-family:var(--serif); font-weight:500; font-size:clamp(14px, min(10cqw, 12cqh), 23px); line-height:1.15; letter-spacing:.005em; color:var(--ink); text-wrap:balance; transition:color .3s; }
+  .tile .chk { position:absolute; top:clamp(8px, 6cqmin, 14px); right:clamp(8px, 6cqmin, 14px); width:clamp(18px, 12cqmin, 26px); height:clamp(18px, 12cqmin, 26px); border-radius:50%; display:grid; place-items:center;
+    border:1px solid color-mix(in srgb, var(--c2) 45%, transparent); color:transparent; transition:background .15s, color .15s, border-color .15s; }
+  .tile .chk .ico { width:70%; height:70%; stroke-width:3; }
+  /* Picked and unpicked decks look the same; only the tick shows which are picked. */
+  .tile .tf { border-color:color-mix(in srgb, var(--c2) 70%, transparent); }
+  .tile[aria-pressed="true"] .chk { background:var(--c2); border-color:var(--c2); color:#fff; }
+  .tile.spent .art { filter:grayscale(1); opacity:.5; }
+  .tile.spent .ct { color:var(--ink2); }
+  .tile.all { --c1:#9b5aa6; --c2:#5a2d66; }
+  .tile[data-deck="Who You Are"] { --c1:#9a7ff0; --c2:#5236a3; }
+  .tile[data-deck="Us & The Future"] { --c1:#eeaa52; --c2:#a4531f; }
+  .tile[data-deck="Honest & Vulnerable"] { --c1:#c2567a; --c2:#7a2a4b; }
+  .tile[data-deck="Light & Playful"] { --c1:#45bfae; --c2:#1d6a74; }
+  .tile[data-deck="Desire & Intimacy"] { --c1:#e8735a; --c2:#a33b24; }
+  .tile[data-deck="Conflict & Repair"] { --c1:#6f9cf0; --c2:#2f53a3; }
+  .tile[data-deck="Life & Meaning"] { --c1:#8fb86a; --c2:#4b6e2e; }
+  .tile[data-deck="Guess My Answer"] { --c1:#e2b33c; --c2:#8a6512; }
+  .tile[data-deck="Would You Rather"] { --c1:#d673c4; --c2:#86287a; }
+  .tile[data-deck="Weekly Check-in"] { --c1:#8a96b8; --c2:#3e4a6e; }
+  .tile[data-deck="Dilemmas"] { --c1:#c79a6b; --c2:#7a5230; }
+  .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
+  .tile[data-deck="Midnight Questions"] { --c1:#6c6fd8; --c2:#2a2c72; }
+  .tile[data-deck="Money & Work"] { --c1:#4fa36b; --c2:#1f5a37; }
+  .tile[data-deck="Alien Interview"] { --c1:#8bc34a; --c2:#3f6b16; }
+  .tile[data-deck="Genie Wishes"] { --c1:#a15ee0; --c2:#4d1f86; }
+  .tile[data-deck="Amnesia"] { --c1:#e0a47a; --c2:#8a5028; }
+  .tile[data-deck="Act It Out"] { --c1:#f0617d; --c2:#9a1f3c; }
+  .tile[data-deck="Job Interview"] { --c1:#3f8f9e; --c2:#164c57; }
+  .tile[data-deck="Unsent"] { --c1:#8fb4d9; --c2:#345b85; }
+  .tile[data-deck="Bad Advice"] { --c1:#f4823c; --c2:#99400b; }
+  .tile[data-deck="How Much Would You Pay"] { --c1:#c9b458; --c2:#6a5c14; }
+  .tile[data-deck="The Worst"] { --c1:#a1887f; --c2:#5d4037; }
+  .tile[data-deck="Tiny Vows"] { --c1:#f7a0b8; --c2:#a63a5c; }
+  .tile[data-deck="Comfort Codes"] { --c1:#c3a6e8; --c2:#5c3f8f; }
+  /* Short cards (a phone held sideways): the art and name sit closer together. */
+  @container tile (max-height:150px) { .tile .tf { padding:8px 6px; } .tile .art { width:min(40cqw, 32cqh); margin-bottom:4cqh; } .tile .ct { margin-top:2cqh; } }
+  @container tile (max-height:110px) { .tile .ct { display:none; } }
+  @media (hover:hover) { .tile:hover .tf { border-color:var(--c1); } }
+  .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
+  .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
+  .pick-opt small { color:var(--muted); font-size:12.5px; font-weight:400; }
+  .pick-foot { display:flex; gap:var(--gap); flex-shrink:0; }
+  .pick-foot .ghost { flex:0 0 auto; padding:0 18px; background:var(--bg2); }
+  .pick-foot .primary { flex:1; }
+  .bar .ghost .ico { font-size:17px; }
+  .keys { display:none; }
+  .toast { position:fixed; bottom:max(24px, calc(env(safe-area-inset-bottom) + 12px)); left:50%; transform:translateX(-50%); background:rgba(18,11,20,.94); border:1px solid var(--line);
+    padding:11px 18px; border-radius:999px; font-size:14px; font-weight:500; transition:opacity .3s; z-index:10; max-width:calc(100vw - 32px); text-align:center; box-shadow:0 16px 40px -16px rgba(0,0,0,.8); }
+
+  /* Short phones (iPhone SE and similar): tighten everything a little. */
+  @media (max-height:640px) {
+    :root { --gap:8px; }
+    .modes button { min-height:34px; padding:6px 8px; }
+    button, input, select { min-height:42px; }
+    button { padding:9px 14px; }
+    .face { padding:44px 18px; }
+    .front { --fy:18px; }
+    .lobbyView { gap:14px; }
+    .sub { display:none; }
+    .pick-head p, .pick-opt small { display:none; }
+    .picker { gap:10px; }
+  }
+
+  /* Shorter phones: the deck picker drops its subtitle so the deck cards can be bigger. */
+  @media (max-height:700px) and (max-width:699px) { .pick-head p { display:none; } }
+
+  /* Phones on their side: card on the left, controls on the right. */
+  @media (orientation:landscape) and (max-height:520px) {
+    body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; }
+    #game { max-width:980px; display:grid; grid-template-columns:minmax(0,1fr) minmax(250px, 42%); grid-template-rows:auto minmax(0,1fr); gap:10px 16px; }
+    .top { grid-column:1 / -1; }
+    .picker { grid-column:1 / -1; grid-row:2; }
+    .picker { gap:10px; padding:14px 16px; }
+    .pick-head p, .pick-opt small { display:none; }
+    .pick-opt { padding:6px 10px 6px 12px; }
+    .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
+    .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
+    .side > * { flex-shrink:0; }
+    /* Flexible spacers centre the panel's content, but collapse (instead of clipping the top) when it overflows. */
+    .side::before, .side::after { content:''; flex:1 1 0; margin-top:-8px; }
+    button, input, select { min-height:42px; }
+    .modes button { min-height:34px; }
+    .face { padding:40px 22px; }
+    .front { --fy:16px; }
+    .front .q { font-size:clamp(18px, 4.8vh, 24px); }
+    .answer { padding:10px; } .answer textarea { min-height:64px; }
+    .lobbyView { flex-direction:row; align-items:center; justify-content:center; gap:clamp(20px, 5vw, 48px); }
+    .hero { text-align:left; flex:0 1 300px; }
+    .sub { display:block; margin-left:0; }
+    .panel { flex:0 1 400px; }
+  }
+
+  /* Tablets and up: more room to breathe. */
+  @media (min-width:700px) and (min-height:521px) {
+    #game { max-width:580px; justify-content:center; }
+    .scene { max-height:780px; }
+    body.answer-mode .scene { max-height:none; }
+    .perks { display:block; }
+    .hero { max-width:440px; }
+    .front .q { font-size:clamp(26px, 3.6vw, 34px); }
+    .face { padding:72px 56px; }
+    .front { --fy:30px; --fx:56px; }
+  }
+
+  /* Desktop: the card on the left, a control panel on the right. */
+  @media (min-width:960px) and (min-height:521px) {
+    :root { --sw:360px; --ch:min(calc(100vh - 140px), 800px, calc((100vw - 112px - var(--sw)) * 1.25)); --ch:min(calc(100dvh - 140px), 800px, calc((100vw - 112px - var(--sw)) * 1.25)); --cw:calc(var(--ch) * .8); }
+    body { padding-left:40px; padding-right:40px; }
+    .lobbyView { flex-direction:row; align-items:center; justify-content:center; gap:clamp(48px, 8vw, 120px); padding:24px 0; }
+    .hero { text-align:left; flex:0 1 520px; max-width:520px; }
+    .sub { margin-left:0; font-size:18px; max-width:36ch; }
+    h1 { font-size:48px; }
+    .logo { gap:14px; }
+    .logo .heart-badge { width:48px; height:48px; font-size:24px; border-radius:14px; }
+    .deck { display:block; position:relative; height:210px; margin-top:40px; }
+    .deck > div { position:absolute; top:10px; width:230px; height:180px; border-radius:20px; box-shadow:0 26px 44px -24px rgba(0,0,0,.85); }
+    .deck .cb { background:var(--grad); color:#fff; display:grid; place-items:center; font-size:36px; }
+    .deck .cb::before { content:''; position:absolute; inset:9px; border:1px solid rgba(255,255,255,.28); border-radius:13px; }
+    .deck .cb .ico { stroke-width:1.4; }
+    .deck .c1 { left:10px; transform:rotate(-9deg); opacity:.75; }
+    .deck .c3 { left:190px; transform:rotate(8deg); opacity:.9; }
+    .deck .cf { left:92px; top:0; z-index:1; transform:rotate(-1.5deg); background:var(--card); color:var(--ink); padding:22px; font-family:var(--serif); font-size:19px; line-height:1.3; font-weight:500; }
+    .deck .cf small { display:block; font-family:var(--sans); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--rose); font-weight:600; margin-bottom:12px; }
+    .panel { flex:0 0 420px; }
+
+    body.in-game, body.in-game.answer-mode { height:100vh; height:100dvh; min-height:0; padding-top:24px; padding-bottom:24px; }
+    #game { flex:1; width:auto; max-width:none; display:grid; grid-template-columns:var(--cw) var(--sw); grid-template-rows:auto var(--ch); align-content:center; gap:22px 32px; }
+    .top { grid-column:1 / -1; }
+    .brand { font-size:24px; }
+    .brand .heart-badge { width:32px; height:32px; font-size:16px; border-radius:10px; }
+    .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
+    .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:stretch; width:min(100%, 640px); padding:30px; }
+    /* As wide as four cards of the height the screen allows, so there is no empty band at the sides. */
+    .picker { width:clamp(min(100%, 440px), calc((var(--ch) - 292px) * 20 / 7 + 160px), 100%); }
+    /* And no taller than four cards of the width it has plus a peek, so wide screens don't show half the next row. */
+    .picker { align-self:center; height:100%; max-height:calc((var(--cw) + var(--sw) - 88px) / 4 * 1.75 + 232px); }
+    .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
+    .back::before { inset:14px; border-radius:18px; }
+    .front .q { font-size:calc(var(--cw) * .058); }
+    .front { --fy:32px; --fx:calc(var(--cw) * .1); }
+    .front .cat { font-size:13px; margin:0 40px; }
+    .front .num { font-size:13px; }
+    .fav { top:18px; right:18px; font-size:26px; }
+    .scene:hover .face { box-shadow:0 34px 64px -26px rgba(0,0,0,.8), 0 2px 6px rgba(0,0,0,.18); }
+
+    .side { display:flex; flex-direction:column; gap:12px; grid-column:2; grid-row:2; align-self:center; max-height:100%; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin;
+      background:rgba(42,28,46,.6); border:1px solid var(--line); border-radius:24px; padding:22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+    .side > * { flex-shrink:0; }
+    .side::before, .side::after { display:none; }
+    .lbl { display:block; order:var(--o); margin:4px 0 -4px; font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--faint); font-weight:600; }
+    .lbl:first-child { margin-top:0; }
+    .bar { display:contents; }
+    .deck-btn { order:1; width:100%; }
+    .modes { order:3; }
+    .opt { order:4; padding:4px 2px; font-size:14px; color:var(--text); }
+    .answer { order:5; background:var(--bg3); }
+    .controls, body.answer-mode .controls { order:6; margin-top:6px; }
+    #share { display:none; }
+    #shareTop:not(.hidden) { display:inline-flex; }
+    @media (hover:hover) { #shareTop:hover { background:var(--raise); border-color:var(--line2); } }
+    .answer { padding:12px; }
+    .keys { display:block; order:8; margin-top:2px; text-align:center; font-size:12px; color:var(--muted); line-height:2; }
+    .keys kbd { font:600 11px var(--sans); background:var(--bg2); border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 6px; color:var(--text); }
+    .keys span { white-space:nowrap; margin:0 6px; }
+    body.auto-reveal .k-flip { display:none; }
+  }
+  @media (min-width:960px) and (min-height:521px) and (pointer:fine) { .t-touch { display:none; } .t-mouse { display:inline; } }
+  @media (min-width:960px) and (min-height:521px) and (pointer:coarse) { .keys { display:none; } }
+  @media (min-width:1400px) and (min-height:521px) { :root { --sw:380px; } }
+
+  @media (prefers-reduced-motion:reduce) { .card, button, .panel, .switch i { transition:none; } .reveal .a, .q.swap { animation:none; } }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-duet" viewBox="0 0 24 24"><rect x="3.6" y="4.2" width="10.4" height="14.6" rx="2.2" transform="rotate(-13 8.8 11.5)" fill="currentColor" opacity=".5"/><rect x="9.6" y="5" width="10.4" height="14.6" rx="2.2" transform="rotate(9 14.8 12.3)" fill="currentColor"/><path transform="rotate(9 14.8 12.3)" d="M14.8 15.6c-.1 0-.2 0-.3-.1-1.7-1.5-2.8-2.5-2.8-3.8 0-.9.7-1.6 1.6-1.6.6 0 1.1.3 1.5.8.4-.5.9-.8 1.5-.8.9 0 1.6.7 1.6 1.6 0 1.3-1.1 2.3-2.8 3.8-.1.1-.2.1-.3.1z" fill="var(--rose)"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3c-.3 0-.6-.1-.8-.3C6.4 15.8 3 12.8 3 8.9 3 6.2 5.1 4 7.7 4c1.8 0 3.3 1 4.3 2.4C13 5 14.5 4 16.3 4 18.9 4 21 6.2 21 8.9c0 3.9-3.4 6.9-8.2 11.1-.2.2-.5.3-.8.3z"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.7-4.3L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.3L20 16m0 4v-4h-4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4.5 7.5v10A3.5 3.5 0 0 0 8 21h8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  </svg>
+
+  <main class="lobbyView">
+    <section class="hero">
+      <div class="logo"><span class="heart-badge duet-badge" aria-hidden="true"><svg class="mark-duet"><use href="#i-duet"/></svg></span><h1>Duet Deck</h1></div>
+      <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
+      <ul class="perks">
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-sync"/></svg></span><span><b>Always in sync</b>Flip, skip or change the topic, and your partner sees it instantly.</span></li>
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-chat"/></svg></span><span><b>Just talk, or answer &amp; reveal</b>Write privately, then see each other's answers once you've both answered.</span></li>
+        <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-heart"/></svg></span><span><b>Your story, saved</b>With an account, your answers and favorites stay with you.</span></li>
+      </ul>
+      <div class="deck" aria-hidden="true">
+        <div class="cb c1"></div>
+        <div class="cb c3"><svg class="ico"><use href="#i-heart"/></svg></div>
+        <div class="cf"><small>Getting Closer</small>What's a moment with me you replay when you miss me?</div>
+      </div>
+    </section>
+
+  <!-- Lobby -->
+  <div id="lobby" class="panel">
+    <!-- Sign up / log in -->
+    <form id="authBox" class="stack hidden" autocomplete="on">
+      <div class="tabs"><button type="button" id="tabSignup" class="on">Sign up</button><button type="button" id="tabLogin">Log in</button></div>
+      <div id="nameRow"><label for="authName">Your name</label><input id="authName" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name"></div>
+      <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
+      <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+      <button class="primary" id="authGo" type="submit">Create account</button>
+      <p class="hint" id="agree">By signing up you agree to our <a href="/privacy">privacy policy</a>.</p>
+      <div class="or">or</div>
+      <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
+    </form>
+
+    <!-- Guest rooms -->
+    <div id="guestBox" class="stack hidden">
+      <div><label for="name">Your name</label><input id="name" maxlength="24" placeholder="e.g. Sam" autocomplete="given-name"></div>
+      <button class="primary" id="create">Start a new room</button>
+      <div class="or">or join your partner</div>
+      <div class="row">
+        <input id="joinCode" class="code" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Room code">
+        <button class="ghost" id="join">Join</button>
+      </div>
+      <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
+    </div>
+
+    <!-- Signed in, not linked yet -->
+    <div id="linkBox" class="stack hidden">
+      <p class="hello">Hi <span id="helloName"></span>! Link with your partner</p>
+      <div><label>Your code: send it to your partner</label>
+      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode">Share</button></div></div>
+      <div class="or">or enter theirs</div>
+      <div class="row">
+        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Partner's code">
+        <button class="ghost" id="linkGo">Link</button>
+      </div>
+      <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
+      <div><a class="link hidden" data-admin href="/admin">Admin dashboard</a>
+      <button class="link" type="button" data-logout>Log out</button></div>
+    </div>
+
+    <!-- Signed in and linked -->
+    <div id="homeBox" class="stack hidden">
+      <p class="hello">You &amp; <span id="partnerName"></span></p>
+      <button class="primary" id="startCouple">Open our cards</button>
+      <p class="hint">Your answers and favorites are saved to your account.</p>
+      <div><button class="link" type="button" id="unlink">Unlink partner</button>
+      <a class="link hidden" data-admin href="/admin">Admin dashboard</a>
+      <button class="link" type="button" data-logout>Log out</button></div>
+    </div>
+
+    <div class="err" id="err" role="alert"></div>
+  </div>
+  </main>
+  <p class="foot"><a href="/privacy">Privacy policy</a></p>
+
+  <!-- Game -->
+  <div id="game" class="hidden">
+    <div class="top">
+      <span class="brand"><span class="heart-badge duet-badge" aria-hidden="true"><svg class="mark-duet"><use href="#i-duet"/></svg></span><span>Duet Deck</span></span>
+      <span class="pill" id="roomPill">Room <b id="code"></b></span>
+      <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
+      <span class="pill" id="partners"><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></span>
+    </div>
+    <div class="scene" id="scene" title="Flip the card" role="button" tabindex="0" aria-label="Flip the card">
+      <div class="card" id="card">
+        <div class="face back"><div class="mark"><svg class="ico"><use href="#i-heart"/></svg></div><div class="tap"><span class="t-touch">Tap to reveal together</span><span class="t-mouse">Click or press Space to reveal</span></div></div>
+        <div class="face front">
+          <div class="cat" id="cat"></div>
+          <button class="fav" id="fav" title="Save to favorites" aria-label="Save to favorites"><svg class="ico"><use href="#i-heart"/></svg></button>
+          <div class="q" id="q"></div>
+          <div class="num" id="num"></div>
+        </div>
+      </div>
+    </div>
+    <section class="picker hidden" id="picker" aria-labelledby="pickTitle">
+      <div class="pick-head">
+        <h2 id="pickTitle">Choose your decks</h2>
+        <p>Pick one, a few, or all of them. Your place in each is saved.</p>
+      </div>
+      <div class="deck-wrap"><div class="deck-list" id="deckList" role="group" aria-labelledby="pickTitle"></div></div>
+      <div class="pick-opt hidden" id="freshOpt">
+        <span class="t"><span id="freshLbl">Only cards we haven't seen</span><small id="freshSub"></small></span>
+        <button class="switch" id="freshSwitch" role="switch" aria-checked="false" aria-labelledby="freshLbl"><i></i></button>
+      </div>
+      <div class="pick-foot">
+        <button class="ghost" id="pickCancel">Back</button>
+        <button class="primary" id="pickGo">Start</button>
+      </div>
+    </section>
+    <div class="side">
+      <span class="lbl" style="--o:0">Decks</span>
+      <span class="lbl" style="--o:2">Mode</span>
+      <div class="modes" role="group" aria-label="Mode">
+        <button id="modeTalk" data-mode="talk">Just talk</button>
+        <button id="modeAnswer" data-mode="answer">Answer &amp; reveal</button>
+      </div>
+      <div class="opt">
+        <span id="revealLbl">Tap to reveal each card</span>
+        <button class="switch" id="revealSwitch" role="switch" aria-checked="true" aria-labelledby="revealLbl"><i></i></button>
+      </div>
+      <div class="answer hidden" id="answer">
+        <div id="answerForm" class="stack">
+          <textarea id="answerText" maxlength="1000" placeholder="Write your answer…" aria-label="Your answer"></textarea>
+          <button class="primary" id="lockIn"><svg class="ico"><use href="#i-lock"/></svg>Lock in my answer</button>
+        </div>
+        <div id="answerWait" class="hidden"><div class="who"><svg class="ico"><use href="#i-lock"/></svg>Your answer</div><div class="mine" id="myAnswer"></div></div>
+        <div id="answerReveal" class="reveal hidden"></div>
+        <p class="status" id="answerStatus"></p>
+      </div>
+      <div class="controls">
+        <button class="ghost" id="prev" aria-label="Previous question" title="Previous question"><svg class="ico"><use href="#i-left"/></svg></button>
+        <button class="primary" id="next">Next question<svg class="ico"><use href="#i-right"/></svg></button>
+      </div>
+      <div class="bar">
+        <button class="ghost deck-btn" id="decksBtn" aria-label="Choose decks"><svg class="ico"><use href="#i-cards"/></svg><span id="decksLabel">All decks</span><span class="chev" aria-hidden="true"></span></button>
+        <button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
+      </div>
+      <div class="keys"><span class="k-flip"><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let room = null, me = '';
+let accounts = false, couple = false, token = null, account = null, linkPoll = null;
+try { token = localStorage.getItem('closer:token'); } catch {}
+let clientId;
+try { clientId = localStorage.getItem('closer:id'); if (!clientId) { clientId = crypto.randomUUID(); localStorage.setItem('closer:id', clientId); } }
+catch { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+try { $('name').value = localStorage.getItem('closer:name') || ''; } catch {}
+const params = new URLSearchParams(location.search);
+if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
+
+// ---- Lobby screens ----
+function show(box) {
+  for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
+  $('err').textContent = '';
+  $('lobby').classList.add('ready');
+  clearInterval(linkPoll);
+}
+function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && token) { setToken(null); account = null; show('authBox'); }
+  if (!res.ok) throw new Error(data.error || 'Something went wrong, please try again');
+  return data;
+}
+
+function showAccount(a) {
+  account = a;
+  document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
+  if (a.partner) {
+    $('partnerName').textContent = a.partner.name;
+    show('homeBox');
+  } else {
+    $('helloName').textContent = a.name;
+    $('myCode').textContent = a.inviteCode;
+    show('linkBox');
+    // Notice when the partner types in our code on their phone.
+    linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
+  }
+}
+
+let signingUp = true;
+function setAuthTab(signup) {
+  signingUp = signup;
+  $('tabSignup').classList.toggle('on', signup); $('tabLogin').classList.toggle('on', !signup);
+  $('nameRow').classList.toggle('hidden', !signup); $('agree').classList.toggle('hidden', !signup);
+  $('password').placeholder = signup ? 'At least 6 characters' : 'Your password';
+  $('authGo').textContent = signup ? 'Create account' : 'Log in';
+  $('password').autocomplete = signup ? 'new-password' : 'current-password';
+  $('err').textContent = '';
+}
+$('tabSignup').onclick = () => setAuthTab(true);
+$('tabLogin').onclick = () => setAuthTab(false);
+$('authBox').onsubmit = async e => {
+  e.preventDefault();
+  const body = { email: $('email').value, password: $('password').value, name: $('authName').value };
+  if (signingUp && !body.name.trim()) { $('err').textContent = 'Add your name first.'; return; }
+  $('authGo').disabled = true;
+  try {
+    const r = await api(signingUp ? '/api/signup' : '/api/login', body);
+    setToken(r.token); $('password').value = '';
+    showAccount(r.me);
+  } catch (err) { $('err').textContent = err.message; }
+  finally { $('authGo').disabled = false; }
+};
+$('showGuest').onclick = () => { show('guestBox'); $('showAuth').classList.remove('hidden'); };
+$('showAuth').onclick = () => show('authBox');
+document.querySelectorAll('[data-logout]').forEach(b => b.onclick = async () => {
+  try { await api('/api/logout', {}); } catch {}
+  setToken(null); account = null; show('authBox');
+});
+$('unlink').onclick = async () => {
+  if (!confirm(`Unlink from ${account.partner.name}? Your saved answers stay saved.`)) return;
+  try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+};
+$('linkGo').onclick = async () => {
+  const code = $('partnerCode').value.trim().toUpperCase();
+  if (code.length !== 6) { $('err').textContent = 'Partner codes are 6 letters.'; return; }
+  try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+};
+$('shareMyCode').onclick = async () => {
+  const text = `Join me on Duet Deck! Sign up at ${location.origin}/play and enter my code: ${account.inviteCode}`;
+  try { if (navigator.share) await navigator.share({ title: 'Duet Deck', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
+  catch { toast(`Your code: ${account.inviteCode}`); }
+};
+$('startCouple').onclick = () => {
+  couple = true; me = account.name; $('err').textContent = '';
+  openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not open your room. Please try again.');
+};
+
+(async function init() {
+  try { accounts = (await fetch('/api/config').then(r => r.json())).accounts; } catch {}
+  if (!accounts || params.get('room')) return show('guestBox');
+  // Even without a saved token, the sign-in cookie may still be there.
+  try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
+  catch (err) { show('authBox'); if (token) $('err').textContent = err.message; }
+})();
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
+function getName() { const n = $('name').value.trim(); if (!n) { $('err').textContent = 'Add your name first.'; return null; } try { localStorage.setItem('closer:name', n); } catch {} return n; }
+
+$('create').onclick = async () => {
+  me = getName(); if (!me) return;
+  $('create').disabled = true;
+  try {
+    const res = await fetch('/api/rooms', { method: 'POST' });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
+    await connect(r.code);
+  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Duet Deck. Check your connection and try again." : err.message; }
+  finally { $('create').disabled = false; }
+};
+$('join').onclick = () => {
+  me = getName(); if (!me) return;
+  const code = $('joinCode').value.trim().toUpperCase();
+  if (code.length !== 4) { $('err').textContent = 'Room codes are 4 letters.'; return; }
+  connect(code);
+};
+
+// One live connection to the room. Phones drop connections when they sleep or
+// switch networks, so it quietly reconnects; the room keeps its state meanwhile.
+let ws = null, wsPath = null, retry = 0;
+function openSocket(path, failMessage) {
+  wsPath = path;
+  const sock = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`);
+  sock.onopen = () => { retry = 0; };
+  sock.onmessage = e => render(JSON.parse(e.data));
+  sock.onclose = e => {
+    if (sock !== ws) return; // replaced by a newer connection
+    if (e.code === 4000) { toast('Opened on another device'); return; }
+    if (e.code === 4001) {
+      // Closed by the Duet Deck team: back to the start screen.
+      room = null; ws = null;
+      history.replaceState(null, '', '/play');
+      document.body.classList.remove('in-game', 'answer-mode');
+      $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
+      const why = e.reason || 'This room was closed.';
+      $('err').textContent = why;
+      // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
+      if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
+      return;
+    }
+    if (!room) { $('err').textContent = failMessage; return; }
+    setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
+  };
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && room && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
+});
+
+async function connect(code) {
+  $('err').textContent = '';
+  let check;
+  try { check = await fetch(`/api/rooms/${code}`, { method: 'GET' }); }
+  catch { $('err').textContent = "Can't reach Duet Deck. Check your connection and try again."; return; }
+  if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
+  openSocket(`/api/rooms/${code}/ws?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`, 'Could not join (the room may be full).');
+  history.replaceState(null, '', `?room=${code}`);
+}
+
+let lastKey = '';
+function render(s) {
+  const first = !room; room = s;
+  $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
+  $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
+  $('share').classList.toggle('hidden', !!s.couple); $('shareTop').classList.toggle('hidden', !!s.couple);
+  const partner = s.partners.filter(p => p !== me);
+  const together = s.partners.length === 2;
+  $('partners').innerHTML = together
+    ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner[0] || s.partners[1])}</b>`
+    : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
+  $('decksLabel').textContent = deckName(s.decks) + (s.fresh ? ' · new only' : '');
+  renderPicker(s, first);
+  $('cat').textContent = s.card.category;
+  $('num').textContent = `${s.index + 1} / ${s.total}`;
+  $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
+  // Includes the question: a fresh deal can put a different card at the same place.
+  const key = s.decks.join('|') + ':' + s.index + ':' + s.card.text;
+  if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
+    // Let the card flip face-down before swapping text, so the next question isn't spoiled.
+    $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
+  } else {
+    if (key !== lastKey && lastKey && s.flipped) { const q = $('q'); q.classList.remove('swap'); void q.offsetWidth; q.classList.add('swap'); }
+    $('q').textContent = s.card.text; $('card').classList.toggle('flipped', s.flipped);
+  }
+  $('revealSwitch').setAttribute('aria-checked', String(s.tapToReveal));
+  document.body.classList.toggle('auto-reveal', !s.tapToReveal);
+  $('scene').setAttribute('role', s.tapToReveal ? 'button' : 'group'); $('scene').title = s.tapToReveal ? 'Flip the card' : ''; $('scene').setAttribute('aria-label', s.tapToReveal ? 'Flip the card' : 'Question card'); $('scene').tabIndex = s.tapToReveal ? 0 : -1;
+  if (key !== lastKey) $('answerText').value = '';
+  lastKey = key;
+  renderMode(s, partner[0]);
+}
+
+function renderMode(s, partnerName = 'your partner') {
+  $('modeTalk').classList.toggle('on', s.mode === 'talk');
+  $('modeAnswer').classList.toggle('on', s.mode === 'answer');
+  $('answer').classList.toggle('hidden', s.mode !== 'answer');
+  document.body.classList.toggle('answer-mode', s.mode === 'answer');
+  if (s.mode !== 'answer') return;
+  const answered = s.myAnswer !== null;
+  $('answerForm').classList.toggle('hidden', answered);
+  $('answerWait').classList.toggle('hidden', !answered || !!s.revealed);
+  $('answerReveal').classList.toggle('hidden', !s.revealed);
+  if (answered && !s.revealed) $('myAnswer').textContent = s.myAnswer;
+  if (s.revealed) {
+    $('answerReveal').innerHTML = s.revealed.map(a => `<div class="a"><div class="who">${a.mine ? 'You' : escapeHtml(a.name)}</div>${escapeHtml(a.text)}</div>`).join('');
+  }
+  $('answerStatus').textContent =
+    s.revealed ? 'Now talk about it ♡' :
+    s.partners.length < 2 ? 'Waiting for your partner to join…' :
+    answered ? `Locked in. Waiting for ${partnerName}…` :
+    s.partnerAnswered ? `${partnerName} has answered. Your turn.` : `Hidden until you've both answered.`;
+}
+// ---- Deck picker ----
+const DECK_BLURBS = {
+  'Getting Closer': 'Warm, easy questions to open up.',
+  'Who You Are': 'Your past, your values, what shaped you.',
+  'Us & The Future': 'Dreams, plans and the life you are building.',
+  'Honest & Vulnerable': 'The deeper things that are harder to say.',
+  'Light & Playful': 'Fun, silly and nostalgic.',
+  'Desire & Intimacy': 'Touch, attraction and feeling wanted.',
+  'Conflict & Repair': 'How you fight, forgive and find your way back.',
+  'Life & Meaning': 'Big questions about life, death and what matters.',
+  'Guess My Answer': 'Guess what your partner will say, then find out.',
+  'Would You Rather': 'Quick either-or picks to argue about.',
+  'Weekly Check-in': 'A few minutes each week to stay in step.',
+  'Dilemmas': 'Moral what-ifs with no right answer.',
+  'Long Distance': 'For missing each other from miles away.',
+  'Midnight Questions': 'The strange, big thoughts that come out late at night.',
+  'Money & Work': 'Jobs, ambition, spending and saving.',
+  'Alien Interview': 'Explain life on Earth, and the two of you, to an alien.',
+  'Genie Wishes': 'Three wishes, but the genie has rules.',
+  'Amnesia': 'What if one of you woke up and forgot everything?',
+  'Act It Out': "Show, don't tell. Act out your answer.",
+  'Job Interview': 'Interview each other for the role of partner.',
+  'Unsent': 'The messages you wrote and never sent.',
+  'Bad Advice': 'Terrible advice only.',
+  'How Much Would You Pay': 'Put a price on the things that matter.',
+  'The Worst': 'Worst dates, photos and ideas. The funnier the better.',
+  'Tiny Vows': 'Small, everyday promises.',
+  'Comfort Codes': 'How each of you likes to be looked after.',
+};
+// Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
+const DECK_ART = {
+  'All': ['16 14 88 76', ['#f08a7e', '#9a7ff0', '#eeaa52', '#c2567a', '#45bfae', '#e8735a', '#6f9cf0', '#8fb86a', '#e2b33c', '#d673c4', '#8a96b8', '#c79a6b', '#4fb0d6', '#6c6fd8', '#4fa36b'].map((c, i, a) =>
+    `<rect class="card" x="-12" y="-56" width="24" height="34" rx="3" fill="${c}" transform="translate(60 84) rotate(${(i - (a.length - 1) / 2) * 7})"/>`).join('')],
+  'Getting Closer': ['14 12 92 66', '<circle class="tint" cx="48" cy="45" r="25"/><circle cx="48" cy="45" r="25"/><circle cx="72" cy="45" r="25"/>' +
+    '<path class="fill" d="M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z"/>'],
+  'Who You Are': ['24 8 72 72', '<path d="M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6"/>' +
+    '<path class="soft" d="M60 50v8M65 60c0 6-2 10-5 14M55 62c-1 5-4 9-8 12"/>'],
+  'Us & The Future': ['14 20 92 72', '<path class="tint" d="M42 62a18 18 0 0 1 36 0z"/><path d="M16 62h88M42 62a18 18 0 0 1 36 0"/>' +
+    '<path class="soft" d="M60 36v-8M44 42l-5-5M76 42l5-5"/><path d="M38 90l19-28M82 90L63 62"/><path class="soft" d="M60 68v4M60 77v5M60 86v3"/>'],
+  'Honest & Vulnerable': ['22 14 76 70', '<path class="tint" d="M60 78C57 78 29 60 29 38c0-9.5 7.3-17 16.5-17 6.3 0 11.3 3.5 14.5 8.6 3.2-5.1 8.2-8.6 14.5-8.6C83.7 21 91 28.5 91 38c0 22-28 40-31 40z"/>' +
+    '<path d="M60 78C57 78 29 60 29 38c0-9.5 7.3-17 16.5-17 6.3 0 11.3 3.5 14.5 8.6 3.2-5.1 8.2-8.6 14.5-8.6C83.7 21 91 28.5 91 38c0 22-28 40-31 40z"/>' +
+    '<path class="gold" d="M60 29.6l-5.5 9.4 8 7.5-7 9 5 8-1.5 14.5"/>'],
+  'Light & Playful': ['26 8 68 80', '<ellipse class="tint" cx="47" cy="32" rx="13" ry="16"/><ellipse class="tint" cx="73" cy="27" rx="13" ry="16"/>' +
+    '<ellipse cx="47" cy="32" rx="13" ry="16"/><ellipse cx="73" cy="27" rx="13" ry="16"/>' +
+    '<path d="M44.5 48.5h5l-2.5-3zM70.5 43.5h5l-2.5-3z"/><path d="M47 48.5c-4 12 16 16 11 33M73 43.5c4 12-18 18-13 38"/>'],
+  'Desire & Intimacy': ['24 10 72 80', '<path class="tint" d="M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z"/><path d="M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z"/>' +
+    '<path class="fill" d="M60 31c3.5 4.5 5 7.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-5.5 5-10z"/><path d="M60 50v5"/><rect x="48" y="55" width="24" height="31" rx="2.5"/>' +
+    '<path class="soft" d="M48 62c3 0 3 6 6.5 6s3-6 6.5-6M36 34l-5-3M84 34l5-3M34 46h-6M86 46h6"/>'],
+  'Conflict & Repair': ['12 30 96 56', '<path class="tint" d="M22 66C34 34 86 34 98 66z"/><path d="M14 66h92M22 66C34 34 86 34 98 66"/>' +
+    '<path class="soft" d="M36 66V53M48 66V46M60 66V42.5M72 66V46M84 66V53"/><path d="M26 66v12M94 66v12"/><path class="soft" d="M16 82h18M48 84h24M86 82h18"/>'],
+  'Life & Meaning': ['22 10 76 80', '<circle class="tint" cx="60" cy="38" r="23"/><circle cx="60" cy="38" r="23"/><path d="M60 50v36M60 68l-9-9M60 62l8-8"/>' +
+    '<path class="soft" d="M50 30a10 10 0 0 1 10-7M34 86h52M52 86c3-3 5-3 8-3s5 0 8 3"/>'],
+  'Guess My Answer': ['12 20 86 76', '<path class="tint" d="M23 24h36a7 7 0 0 1 7 7v20a7 7 0 0 1-7 7H40L28 68V58h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z"/><path d="M23 24h36a7 7 0 0 1 7 7v20a7 7 0 0 1-7 7H40L28 68V58h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z"/>' +
+    '<path d="M35 35a6 6 0 1 1 8.5 5.5c-1.6.8-2.5 2-2.5 3.8v1.2"/><circle class="fill" cx="41" cy="50.5" r="2"/>' +
+    '<path class="soft" d="M68 62h20a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6h-1v8l-9-8H68a6 6 0 0 1-6-6V68a6 6 0 0 1 6-6z"/><circle class="fill" cx="71" cy="73" r="1.8"/><circle class="fill" cx="78" cy="73" r="1.8"/><circle class="fill" cx="85" cy="73" r="1.8"/>'],
+  'Would You Rather': ['20 16 80 76', '<path d="M60 22v64"/><path class="tint" d="M60 30h24l8 8-8 8H60z"/><path d="M60 30h24l8 8-8 8H60z"/>' +
+    '<path class="tint" d="M60 52H36l-8 8 8 8h24z"/><path d="M60 52H36l-8 8 8 8h24z"/><path class="soft" d="M44 86h32"/>'],
+  'Weekly Check-in': ['22 16 76 72', '<path class="tint" d="M38 28h44a6 6 0 0 1 6 6v8H32v-8a6 6 0 0 1 6-6z"/><rect x="32" y="28" width="56" height="54" rx="6"/>' +
+    '<path d="M32 42h56M46 22v12M74 22v12"/><g class="fill soft"><circle cx="42" cy="51" r="1.7"/><circle cx="51" cy="51" r="1.7"/><circle cx="60" cy="51" r="1.7"/><circle cx="69" cy="51" r="1.7"/><circle cx="78" cy="51" r="1.7"/><circle cx="42" cy="63" r="1.7"/><circle cx="51" cy="63" r="1.7"/><circle cx="60" cy="63" r="1.7"/><circle cx="78" cy="63" r="1.7"/><circle cx="42" cy="75" r="1.7"/><circle cx="51" cy="75" r="1.7"/><circle cx="60" cy="75" r="1.7"/></g>' +
+    '<path class="fill" d="M69 72c-.4 0-8-4.8-8-10 0-2.6 2-4.6 4.4-4.6 1.6 0 2.8.9 3.6 2.1.8-1.2 2-2.1 3.6-2.1 2.4 0 4.4 2 4.4 4.6 0 5.2-7.6 10-8 10z"/>'],
+  'Dilemmas': ['20 24 80 60', '<path d="M60 36v42M48 78h24M35 40l50-8"/><circle class="fill" cx="60" cy="36" r="2.6"/>' +
+    '<path class="soft" d="M35 40l-8 16M35 40l8 16M85 32l-8 16M85 32l8 16"/>' +
+    '<path class="tint" d="M24 56a11 6 0 0 0 22 0z"/><path d="M24 56a11 6 0 0 0 22 0z"/><path class="tint" d="M74 48a11 6 0 0 0 22 0z"/><path d="M74 48a11 6 0 0 0 22 0z"/>'],
+  'Long Distance': ['22 16 76 66', '<path class="soft" stroke-dasharray="3 5" d="M36 50C40 28 66 20 82 30"/>' +
+    '<path class="tint" d="M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><path d="M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><circle cx="36" cy="63" r="3"/><path class="tint" d="M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><path d="M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z"/><circle cx="84" cy="43" r="3"/>' +
+    '<path class="fill" d="M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z"/>'],
+  'Midnight Questions': ['20 14 80 72', '<path class="tint" d="M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z"/><path d="M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z"/>' +
+    '<path class="fill" d="M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z"/><path class="fill soft" d="M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z"/>' +
+    '<circle class="fill soft" cx="74" cy="46" r="1.6"/><path class="soft" d="M30 82h60"/>'],
+  'Money & Work': ['14 22 94 68', '<path class="tint" d="M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z"/><path d="M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z"/>' +
+    '<path d="M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50"/><rect class="fill" x="42" y="54.5" width="8" height="7" rx="1.5"/>' +
+    '<path class="tint" d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z"/><ellipse cx="89" cy="56" rx="11" ry="4"/><path d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4"/>' +
+    '<path class="soft" d="M18 86h86"/>'],
+  'Alien Interview': ['16 14 88 76', '<path class="tint" d="M48 42a12 12 0 0 1 24 0z"/><path d="M48 42a12 12 0 0 1 24 0M60 30v-6"/><circle class="fill" cx="60" cy="22" r="2"/><ellipse class="tint" cx="60" cy="47" rx="30" ry="8"/><ellipse cx="60" cy="47" rx="30" ry="8"/><g class="fill"><circle cx="44" cy="48" r="1.8"/><circle cx="60" cy="50" r="1.8"/><circle cx="76" cy="48" r="1.8"/></g><path class="soft" d="M50 56l-10 26M70 56l10 26M36 86h48"/>'],
+  'Genie Wishes': ['20 12 84 72', '<path class="tint" d="M34 70h40c0-10-9-16-20-16s-20 6-20 16z"/><path d="M34 70h40c0-10-9-16-20-16s-20 6-20 16zM74 66c8 0 14-4 20-10M34 64c-8 0-10-10-2-10M48 54c0-4 3-6 6-6s6 2 6 6M44 70v6h20v-6M40 80h28"/><path class="soft" d="M94 54c4-8-6-10-2-18s12-6 8-14"/><path class="fill" d="M86 16l1.6 4.4 4.4 1.6-4.4 1.6L86 28l-1.6-4.4-4.4-1.6 4.4-1.6z"/>'],
+  'Amnesia': ['22 12 76 76', '<g transform="rotate(-6 56 48)"><rect class="tint" x="34" y="22" width="44" height="54" rx="3"/><rect x="34" y="22" width="44" height="54" rx="3"/><rect class="soft" x="39" y="27" width="34" height="32" rx="1.5"/></g><path d="M51 37a5 5 0 1 1 7 4.6c-1.3.7-2 1.7-2 3.2v1"/><circle class="fill" cx="56" cy="51" r="1.8"/><path class="soft" stroke-dasharray="2 4" d="M86 30c6 6 6 18 0 26"/>'],
+  'Act It Out': ['18 16 84 72', '<path class="tint" d="M32 30h32v18c0 12-7 20-16 20s-16-8-16-20z"/><path d="M32 30h32v18c0 12-7 20-16 20s-16-8-16-20zM39 42c2-2 4-2 6 0M51 42c2-2 4-2 6 0M40 54c4 5 12 5 16 0"/><g transform="rotate(12 76 58)"><path class="tint" d="M60 40h32v18c0 12-7 20-16 20s-16-8-16-20z"/><path d="M60 40h32v18c0 12-7 20-16 20s-16-8-16-20zM67 54c2 2 4 2 6 0M79 54c2 2 4 2 6 0M68 68c4-5 12-5 16 0"/></g>'],
+  'Job Interview': ['24 12 72 80', '<path class="soft" d="M44 18L32 88M76 18l12 70"/><path d="M44 18l16 10 16-10"/><path class="tint" d="M54 28h12l-2 8h-8z"/><path class="tint" d="M56 36l-6 34 10 10 10-10-6-34z"/><path d="M54 28h12l-2 8h-8zM56 36l-6 34 10 10 10-10-6-34z"/><path class="soft" d="M54 50l12-6M52 62l16-8"/>'],
+  'Unsent': ['16 20 90 64', '<rect class="tint" x="24" y="32" width="60" height="42" rx="4"/><rect x="24" y="32" width="60" height="42" rx="4"/><path d="M24 36l30 22 30-22"/><path class="fill" d="M54 67c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z"/><path class="soft" stroke-dasharray="3 5" d="M88 30c6-4 10-4 14 0"/>'],
+  'Bad Advice': ['20 14 80 76', '<path class="tint" d="M60 20l32 56H28z"/><path d="M60 20l32 56H28zM60 40v18"/><circle class="fill" cx="60" cy="66" r="2.4"/><path class="soft" d="M24 84h72"/>'],
+  'How Much Would You Pay': ['18 14 84 70', '<path class="soft" d="M36 48c-6-8-8-20-2-28"/><path class="tint" d="M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z"/><path d="M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z"/><circle cx="38" cy="50" r="3.5"/><path d="M72 43c-1.5-2-4-3-6.5-3-3 0-5.5 1.6-5.5 4.3 0 5.7 12.5 3.2 12.5 9.4 0 2.8-2.7 4.5-6 4.5-2.7 0-5.2-1.2-6.8-3.3M66 36v28"/>'],
+  'The Worst': ['16 14 88 76', '<path class="tint" d="M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z"/><path d="M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z"/><path class="soft" d="M40 64l-3 8M46 78l-2 5M76 64l-3 8M82 78l-2 5"/><path class="fill" d="M60 58h9l-6 10h6L54 86l4-13h-6z"/>'],
+  'Tiny Vows': ['28 10 64 76', '<circle class="tint" cx="60" cy="62" r="20"/><circle cx="60" cy="62" r="20"/><circle class="soft" cx="60" cy="62" r="15"/><path class="tint" d="M50 30l5-8h10l5 8-10 12z"/><path d="M50 30l5-8h10l5 8-10 12zM50 30h20M57 22l3 8 3-8"/><path class="soft" d="M80 22l4-4M84 30h5M40 22l-4-4M36 30h-5"/>'],
+  'Comfort Codes': ['20 16 80 76', '<path class="soft" d="M46 36c-3-4 3-6 0-10M56 36c-3-4 3-6 0-10M66 36c-3-4 3-6 0-10"/><path class="tint" d="M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12z"/><path d="M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12zM74 48h4a8 8 0 0 1 0 16h-4"/><path class="fill" d="M54 68c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z"/><path class="soft" d="M28 88h56"/>'],
+};
+const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+let pickSel = new Set(), pickFresh = false, picking = false;
+function renderPicker(s, first) {
+  // Coming back to a room you've played before (and your partner isn't here yet):
+  // offer the picker first, with "Continue" ready.
+  if (first && s.started && !s.choosing && s.partners.length < 2) act({ type: 'choose', on: true });
+  document.body.classList.toggle('choosing', s.choosing);
+  $('picker').classList.toggle('hidden', !s.choosing);
+  if (!s.choosing) { picking = false; return; }
+  if (!picking) { picking = true; pickSel = new Set(s.decks.length ? s.decks : s.deckList.map(d => d.name)); pickFresh = s.fresh; }
+  // "Only cards we haven't seen" needs an account: guest rooms don't keep history.
+  const fresh = s.couple && pickFresh;
+  $('pickCancel').classList.toggle('hidden', !s.started);
+  const all = s.deckList.length;
+  const left = d => d.count - d.used;
+  const countLine = (count, unused) => !fresh ? plural(count, 'card', 'cards') : unused ? `${unused} new` : 'All seen';
+  const tile = (cls, pressed, name, blurb, art, count, unused, attrs) =>
+    `<button class="tile ${cls}${fresh && !unused ? ' spent' : ''}" aria-pressed="${pressed}" title="${escapeHtml(blurb)}" ${attrs}><span class="tf">` +
+    `<span class="art" aria-hidden="true"><svg viewBox="${(DECK_ART[art] || DECK_ART.All)[0]}" preserveAspectRatio="xMidYMid meet">${(DECK_ART[art] || DECK_ART.All)[1]}</svg></span>` +
+    `<span class="nm">${escapeHtml(name)}</span><span class="ct">${countLine(count, unused)}</span>` +
+    `<span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span></button>`;
+  const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
+  $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
+    s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
+  deckEdges();
+  const picked = s.deckList.filter(d => pickSel.has(d.name));
+  const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
+  const saved = s.saved[key];
+  const unused = sum(picked, left), seen = sum(s.deckList, d => d.used);
+  $('freshOpt').classList.toggle('hidden', !s.couple);
+  $('freshSwitch').setAttribute('aria-checked', String(fresh));
+  $('freshSub').textContent = seen ? `You've seen ${seen} of ${sum(s.deckList, d => d.count)} so far` : 'Skip cards you two have already seen';
+  $('pickGo').disabled = !picked.length || (fresh && !unused);
+  $('pickGo').textContent = !picked.length ? 'Pick at least one deck'
+    : fresh ? (unused ? 'Start' : `You've seen every card here`)
+    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : 'Start';
+}
+$('deckList').onclick = e => {
+  const b = e.target.closest('.tile'); if (!b || !room) return;
+  if (b.hasAttribute('data-all')) pickSel = pickSel.size === room.deckList.length ? new Set() : new Set(room.deckList.map(d => d.name));
+  else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
+  renderPicker(room, false);
+};
+const deckEdges = () => {
+  const L = $('deckList');
+  L.classList.toggle('more-above', L.scrollTop > 2);
+  L.classList.toggle('more-below', L.scrollTop + L.clientHeight < L.scrollHeight - 2);
+};
+$('deckList').addEventListener('scroll', deckEdges, { passive: true });
+addEventListener('resize', deckEdges);
+$('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicker(room, false); };
+
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const act = body => {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(body));
+  else toast('Reconnecting…');
+};
+const flip = () => { if (room && room.tapToReveal) act({ type: 'flip' }); };
+$('scene').onclick = e => { if (e.target.id !== 'fav') flip(); };
+$('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
+document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
+$('lockIn').onclick = () => {
+  const text = $('answerText').value.trim();
+  if (!text) return toast('Write something first');
+  act({ type: 'answer', id: clientId, text }); $('answerText').value = '';
+};
+$('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReveal });
+$('next').onclick = () => act({ type: 'next' });
+$('prev').onclick = () => act({ type: 'prev' });
+document.addEventListener('keydown', e => {
+  if ($('game').classList.contains('hidden') || document.body.classList.contains('choosing') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+  if (t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ' || k === 'enter') flip();
+  else if (k === 'arrowright') act({ type: 'next' });
+  else if (k === 'arrowleft') act({ type: 'prev' });
+  else if (k === 'f') act({ type: 'favorite' });
+  else return;
+  e.preventDefault();
+});
+$('decksBtn').onclick = () => act({ type: 'choose', on: true });
+$('pickCancel').onclick = () => act({ type: 'choose', on: false });
+$('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel], fresh: Boolean(room.couple && pickFresh) }); };
+$('share').onclick = $('shareTop').onclick = async () => {
+  const link = `${location.origin}/play?room=${room.code}`;
+  try { if (navigator.share) await navigator.share({ title: 'Join me on Duet Deck', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
+  catch { toast(`Code: ${room.code}`); }
+};
+</script>
+</body>
+</html>

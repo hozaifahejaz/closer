@@ -1,0 +1,366 @@
+[
+ {
+  "name": "Getting Closer",
+  "slug": "getting-closer",
+  "colors": [
+   "#f08a7e",
+   "#c9486a"
+  ],
+  "art": [
+   "14 12 92 66",
+   "<circle class=\"tint\" cx=\"48\" cy=\"45\" r=\"25\"/><circle cx=\"48\" cy=\"45\" r=\"25\"/><circle cx=\"72\" cy=\"45\" r=\"25\"/><path class=\"fill\" d=\"M60 54c-.5 0-9-5.5-9-11.5 0-3 2.3-5.3 5-5.3 1.8 0 3.2 1 4 2.4.8-1.4 2.2-2.4 4-2.4 2.7 0 5 2.3 5 5.3 0 6-8.5 11.5-9 11.5z\"/>"
+  ],
+  "count": 116,
+  "sample": "What's a moment with me you replay in your head when you miss me?"
+ },
+ {
+  "name": "Who You Are",
+  "slug": "who-you-are",
+  "colors": [
+   "#9a7ff0",
+   "#5236a3"
+  ],
+  "art": [
+   "24 8 72 72",
+   "<path d=\"M55.2 52.4A5.2 6.1 0 1 1 65.1 51.4M50.7 55.4A10.4 12.3 0 1 1 69.4 55.2M46.4 58.9A15.6 18.4 0 1 1 75.2 54.1M42.4 63A20.8 24.5 0 1 1 78.9 60.4M38.7 67.6A26 30.7 0 1 1 85.3 56.9M35.4 72.7A31.2 36.8 0 1 1 88.3 65.6\"/><path class=\"soft\" d=\"M60 50v8M65 60c0 6-2 10-5 14M55 62c-1 5-4 9-8 12\"/>"
+  ],
+  "count": 148,
+  "sample": "What belief did you hold strongly five years ago that you've since let go of?"
+ },
+ {
+  "name": "Us & The Future",
+  "slug": "us-and-the-future",
+  "colors": [
+   "#eeaa52",
+   "#a4531f"
+  ],
+  "art": [
+   "14 20 92 72",
+   "<path class=\"tint\" d=\"M42 62a18 18 0 0 1 36 0z\"/><path d=\"M16 62h88M42 62a18 18 0 0 1 36 0\"/><path class=\"soft\" d=\"M60 36v-8M44 42l-5-5M76 42l5-5\"/><path d=\"M38 90l19-28M82 90L63 62\"/><path class=\"soft\" d=\"M60 68v4M60 77v5M60 86v3\"/>"
+  ],
+  "count": 95,
+  "sample": "Where do you picture us in ten years, in as much detail as you can?"
+ },
+ {
+  "name": "Honest & Vulnerable",
+  "slug": "honest-and-vulnerable",
+  "colors": [
+   "#c2567a",
+   "#7a2a4b"
+  ],
+  "art": [
+   "22 14 76 70",
+   "<path class=\"tint\" d=\"M60 78C57 78 29 60 29 38c0-9.5 7.3-17 16.5-17 6.3 0 11.3 3.5 14.5 8.6 3.2-5.1 8.2-8.6 14.5-8.6C83.7 21 91 28.5 91 38c0 22-28 40-31 40z\"/><path d=\"M60 78C57 78 29 60 29 38c0-9.5 7.3-17 16.5-17 6.3 0 11.3 3.5 14.5 8.6 3.2-5.1 8.2-8.6 14.5-8.6C83.7 21 91 28.5 91 38c0 22-28 40-31 40z\"/><path class=\"gold\" d=\"M60 29.6l-5.5 9.4 8 7.5-7 9 5 8-1.5 14.5\"/>"
+  ],
+  "count": 122,
+  "sample": "Is there anything you've been wanting to say to me but haven't?"
+ },
+ {
+  "name": "Light & Playful",
+  "slug": "light-and-playful",
+  "colors": [
+   "#45bfae",
+   "#1d6a74"
+  ],
+  "art": [
+   "26 8 68 80",
+   "<ellipse class=\"tint\" cx=\"47\" cy=\"32\" rx=\"13\" ry=\"16\"/><ellipse class=\"tint\" cx=\"73\" cy=\"27\" rx=\"13\" ry=\"16\"/><ellipse cx=\"47\" cy=\"32\" rx=\"13\" ry=\"16\"/><ellipse cx=\"73\" cy=\"27\" rx=\"13\" ry=\"16\"/><path d=\"M44.5 48.5h5l-2.5-3zM70.5 43.5h5l-2.5-3z\"/><path d=\"M47 48.5c-4 12 16 16 11 33M73 43.5c4 12-18 18-13 38\"/>"
+  ],
+  "count": 238,
+  "sample": "If we swapped lives for a day, what's the first thing you'd do as me?"
+ },
+ {
+  "name": "Desire & Intimacy",
+  "slug": "desire-and-intimacy",
+  "colors": [
+   "#e8735a",
+   "#a33b24"
+  ],
+  "art": [
+   "24 10 72 80",
+   "<path class=\"tint\" d=\"M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z\"/><path d=\"M60 14c8 10 12 17 12 24a12 12 0 0 1-24 0c0-7 4-14 12-24z\"/><path class=\"fill\" d=\"M60 31c3.5 4.5 5 7.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-5.5 5-10z\"/><path d=\"M60 50v5\"/><rect x=\"48\" y=\"55\" width=\"24\" height=\"31\" rx=\"2.5\"/><path class=\"soft\" d=\"M48 62c3 0 3 6 6.5 6s3-6 6.5-6M36 34l-5-3M84 34l5-3M34 46h-6M86 46h6\"/>"
+  ],
+  "count": 68,
+  "sample": "When do you feel most desired by me?"
+ },
+ {
+  "name": "Conflict & Repair",
+  "slug": "conflict-and-repair",
+  "colors": [
+   "#6f9cf0",
+   "#2f53a3"
+  ],
+  "art": [
+   "12 30 96 56",
+   "<path class=\"tint\" d=\"M22 66C34 34 86 34 98 66z\"/><path d=\"M14 66h92M22 66C34 34 86 34 98 66\"/><path class=\"soft\" d=\"M36 66V53M48 66V46M60 66V42.5M72 66V46M84 66V53\"/><path d=\"M26 66v12M94 66v12\"/><path class=\"soft\" d=\"M16 82h18M48 84h24M86 82h18\"/>"
+  ],
+  "count": 68,
+  "sample": "What did making up look like in your family, if it happened at all?"
+ },
+ {
+  "name": "Life & Meaning",
+  "slug": "life-and-meaning",
+  "colors": [
+   "#8fb86a",
+   "#4b6e2e"
+  ],
+  "art": [
+   "22 10 76 80",
+   "<circle class=\"tint\" cx=\"60\" cy=\"38\" r=\"23\"/><circle cx=\"60\" cy=\"38\" r=\"23\"/><path d=\"M60 50v36M60 68l-9-9M60 62l8-8\"/><path class=\"soft\" d=\"M50 30a10 10 0 0 1 10-7M34 86h52M52 86c3-3 5-3 8-3s5 0 8 3\"/>"
+  ],
+  "count": 87,
+  "sample": "What do you think happens when we die, and how does that shape the way you live?"
+ },
+ {
+  "name": "Guess My Answer",
+  "slug": "guess-my-answer",
+  "colors": [
+   "#e2b33c",
+   "#8a6512"
+  ],
+  "art": [
+   "12 20 86 76",
+   "<path class=\"tint\" d=\"M23 24h36a7 7 0 0 1 7 7v20a7 7 0 0 1-7 7H40L28 68V58h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z\"/><path d=\"M23 24h36a7 7 0 0 1 7 7v20a7 7 0 0 1-7 7H40L28 68V58h-5a7 7 0 0 1-7-7V31a7 7 0 0 1 7-7z\"/><path d=\"M35 35a6 6 0 1 1 8.5 5.5c-1.6.8-2.5 2-2.5 3.8v1.2\"/><circle class=\"fill\" cx=\"41\" cy=\"50.5\" r=\"2\"/><path class=\"soft\" d=\"M68 62h20a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6h-1v8l-9-8H68a6 6 0 0 1-6-6V68a6 6 0 0 1 6-6z\"/><circle class=\"fill\" cx=\"71\" cy=\"73\" r=\"1.8\"/><circle class=\"fill\" cx=\"78\" cy=\"73\" r=\"1.8\"/><circle class=\"fill\" cx=\"85\" cy=\"73\" r=\"1.8\"/>"
+  ],
+  "count": 70,
+  "sample": "Guess my go-to comfort food on a bad day."
+ },
+ {
+  "name": "Would You Rather",
+  "slug": "would-you-rather",
+  "colors": [
+   "#d673c4",
+   "#86287a"
+  ],
+  "art": [
+   "20 16 80 76",
+   "<path d=\"M60 22v64\"/><path class=\"tint\" d=\"M60 30h24l8 8-8 8H60z\"/><path d=\"M60 30h24l8 8-8 8H60z\"/><path class=\"tint\" d=\"M60 52H36l-8 8 8 8h24z\"/><path d=\"M60 52H36l-8 8 8 8h24z\"/><path class=\"soft\" d=\"M44 86h32\"/>"
+  ],
+  "count": 63,
+  "sample": "Would you rather relive our first date or skip ahead to see our 50th anniversary?"
+ },
+ {
+  "name": "Weekly Check-in",
+  "slug": "weekly-check-in",
+  "colors": [
+   "#8a96b8",
+   "#3e4a6e"
+  ],
+  "art": [
+   "22 16 76 72",
+   "<path class=\"tint\" d=\"M38 28h44a6 6 0 0 1 6 6v8H32v-8a6 6 0 0 1 6-6z\"/><rect x=\"32\" y=\"28\" width=\"56\" height=\"54\" rx=\"6\"/><path d=\"M32 42h56M46 22v12M74 22v12\"/><g class=\"fill soft\"><circle cx=\"42\" cy=\"51\" r=\"1.7\"/><circle cx=\"51\" cy=\"51\" r=\"1.7\"/><circle cx=\"60\" cy=\"51\" r=\"1.7\"/><circle cx=\"69\" cy=\"51\" r=\"1.7\"/><circle cx=\"78\" cy=\"51\" r=\"1.7\"/><circle cx=\"42\" cy=\"63\" r=\"1.7\"/><circle cx=\"51\" cy=\"63\" r=\"1.7\"/><circle cx=\"60\" cy=\"63\" r=\"1.7\"/><circle cx=\"78\" cy=\"63\" r=\"1.7\"/><circle cx=\"42\" cy=\"75\" r=\"1.7\"/><circle cx=\"51\" cy=\"75\" r=\"1.7\"/><circle cx=\"60\" cy=\"75\" r=\"1.7\"/></g><path class=\"fill\" d=\"M69 72c-.4 0-8-4.8-8-10 0-2.6 2-4.6 4.4-4.6 1.6 0 2.8.9 3.6 2.1.8-1.2 2-2.1 3.6-2.1 2.4 0 4.4 2 4.4 4.6 0 5.2-7.6 10-8 10z\"/>"
+  ],
+  "count": 53,
+  "sample": "From 1 to 10, how connected did you feel to us this week, and why?"
+ },
+ {
+  "name": "Dilemmas",
+  "slug": "dilemmas",
+  "colors": [
+   "#c79a6b",
+   "#7a5230"
+  ],
+  "art": [
+   "20 24 80 60",
+   "<path d=\"M60 36v42M48 78h24M35 40l50-8\"/><circle class=\"fill\" cx=\"60\" cy=\"36\" r=\"2.6\"/><path class=\"soft\" d=\"M35 40l-8 16M35 40l8 16M85 32l-8 16M85 32l8 16\"/><path class=\"tint\" d=\"M24 56a11 6 0 0 0 22 0z\"/><path d=\"M24 56a11 6 0 0 0 22 0z\"/><path class=\"tint\" d=\"M74 48a11 6 0 0 0 22 0z\"/><path d=\"M74 48a11 6 0 0 0 22 0z\"/>"
+  ],
+  "count": 64,
+  "sample": "Would you tell a close friend their partner is cheating?"
+ },
+ {
+  "name": "Long Distance",
+  "slug": "long-distance",
+  "colors": [
+   "#4fb0d6",
+   "#1c5f7d"
+  ],
+  "art": [
+   "22 16 76 66",
+   "<path class=\"soft\" stroke-dasharray=\"3 5\" d=\"M36 50C40 28 66 20 82 30\"/><path class=\"tint\" d=\"M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z\"/><path d=\"M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z\"/><circle cx=\"36\" cy=\"63\" r=\"3\"/><path class=\"tint\" d=\"M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z\"/><path d=\"M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z\"/><circle cx=\"84\" cy=\"43\" r=\"3\"/><path class=\"fill\" d=\"M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z\"/>"
+  ],
+  "count": 47,
+  "sample": "What time of day do you miss me the most?"
+ },
+ {
+  "name": "Midnight Questions",
+  "slug": "midnight-questions",
+  "colors": [
+   "#6c6fd8",
+   "#2a2c72"
+  ],
+  "art": [
+   "20 14 80 72",
+   "<path class=\"tint\" d=\"M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z\"/><path d=\"M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z\"/><path class=\"fill\" d=\"M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z\"/><path class=\"fill soft\" d=\"M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z\"/><circle class=\"fill soft\" cx=\"74\" cy=\"46\" r=\"1.6\"/><path class=\"soft\" d=\"M30 82h60\"/>"
+  ],
+  "count": 65,
+  "sample": "Do you think we'd have found each other in another life?"
+ },
+ {
+  "name": "Money & Work",
+  "slug": "money-and-work",
+  "colors": [
+   "#4fa36b",
+   "#1f5a37"
+  ],
+  "art": [
+   "14 22 94 68",
+   "<path class=\"tint\" d=\"M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z\"/><path d=\"M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z\"/><path d=\"M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50\"/><rect class=\"fill\" x=\"42\" y=\"54.5\" width=\"8\" height=\"7\" rx=\"1.5\"/><path class=\"tint\" d=\"M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z\"/><ellipse cx=\"89\" cy=\"56\" rx=\"11\" ry=\"4\"/><path d=\"M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4\"/><path class=\"soft\" d=\"M18 86h86\"/>"
+  ],
+  "count": 47,
+  "sample": "What's a belief about money, work or success you inherited and still carry?"
+ },
+ {
+  "name": "Alien Interview",
+  "slug": "alien-interview",
+  "colors": [
+   "#8bc34a",
+   "#3f6b16"
+  ],
+  "art": [
+   "16 14 88 76",
+   "<path class=\"tint\" d=\"M48 42a12 12 0 0 1 24 0z\"/><path d=\"M48 42a12 12 0 0 1 24 0M60 30v-6\"/><circle class=\"fill\" cx=\"60\" cy=\"22\" r=\"2\"/><ellipse class=\"tint\" cx=\"60\" cy=\"47\" rx=\"30\" ry=\"8\"/><ellipse cx=\"60\" cy=\"47\" rx=\"30\" ry=\"8\"/><g class=\"fill\"><circle cx=\"44\" cy=\"48\" r=\"1.8\"/><circle cx=\"60\" cy=\"50\" r=\"1.8\"/><circle cx=\"76\" cy=\"48\" r=\"1.8\"/></g><path class=\"soft\" d=\"M50 56l-10 26M70 56l10 26M36 86h48\"/>"
+  ],
+  "count": 7,
+  "sample": "How would you explain to an alien why people kiss?"
+ },
+ {
+  "name": "Genie Wishes",
+  "slug": "genie-wishes",
+  "colors": [
+   "#a15ee0",
+   "#4d1f86"
+  ],
+  "art": [
+   "20 12 84 72",
+   "<path class=\"tint\" d=\"M34 70h40c0-10-9-16-20-16s-20 6-20 16z\"/><path d=\"M34 70h40c0-10-9-16-20-16s-20 6-20 16zM74 66c8 0 14-4 20-10M34 64c-8 0-10-10-2-10M48 54c0-4 3-6 6-6s6 2 6 6M44 70v6h20v-6M40 80h28\"/><path class=\"soft\" d=\"M94 54c4-8-6-10-2-18s12-6 8-14\"/><path class=\"fill\" d=\"M86 16l1.6 4.4 4.4 1.6-4.4 1.6L86 28l-1.6-4.4-4.4-1.6 4.4-1.6z\"/>"
+  ],
+  "count": 5,
+  "sample": "You get three wishes, but one must be for me. What is it?"
+ },
+ {
+  "name": "Amnesia",
+  "slug": "amnesia",
+  "colors": [
+   "#e0a47a",
+   "#8a5028"
+  ],
+  "art": [
+   "22 12 76 76",
+   "<g transform=\"rotate(-6 56 48)\"><rect class=\"tint\" x=\"34\" y=\"22\" width=\"44\" height=\"54\" rx=\"3\"/><rect x=\"34\" y=\"22\" width=\"44\" height=\"54\" rx=\"3\"/><rect class=\"soft\" x=\"39\" y=\"27\" width=\"34\" height=\"32\" rx=\"1.5\"/></g><path d=\"M51 37a5 5 0 1 1 7 4.6c-1.3.7-2 1.7-2 3.2v1\"/><circle class=\"fill\" cx=\"56\" cy=\"51\" r=\"1.8\"/><path class=\"soft\" stroke-dasharray=\"2 4\" d=\"M86 30c6 6 6 18 0 26\"/>"
+  ],
+  "count": 6,
+  "sample": "If I lost my memory, how would you make me fall for you again?"
+ },
+ {
+  "name": "Act It Out",
+  "slug": "act-it-out",
+  "colors": [
+   "#f0617d",
+   "#9a1f3c"
+  ],
+  "art": [
+   "18 16 84 72",
+   "<path class=\"tint\" d=\"M32 30h32v18c0 12-7 20-16 20s-16-8-16-20z\"/><path d=\"M32 30h32v18c0 12-7 20-16 20s-16-8-16-20zM39 42c2-2 4-2 6 0M51 42c2-2 4-2 6 0M40 54c4 5 12 5 16 0\"/><g transform=\"rotate(12 76 58)\"><path class=\"tint\" d=\"M60 40h32v18c0 12-7 20-16 20s-16-8-16-20z\"/><path d=\"M60 40h32v18c0 12-7 20-16 20s-16-8-16-20zM67 54c2 2 4 2 6 0M79 54c2 2 4 2 6 0M68 68c4-5 12-5 16 0\"/></g>"
+  ],
+  "count": 14,
+  "sample": "Act out how I wake up in the morning."
+ },
+ {
+  "name": "Job Interview",
+  "slug": "job-interview",
+  "colors": [
+   "#3f8f9e",
+   "#164c57"
+  ],
+  "art": [
+   "24 12 72 80",
+   "<path class=\"soft\" d=\"M44 18L32 88M76 18l12 70\"/><path d=\"M44 18l16 10 16-10\"/><path class=\"tint\" d=\"M54 28h12l-2 8h-8z\"/><path class=\"tint\" d=\"M56 36l-6 34 10 10 10-10-6-34z\"/><path d=\"M54 28h12l-2 8h-8zM56 36l-6 34 10 10 10-10-6-34z\"/><path class=\"soft\" d=\"M54 50l12-6M52 62l16-8\"/>"
+  ],
+  "count": 6,
+  "sample": "Why should I hire you as my partner? Go."
+ },
+ {
+  "name": "Unsent",
+  "slug": "unsent",
+  "colors": [
+   "#8fb4d9",
+   "#345b85"
+  ],
+  "art": [
+   "16 20 90 64",
+   "<rect class=\"tint\" x=\"24\" y=\"32\" width=\"60\" height=\"42\" rx=\"4\"/><rect x=\"24\" y=\"32\" width=\"60\" height=\"42\" rx=\"4\"/><path d=\"M24 36l30 22 30-22\"/><path class=\"fill\" d=\"M54 67c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z\"/><path class=\"soft\" stroke-dasharray=\"3 5\" d=\"M88 30c6-4 10-4 14 0\"/>"
+  ],
+  "count": 9,
+  "sample": "What would you write to me on my worst day?"
+ },
+ {
+  "name": "Bad Advice",
+  "slug": "bad-advice",
+  "colors": [
+   "#f4823c",
+   "#99400b"
+  ],
+  "art": [
+   "20 14 80 76",
+   "<path class=\"tint\" d=\"M60 20l32 56H28z\"/><path d=\"M60 20l32 56H28zM60 40v18\"/><circle class=\"fill\" cx=\"60\" cy=\"66\" r=\"2.4\"/><path class=\"soft\" d=\"M24 84h72\"/>"
+  ],
+  "count": 3,
+  "sample": "Tell me the worst possible way to apologize to you."
+ },
+ {
+  "name": "How Much Would You Pay",
+  "slug": "how-much-would-you-pay",
+  "colors": [
+   "#c9b458",
+   "#6a5c14"
+  ],
+  "art": [
+   "18 14 84 70",
+   "<path class=\"soft\" d=\"M36 48c-6-8-8-20-2-28\"/><path class=\"tint\" d=\"M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z\"/><path d=\"M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z\"/><circle cx=\"38\" cy=\"50\" r=\"3.5\"/><path d=\"M72 43c-1.5-2-4-3-6.5-3-3 0-5.5 1.6-5.5 4.3 0 5.7 12.5 3.2 12.5 9.4 0 2.8-2.7 4.5-6 4.5-2.7 0-5.2-1.2-6.8-3.3M66 36v28\"/>"
+  ],
+  "count": 4,
+  "sample": "How much would you pay to skip laundry forever?"
+ },
+ {
+  "name": "The Worst",
+  "slug": "the-worst",
+  "colors": [
+   "#a1887f",
+   "#5d4037"
+  ],
+  "art": [
+   "16 14 88 76",
+   "<path class=\"tint\" d=\"M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z\"/><path d=\"M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z\"/><path class=\"soft\" d=\"M40 64l-3 8M46 78l-2 5M76 64l-3 8M82 78l-2 5\"/><path class=\"fill\" d=\"M60 58h9l-6 10h6L54 86l4-13h-6z\"/>"
+  ],
+  "count": 3,
+  "sample": "What's the worst date you've ever been on, not counting me?"
+ },
+ {
+  "name": "Tiny Vows",
+  "slug": "tiny-vows",
+  "colors": [
+   "#f7a0b8",
+   "#a63a5c"
+  ],
+  "art": [
+   "28 10 64 76",
+   "<circle class=\"tint\" cx=\"60\" cy=\"62\" r=\"20\"/><circle cx=\"60\" cy=\"62\" r=\"20\"/><circle class=\"soft\" cx=\"60\" cy=\"62\" r=\"15\"/><path class=\"tint\" d=\"M50 30l5-8h10l5 8-10 12z\"/><path d=\"M50 30l5-8h10l5 8-10 12zM50 30h20M57 22l3 8 3-8\"/><path class=\"soft\" d=\"M80 22l4-4M84 30h5M40 22l-4-4M36 30h-5\"/>"
+  ],
+  "count": 3,
+  "sample": "What tiny promise can you make me for this week?"
+ },
+ {
+  "name": "Comfort Codes",
+  "slug": "comfort-codes",
+  "colors": [
+   "#c3a6e8",
+   "#5c3f8f"
+  ],
+  "art": [
+   "20 16 80 76",
+   "<path class=\"soft\" d=\"M46 36c-3-4 3-6 0-10M56 36c-3-4 3-6 0-10M66 36c-3-4 3-6 0-10\"/><path class=\"tint\" d=\"M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12z\"/><path d=\"M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12zM74 48h4a8 8 0 0 1 0 16h-4\"/><path class=\"fill\" d=\"M54 68c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z\"/><path class=\"soft\" d=\"M28 88h56\"/>"
+  ],
+  "count": 6,
+  "sample": "What should I never say when you're upset?"
+ }
+]

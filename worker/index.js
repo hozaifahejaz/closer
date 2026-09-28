@@ -8,6 +8,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { randomCode, newRoom, upgradeRoom, publicState, applyAction } from './game.js';
 import { Db, DbError } from './db.js';
+import PAGES from './pages.json';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
 // A couple's room holds their place in each deck; if it's ever forgotten it is
@@ -53,6 +54,34 @@ async function tooMany(limiter, ...keys) {
 const clientIp = request => request.headers.get('CF-Connecting-IP') || 'local';
 const slowDown = () => json(429, { error: 'Too many tries. Please wait a minute and try again' });
 
+// ---- Public pages for search engines (built by scripts/build-pages.mjs) ----
+// Only the real site is indexed. Branch previews (<branch>-closer.<account>.workers.dev)
+// and local copies tell search engines to stay away, so they never compete with it.
+const indexable = url => url.protocol === 'https:' && (!url.hostname.endsWith('.workers.dev') || url.hostname.startsWith('closer.'));
+const noindex = r => { r.headers.set('X-Robots-Tag', 'noindex'); return r; };
+function robots(url) {
+  const body = indexable(url) ? `User-agent: *\nDisallow: /api/\n\nSitemap: ${url.origin}/sitemap.xml\n` : 'User-agent: *\nDisallow: /\n';
+  return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+}
+function sitemap(url) {
+  const body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    PAGES.map(p => `  <url><loc>${url.origin}${p}</loc></url>`).join('\n') + '\n</urlset>\n';
+  const r = new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+  return indexable(url) ? r : noindex(r);
+}
+// The pages link to themselves (canonical, share images) as https://__SITE__/...,
+// filled in here with the address they were requested on.
+async function seoPage(request, env, url) {
+  const res = await env.ASSETS.fetch(request);
+  let r = res;
+  if ((res.headers.get('Content-Type') || '').includes('text/html')) {
+    r = new Response((await res.text()).replaceAll('https://__SITE__', url.origin), res);
+    r.headers.delete('Content-Length');
+    r.headers.delete('ETag');
+  } else r = new Response(res.body, res);
+  return indexable(url) ? r : noindex(r);
+}
+
 const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
 
 export default {
@@ -91,6 +120,11 @@ export default {
         return await accountApi(request, url, db, env);
       }
 
+      if (url.pathname === '/robots.txt') return robots(url);
+      if (url.pathname === '/sitemap.xml') return sitemap(url);
+      // Invite links from before the landing page existed: /?room=CODE.
+      if (url.pathname === '/' && url.searchParams.has('room')) return Response.redirect(`${url.origin}/play${url.search}`, 302);
+      if (/^\/($|decks(\/|$)|questions\/)/.test(url.pathname)) return await seoPage(request, env, url);
       return env.ASSETS.fetch(request);
     } catch (err) {
       if (!(err instanceof DbError) || err.status >= 500) console.error(err);

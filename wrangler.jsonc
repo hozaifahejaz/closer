@@ -3,7 +3,12 @@
   "name": "closer",
   "main": "worker/index.js",
   "compatibility_date": "2026-09-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  // The Worker runs first for the API and for the public pages, whose absolute links it
+  // fills in with the address they're served from (see seoPage in worker/index.js).
+  "assets": {
+    "directory": "./public", "binding": "ASSETS", "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/", "/decks", "/decks/*", "/questions/*", "/sitemap.xml", "/robots.txt"]
+  },
   "durable_objects": {
     "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
   },

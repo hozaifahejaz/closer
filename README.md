@@ -26,7 +26,9 @@ For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY
 ## What's in it
 - `worker/index.js`: the Cloudflare Worker. Each room is a Durable Object; both partners hold a WebSocket to it and every tap is broadcast to both. Max 2 people per room.
 - `worker/game.js`: the game rules (deck order, flip, answers, favorites). `worker/db.js`: calls the account functions in Supabase.
-- `public/index.html`: the whole app (lobby, flip card, controls), mobile-first.
+- `public/play.html`: the game itself at `/play` (lobby, flip card, controls), mobile-first. Old `/?room=CODE` invite links redirect there.
+- Public pages for search engines, built from `questions.json` and the deck names, colours and art in `play.html` by `node scripts/build-pages.mjs`: the landing page (`public/index.html`), `/decks`, one page per deck (`/decks/<deck>`), question lists for common searches (`/questions/<topic>`), and `404.html`. **Re-run it after changing questions or decks and commit the output.** Share images in `public/og/` come from `node scripts/build-og.mjs` (needs Playwright).
+- The Worker serves `/robots.txt` and `/sitemap.xml`, and fills in each public page's own address (canonical link, share image). Branch previews on workers.dev and local copies are marked noindex so search engines only list the real site.
 - `supabase/schema.sql`: accounts, partner links, saved answers and favorites.
 - `questions.json`: 482 questions across 8 decks. Always add new questions at the end of a deck. To remove one, replace it with `null` rather than deleting it: cards are numbered by their place in the deck, and saved answers and progress refer to those numbers.
 - `server.js` + `supabase.js` + `render.yaml`: the older Node version for Render, kept until the Cloudflare move is done.

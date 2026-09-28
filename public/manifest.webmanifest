@@ -2,7 +2,7 @@
   "name": "Duet Deck",
   "short_name": "Duet Deck",
   "description": "Deep questions for couples, on the same card at the same time.",
-  "start_url": "/",
+  "start_url": "/play",
   "display": "standalone",
   "background_color": "#1d1420",
   "theme_color": "#1d1420",
