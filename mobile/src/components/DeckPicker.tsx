@@ -52,15 +52,19 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const saved = room.saved[key];
   const unused = sum(picked, left), seen = sum(list, d => d.used);
   const short = height < 720;
-  // Six decks show at a time, filling the space between the heading and the Start button:
-  // 2 across and 3 down on phones, 3 by 2 when the space is wider than tall, 6 in a row when it's
-  // very wide (a phone on its side). A sliver of the next row peeks out to show the rest scroll.
+  // Four decks show at a time as upright cards, as big as the space between the heading and the
+  // Start button allows: 2 by 2 on tall spaces, 4 in a row on wide ones. Cards are playing-card shaped
+  // (5:7) when height limits them and grow taller (up to 4:7) when width does. A sliver of the next
+  // row peeks out to show the rest scroll.
   const aspect = grid.h ? grid.w / grid.h : 0;
-  const layout = aspect >= 3 ? { cols: 6, rows: 1, gap: 10 } : aspect >= 1.2 ? { cols: 3, rows: 2, gap: 16 } : { cols: 2, rows: 3, gap: 12 };
+  const layout = aspect >= 10 / 7 ? { cols: 4, rows: 1, gap: 16 } : { cols: 2, rows: 2, gap: 12 };
   const COLS = layout.cols;
   const peek = Math.max(14, Math.min(30, grid.h * 0.05));
-  const cardW = Math.floor((grid.w - layout.gap * (COLS - 1)) / COLS);
-  const cardH = Math.floor(Math.max(112, (grid.h - peek - layout.rows * layout.gap) / layout.rows));
+  const rowH = Math.max(130, (grid.h - peek - layout.rows * layout.gap) / layout.rows);
+  const cardW = Math.floor(Math.min(rowH * 5 / 7, (grid.w - layout.gap * (COLS - 1)) / COLS));
+  const cardH = Math.floor(Math.min(rowH, cardW * 7 / 4));
+  // When width limits the cards, the box shrinks to four cards and a peek, centred, instead of showing half the next row.
+  const boxH = Math.min(grid.h + 10, layout.rows * (cardH + layout.gap) + peek + 10);
   const [edge, setEdge] = useState({ above: false, below: false });
   const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
     const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
@@ -132,8 +136,8 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
         {banner}
         <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 10 })}>
           {grid.w ? (
-            <View style={{ flex: 1, width: '100%' }}>
-              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > grid.h + 10 + 2 }))}
+            <View style={{ height: boxH, width: '100%' }}>
+              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > boxH + 2 }))}
                 scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never"
                 snapToInterval={cardH + layout.gap} decelerationRate="fast" snapToAlignment="start">
                 <View style={[st.cards, { width: cardW * COLS + layout.gap * (COLS - 1), columnGap: layout.gap, rowGap: layout.gap }]}>
@@ -172,7 +176,7 @@ const st = StyleSheet.create({
   title: { fontFamily: fonts.serifBold, fontSize: 28, color: colors.text, letterSpacing: -0.3 },
   sub: { marginTop: 4, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.muted },
   x: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1060, alignSelf: 'center', overflow: 'hidden' },
+  grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1060, alignSelf: 'center', justifyContent: 'center', overflow: 'hidden' },
   scroll: { flex: 1 },
   scrollIn: { alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
