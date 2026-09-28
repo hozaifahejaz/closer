@@ -148,7 +148,8 @@ export function publicState(room, players, viewerId) {
     mode: room.mode,
     myAnswer: answers[viewerId] ?? null,
     partnerAnswered: ids.some(id => id !== viewerId && id in answers),
-    revealed: bothAnswered ? ids.map(id => ({ name: players.get(id), text: answers[id], mine: id === viewerId })) : null,
+    // Your own answer first, so both partners see the answers in the same, predictable layout.
+    revealed: bothAnswered ? ids.map(id => ({ name: players.get(id), text: answers[id], mine: id === viewerId })).sort((a, b) => b.mine - a.mine) : null,
   };
 }
 
