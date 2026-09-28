@@ -29,8 +29,8 @@ function tokenOf(request, url) {
 // The sign-in is also kept in a first-party, HttpOnly cookie. Browsers (Safari
 // especially) may wipe a site's localStorage after a few weeks away, but keep this
 // cookie, so people stay signed in until they log out. The cookie is only honoured
-// by same-origin requests that just read (GET /api/me, the room WebSocket);
-// everything else still needs the token in the Authorization header.
+// by same-origin requests that just read (GET /api/me, the room WebSocket) and by
+// logging out; everything else still needs the token in the Authorization header.
 const COOKIE = 'closer_session';
 const cookieToken = request => (request.headers.get('Cookie') || '').split(/;\s*/)
   .find(c => c.startsWith(COOKIE + '='))?.slice(COOKIE.length + 1) || null;
@@ -129,7 +129,9 @@ async function accountApi(request, url, db, env) {
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
 
-  const readsWithCookie = request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws') && sameOrigin(request, url);
+  // Logging out may use it too, so a page that lost its saved token still ends the session.
+  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws')) ||
+    (request.method === 'POST' && url.pathname === '/api/logout')) && sameOrigin(request, url);
   const fromCookie = !tokenOf(request, url) && readsWithCookie ? cookieToken(request) : null;
   const token = tokenOf(request, url) || fromCookie;
   if (url.pathname === '/api/logout' && request.method === 'POST') {
@@ -331,12 +333,14 @@ export class Room extends DurableObject {
     const coupleId = request.headers.get('x-couple-id') || '';
 
     if (coupleId && !this.room) {
-      // A couple's room is created on first use from what they saved before.
-      this.room = newRoom(`couple:${coupleId}`, coupleId);
+      // A couple's room is created on first use from what they saved before. It is only
+      // kept once that load worked, so a database hiccup can't leave (and later save) a
+      // room that has lost their answers and favorites.
+      const room = newRoom(`couple:${coupleId}`, coupleId);
       const saved = await this.db.rpc('couple_data', { p_token: player.token });
-      for (const a of saved.answers) this.room.answers[a.card_key] = { ...this.room.answers[a.card_key], [a.user_id]: a.text };
-      this.room.favorites = saved.favorites;
-      await this.save();
+      for (const a of saved.answers) room.answers[a.card_key] = { ...room.answers[a.card_key], [a.user_id]: a.text };
+      room.favorites = saved.favorites;
+      if (!this.room) { this.room = room; await this.save(); }
     }
     if (!this.room) return json(404, { error: 'Room not found' });
 

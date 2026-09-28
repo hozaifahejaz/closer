@@ -666,8 +666,14 @@ function getName() { const n = $('name').value.trim(); if (!n) { $('err').textCo
 
 $('create').onclick = async () => {
   me = getName(); if (!me) return;
-  const r = await fetch('/api/rooms', { method: 'POST' }).then(r => r.json());
-  connect(r.code);
+  $('create').disabled = true;
+  try {
+    const res = await fetch('/api/rooms', { method: 'POST' });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
+    await connect(r.code);
+  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Closer. Check your connection and try again." : err.message; }
+  finally { $('create').disabled = false; }
 };
 $('join').onclick = () => {
   me = getName(); if (!me) return;
@@ -709,7 +715,9 @@ document.addEventListener('visibilitychange', () => {
 
 async function connect(code) {
   $('err').textContent = '';
-  const check = await fetch(`/api/rooms/${code}`, { method: 'GET' });
+  let check;
+  try { check = await fetch(`/api/rooms/${code}`, { method: 'GET' }); }
+  catch { $('err').textContent = "Can't reach Closer. Check your connection and try again."; return; }
   if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
   openSocket(`/api/rooms/${code}/ws?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`, 'Could not join (the room may be full).');
   history.replaceState(null, '', `?room=${code}`);
@@ -731,7 +739,8 @@ function render(s) {
   $('cat').textContent = s.card.category;
   $('num').textContent = `${s.index + 1} / ${s.total}`;
   $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
-  const key = s.decks.join('|') + s.index;
+  // Includes the question: a fresh deal can put a different card at the same place.
+  const key = s.decks.join('|') + ':' + s.index + ':' + s.card.text;
   if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
     $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
