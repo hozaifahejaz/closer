@@ -194,3 +194,10 @@ function act(room, actorId, isPlayer, { type, category, decks, fresh, mode, text
   } else return false;
   return {};
 }
+
+// Every deck with its live questions (retired ones are left out), for the admin dashboard.
+export const deckSummary = () => CATEGORIES.map(name => ({
+  name,
+  retired: DECK[name].filter(q => q == null).length,
+  questions: cards(name).map(card => ({ key: cardKey(card), text: questionText(card) })),
+}));
