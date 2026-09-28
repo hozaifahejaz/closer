@@ -15,6 +15,10 @@ export const DECK_COLORS: Record<string, { c1: string; c2: string }> = {
   'Guess My Answer': { c1: '#e2b33c', c2: '#8a6512' },
   'Would You Rather': { c1: '#d673c4', c2: '#86287a' },
   'Weekly Check-in': { c1: '#8a96b8', c2: '#3e4a6e' },
+  Dilemmas: { c1: '#c79a6b', c2: '#7a5230' },
+  'Long Distance': { c1: '#4fb0d6', c2: '#1c5f7d' },
+  'Midnight Questions': { c1: '#6c6fd8', c2: '#2a2c72' },
+  'Money & Work': { c1: '#4fa36b', c2: '#1f5a37' },
 };
 export const deckColors = (name: string) => DECK_COLORS[name] || DECK_COLORS['Getting Closer'];
 
@@ -127,10 +131,54 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
       </>;
       break;
     }
+    case 'Dilemmas': {
+      viewBox = '20 24 80 60';
+      const pans = ['M24 56a11 6 0 0 0 22 0z', 'M74 48a11 6 0 0 0 22 0z'];
+      body = <>
+        <Path {...stroke} d="M60 36v42M48 78h24M35 40l50-8" /><Circle cx="60" cy="36" r="2.6" fill={line} />
+        <Path {...soft} d="M35 40l-8 16M35 40l8 16M85 32l-8 16M85 32l8 16" />
+        {pans.map(d => <G key={d}><Path {...tinted} d={d} /><Path {...stroke} d={d} /></G>)}
+      </>;
+      break;
+    }
+    case 'Long Distance': {
+      viewBox = '22 16 76 66';
+      const pins = ['M36 78c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z', 'M84 58c-.4 0-9-9-9-15a9 9 0 0 1 18 0c0 6-8.6 15-9 15z'];
+      body = <>
+        <Path {...soft} strokeDasharray="3 5" d="M36 50C40 28 66 20 82 30" />
+        {pins.map(d => <G key={d}><Path {...tinted} d={d} /><Path {...stroke} d={d} /></G>)}
+        <Circle cx="36" cy="63" r="3" {...stroke} /><Circle cx="84" cy="43" r="3" {...stroke} />
+        <Path fill={line} d="M58 31c-.3 0-5.5-3.3-5.5-6.8 0-1.8 1.4-3.2 3-3.2 1.1 0 1.9.6 2.5 1.5.6-.9 1.4-1.5 2.5-1.5 1.6 0 3 1.4 3 3.2 0 3.5-5.2 6.8-5.5 6.8z" />
+      </>;
+      break;
+    }
+    case 'Midnight Questions': {
+      viewBox = '20 14 80 72';
+      const moon = 'M62 22a26 26 0 1 0 22 40a22 22 0 0 1-22-40z';
+      body = <>
+        <Path {...tinted} d={moon} /><Path {...stroke} d={moon} />
+        <Path fill={line} d="M80 20l1.8 5.2 5.2 1.8-5.2 1.8L80 34l-1.8-5.2-5.2-1.8 5.2-1.8z" />
+        <Path fill={line} opacity={0.45} d="M92 42l1.2 3.3 3.3 1.2-3.3 1.2L92 51l-1.2-3.3-3.3-1.2 3.3-1.2z" />
+        <Circle cx="74" cy="46" r="1.6" fill={line} opacity={0.45} /><Path {...soft} d="M30 82h60" />
+      </>;
+      break;
+    }
+    case 'Money & Work': {
+      viewBox = '14 22 94 68';
+      const bag = 'M26 44h40a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H26a5 5 0 0 1-5-5V49a5 5 0 0 1 5-5z';
+      body = <>
+        <Path {...tinted} d={bag} /><Path {...stroke} d={bag} />
+        <Path {...stroke} d="M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50" /><Rect x="42" y="54.5" width="8" height="7" rx="1.5" fill={line} />
+        <Path {...tinted} d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z" /><Ellipse cx="89" cy="56" rx="11" ry="4" {...stroke} />
+        <Path {...stroke} d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4" />
+        <Path {...soft} d="M18 86h86" />
+      </>;
+      break;
+    }
     default: // All decks: a fan with one card per deck colour
       body = <>
         {fan.map((c, i) => (
-          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
+          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 11 ? 7 : fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
             <Rect x="-12" y="-56" width="24" height="34" rx="3" fill={spent ? '#b9adb6' : c} opacity={dim ? 0.5 : 1} stroke="#fffaf4" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
           </G>
         ))}
