@@ -24,6 +24,17 @@ const BLURBS: Record<string, string> = {
   'Long Distance': 'For missing each other from miles away.',
   'Midnight Questions': 'The strange, big thoughts that come out late at night.',
   'Money & Work': 'Jobs, ambition, spending and saving.',
+  'Alien Interview': 'Explain life on Earth, and the two of you, to an alien.',
+  'Genie Wishes': 'Three wishes, but the genie has rules.',
+  Amnesia: 'What if one of you woke up and forgot everything?',
+  'Act It Out': "Show, don't tell. Act out your answer.",
+  'Job Interview': 'Interview each other for the role of partner.',
+  Unsent: 'The messages you wrote and never sent.',
+  'Bad Advice': 'Terrible advice only.',
+  'How Much Would You Pay': 'Put a price on the things that matter.',
+  'The Worst': 'Worst dates, photos and ideas. The funnier the better.',
+  'Tiny Vows': 'Small, everyday promises.',
+  'Comfort Codes': 'How each of you likes to be looked after.',
 };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -179,7 +190,7 @@ const st = StyleSheet.create({
   grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1060, alignSelf: 'center', justifyContent: 'center', overflow: 'hidden' },
   scroll: { flex: 1 },
   scrollIn: { alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
-  cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   fade: { position: 'absolute', left: 0, right: 0, height: 36 },
   card: { borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
