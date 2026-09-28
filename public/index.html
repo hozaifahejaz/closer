@@ -251,10 +251,6 @@
   .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
   .tile[data-deck="Midnight Questions"] { --c1:#6c6fd8; --c2:#2a2c72; }
   .tile[data-deck="Money & Work"] { --c1:#4fa36b; --c2:#1f5a37; }
-  /* A line about the deck, on cards with room for it. */
-  .tile .bl { flex:none; max-width:26ch; margin-top:min(3cqh, 8px); font-size:clamp(11.5px, min(5.4cqw, 6.4cqh), 14px); line-height:1.35; color:color-mix(in srgb, var(--ink) 68%, var(--card)); text-wrap:balance;
-    overflow:hidden; display:none; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  @container tile (min-width:170px) and (min-height:200px) { .tile .bl { display:-webkit-box; } }
   /* Short cards (a phone held sideways): the art and name sit closer together. */
   @container tile (max-height:150px) { .tile .tf { padding:8px 6px; } .tile .art { width:min(40cqw, 32cqh); margin-bottom:4cqh; } .tile .ct { margin-top:2cqh; } }
   @container tile (max-height:110px) { .tile .ct { display:none; } }
@@ -837,7 +833,7 @@ function renderPicker(s, first) {
   const tile = (cls, pressed, name, blurb, art, count, unused, attrs) =>
     `<button class="tile ${cls}${fresh && !unused ? ' spent' : ''}" aria-pressed="${pressed}" title="${escapeHtml(blurb)}" ${attrs}><span class="tf">` +
     `<span class="art" aria-hidden="true"><svg viewBox="${(DECK_ART[art] || DECK_ART.All)[0]}" preserveAspectRatio="xMidYMid meet">${(DECK_ART[art] || DECK_ART.All)[1]}</svg></span>` +
-    `<span class="nm">${escapeHtml(name)}</span><span class="bl">${escapeHtml(blurb)}</span><span class="ct">${countLine(count, unused)}</span>` +
+    `<span class="nm">${escapeHtml(name)}</span><span class="ct">${countLine(count, unused)}</span>` +
     `<span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span></button>`;
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
   $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
