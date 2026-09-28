@@ -1,9 +1,6 @@
 // Game rules shared by every room: the deck, whose turn it is to see what,
 // and how each tap changes the room.
 import DECK from '../questions.json';
-// Which cards are the strongest, by deck and number. Kept on the server only:
-// it shapes the order cards are dealt in and is never sent to players.
-import BEST from './quality.json';
 
 export const CATEGORIES = Object.keys(DECK);
 
@@ -21,25 +18,11 @@ function shuffle(a) {
 const live = card => DECK[card.c]?.[card.i] != null;
 const cards = c => DECK[c].map((q, i) => ({ c, i })).filter(live);
 
-const best = new Set(Object.entries(BEST).flatMap(([c, list]) => list.map(i => `${c}:${i}`)));
-// Changes whenever the list of strongest cards does, so saved rooms get re-dealt.
-const DEAL_VERSION = String([...best].sort().join(',').split('').reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7));
-
-// Deals cards strongest first: shuffled strong cards with one other card after
-// every five, then the rest of the other cards once the strong ones run out.
-function deal(list) {
-  const top = shuffle(list.filter(c => best.has(cardKey(c))));
-  const rest = shuffle(list.filter(c => !best.has(cardKey(c))));
-  const out = [];
-  top.forEach((c, n) => { out.push(c); if (n % 5 === 4 && rest.length) out.push(rest.pop()); });
-  return out.concat(rest);
-}
-
 // A room plays one or more decks (categories); no decks chosen means all of them.
 // `keep` can leave cards out (used for "only cards we haven't seen").
 function buildOrder(decks, keep = () => true) {
   const cats = decks.length ? decks : CATEGORIES;
-  return deal(cats.flatMap(cards).filter(keep));
+  return shuffle(cats.flatMap(cards).filter(keep));
 }
 const deckKey = decks => decks.length ? decks.join('|') : 'All';
 const deckLabel = decks => !decks.length ? 'All' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
@@ -56,7 +39,7 @@ export function randomCode(length) {
 }
 
 export function newRoom(code, coupleId = null) {
-  return { code, coupleId, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false, dealt: DEAL_VERSION,
+  return { code, coupleId, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false,
     flipped: false, tapToReveal: true, favorites: [], mode: 'talk', answers: {} };
 }
 
@@ -69,41 +52,35 @@ export function upgradeRoom(room) {
     room.choosing = false;
     room.started = true;
   }
-  // When the strongest-cards list changes, the cards still to come are dealt again.
-  const redeal = room.dealt !== DEAL_VERSION;
-  room.dealt = DEAL_VERSION;
   const current = room.order[room.index];
-  const now = refresh(room.order, room.index, room.decks, c => !room.fresh || !isUsed(room, c), redeal);
+  const now = refresh(room.order, room.index, room.decks, c => !room.fresh || !isUsed(room, c));
   if (now) {
     if (!now.order.length) { room.fresh = false; Object.assign(room, refresh([], 0, room.decks)); }
     else Object.assign(room, now);
     if (room.order[room.index] !== current) freshCard(room);
   }
   for (const [key, p] of Object.entries(room.progress)) {
-    const next = refresh(p.order, p.index, key === 'All' ? [] : key.split('|'), undefined, redeal);
+    const next = refresh(p.order, p.index, key === 'All' ? [] : key.split('|'));
     if (next?.order.length) room.progress[key] = next;
     else if (next) delete room.progress[key];
   }
   return room;
 }
 // Brings a dealt order up to date with questions.json, keeping the room's place:
-// retired cards drop out, and cards added since join the cards still to come,
-// which are dealt again (strongest first). With `redeal`, that happens even when
-// no card changed. A new-cards-only deal gets just the unseen ones. Returns null
-// if nothing changed.
-function refresh(order, index, decks, keep = () => true, redeal = false) {
+// retired cards drop out, and cards added since are shuffled into the cards still
+// to come. A new-cards-only deal gets just the unseen ones. Returns null if nothing changed.
+function refresh(order, index, decks, keep = () => true) {
   const known = decks.filter(c => DECK[c]);
   if (decks.length && !known.length) return null;
   const kept = order.filter(live);
   const have = new Set(order.map(cardKey));
   const missing = buildOrder(known, c => !have.has(cardKey(c)) && keep(c));
-  if (kept.length === order.length && !missing.length && !redeal) return null;
+  if (kept.length === order.length && !missing.length) return null;
   // Every retired card before the current one moves it back a place; if the current
   // card itself was retired, the room lands on the card after it.
   index -= order.slice(0, index).filter(c => !live(c)).length;
-  index = Math.max(0, Math.min(index, kept.length - 1));
-  // The current card and everything before it stay where they are.
-  const next = kept.slice(0, index + 1).concat(deal(kept.slice(index + 1).concat(missing)));
+  const next = kept.slice();
+  for (const card of missing) next.splice(index + 1 + Math.floor(Math.random() * (next.length - index)), 0, card);
   return { order: next, index: Math.max(0, Math.min(index, next.length - 1)) };
 }
 
