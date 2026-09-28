@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#1d1420">
-<title>Closer Admin</title>
+<title>Duet Deck Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --ink:#f4e9ef; --muted:#a893a9; --accent:#e8766f; --line:#3d2b41; --good:#7fd6a0; --bad:#ff9a8f; }
@@ -79,14 +79,14 @@
 <body>
 <div class="wrap">
   <div id="gate" class="gate hidden">
-    <h1 style="margin-bottom:12px">Closer Admin</h1>
+    <h1 style="margin-bottom:12px">Duet Deck Admin</h1>
     <p id="gateMsg" class="meta"></p>
-    <p><a href="/">Back to Closer</a></p>
+    <p><a href="/">Back to Duet Deck</a></p>
   </div>
 
   <div id="app" class="hidden">
     <header>
-      <h1>Closer Admin</h1>
+      <h1>Duet Deck Admin</h1>
       <div class="tabs">
         <button data-tab="overview" class="on">Overview</button>
         <button data-tab="accounts">Accounts</button>
@@ -372,7 +372,7 @@ document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
 function gate(msg) { $('gateMsg').textContent = msg; $('gate').classList.remove('hidden'); }
 
 (async function init() {
-  try { me = await api('/api/me'); } catch { return gate(token ? 'Your session ended. Log in to Closer again.' : 'Log in to Closer with an admin account first.'); }
+  try { me = await api('/api/me'); } catch { return gate(token ? 'Your session ended. Log in to Duet Deck again.' : 'Log in to Duet Deck with an admin account first.'); }
   if (me.token) { token = me.token; try { localStorage.setItem('closer:token', token); } catch {} }
   if (!me.isAdmin) return gate('This account is not an admin.');
   $('app').classList.remove('hidden');

@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Closer · Deep Questions for Two</title>
+<title>Duet Deck · Deep Questions for Two</title>
 <meta name="description" content="Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.">
 <meta name="theme-color" content="#1d1420">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Closer">
+<meta name="apple-mobile-web-app-title" content="Duet Deck">
+<meta property="og:title" content="Duet Deck · Deep Questions for Two">
+<meta property="og:description" content="Deep questions for couples. You and your partner see the same card at the same moment, wherever you are.">
+<meta property="og:site_name" content="Duet Deck">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -41,6 +44,8 @@
   .ico { width:1em; height:1em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .ico.fill { fill:currentColor; stroke:none; }
   .heart-badge { display:grid; place-items:center; background:var(--grad); color:#fff; flex:none; }
+  .duet-badge .mark-duet { width:80%; height:80%; display:block; }
+  .brand > span:not(.heart-badge) { white-space:nowrap; }
 
   /* ---------- Lobby ---------- */
   .lobbyView { width:100%; max-width:1120px; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
@@ -404,6 +409,7 @@
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-duet" viewBox="0 0 24 24"><rect x="3.6" y="4.2" width="10.4" height="14.6" rx="2.2" transform="rotate(-13 8.8 11.5)" fill="currentColor" opacity=".5"/><rect x="9.6" y="5" width="10.4" height="14.6" rx="2.2" transform="rotate(9 14.8 12.3)" fill="currentColor"/><path transform="rotate(9 14.8 12.3)" d="M14.8 15.6c-.1 0-.2 0-.3-.1-1.7-1.5-2.8-2.5-2.8-3.8 0-.9.7-1.6 1.6-1.6.6 0 1.1.3 1.5.8.4-.5.9-.8 1.5-.8.9 0 1.6.7 1.6 1.6 0 1.3-1.1 2.3-2.8 3.8-.1.1-.2.1-.3.1z" fill="var(--rose)"/></symbol>
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3c-.3 0-.6-.1-.8-.3C6.4 15.8 3 12.8 3 8.9 3 6.2 5.1 4 7.7 4c1.8 0 3.3 1 4.3 2.4C13 5 14.5 4 16.3 4 18.9 4 21 6.2 21 8.9c0 3.9-3.4 6.9-8.2 11.1-.2.2-.5.3-.8.3z"/></symbol>
     <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5m6-6-6 6 6 6"/></symbol>
     <symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
@@ -417,7 +423,7 @@
 
   <main class="lobbyView">
     <section class="hero">
-      <div class="logo"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><h1>Closer</h1></div>
+      <div class="logo"><span class="heart-badge duet-badge" aria-hidden="true"><svg class="mark-duet"><use href="#i-duet"/></svg></span><h1>Duet Deck</h1></div>
       <p class="sub">Deep questions for two. Same card, same moment, wherever you are.</p>
       <ul class="perks">
         <li><span class="i" aria-hidden="true"><svg class="ico"><use href="#i-sync"/></svg></span><span><b>Always in sync</b>Flip, skip or change the topic, and your partner sees it instantly.</span></li>
@@ -490,7 +496,7 @@
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
-      <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
+      <span class="brand"><span class="heart-badge duet-badge" aria-hidden="true"><svg class="mark-duet"><use href="#i-duet"/></svg></span><span>Duet Deck</span></span>
       <span class="pill" id="roomPill">Room <b id="code"></b></span>
       <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       <span class="pill" id="partners"><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></span>
@@ -644,8 +650,8 @@ $('linkGo').onclick = async () => {
   try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
 };
 $('shareMyCode').onclick = async () => {
-  const text = `Join me on Closer! Sign up at ${location.origin} and enter my code: ${account.inviteCode}`;
-  try { if (navigator.share) await navigator.share({ title: 'Closer', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
+  const text = `Join me on Duet Deck! Sign up at ${location.origin} and enter my code: ${account.inviteCode}`;
+  try { if (navigator.share) await navigator.share({ title: 'Duet Deck', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
   catch { toast(`Your code: ${account.inviteCode}`); }
 };
 $('startCouple').onclick = () => {
@@ -672,7 +678,7 @@ $('create').onclick = async () => {
     const r = await res.json().catch(() => ({}));
     if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
     await connect(r.code);
-  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Closer. Check your connection and try again." : err.message; }
+  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Duet Deck. Check your connection and try again." : err.message; }
   finally { $('create').disabled = false; }
 };
 $('join').onclick = () => {
@@ -694,7 +700,7 @@ function openSocket(path, failMessage) {
     if (sock !== ws) return; // replaced by a newer connection
     if (e.code === 4000) { toast('Opened on another device'); return; }
     if (e.code === 4001) {
-      // Closed by Closer's team: back to the start screen.
+      // Closed by the Duet Deck team: back to the start screen.
       room = null; ws = null;
       history.replaceState(null, '', '/');
       document.body.classList.remove('in-game', 'answer-mode');
@@ -717,7 +723,7 @@ async function connect(code) {
   $('err').textContent = '';
   let check;
   try { check = await fetch(`/api/rooms/${code}`, { method: 'GET' }); }
-  catch { $('err').textContent = "Can't reach Closer. Check your connection and try again."; return; }
+  catch { $('err').textContent = "Can't reach Duet Deck. Check your connection and try again."; return; }
   if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
   openSocket(`/api/rooms/${code}/ws?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`, 'Could not join (the room may be full).');
   history.replaceState(null, '', `?room=${code}`);
@@ -950,7 +956,7 @@ $('pickCancel').onclick = () => act({ type: 'choose', on: false });
 $('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel], fresh: Boolean(room.couple && pickFresh) }); };
 $('share').onclick = $('shareTop').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;
-  try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
+  try { if (navigator.share) await navigator.share({ title: 'Join me on Duet Deck', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
   catch { toast(`Code: ${room.code}`); }
 };
 </script>
