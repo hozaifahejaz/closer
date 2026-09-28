@@ -192,28 +192,34 @@
   .deck-btn .chev { margin-left:auto; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:rotate(-45deg); flex:none; }
 
   /* Deck picker: replaces the card and controls until the room starts. */
-  .picker { order:2; flex:0 1 auto; min-height:0; display:flex; flex-direction:column; gap:14px; overflow:hidden; background:var(--bg2); border:1px solid var(--line); border-radius:24px;
+  .picker { order:2; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:14px; overflow:hidden; background:var(--bg2); border:1px solid var(--line); border-radius:24px;
     padding:clamp(16px, 5vw, 24px); box-shadow:0 28px 56px -30px rgba(0,0,0,.7); }
   body.choosing .scene, body.choosing .side { display:none; }
   .pick-head h2 { font-family:var(--serif); font-weight:600; font-size:clamp(22px, 6vw, 28px); margin:0; line-height:1.2; }
   .pick-head p { margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.45; }
   /* Only the list scrolls, so the heading and the Start button stay in view. */
-  /* Decks are upright playing cards, --cols to a row with a short last row centred. The card
-     width is capped by the screen height, so the rows fit without scrolling wherever there's room. */
-  .deck-list { --cols:4; --gx:12px; --cw:max(64px, calc((100vh - 462px) * .238)); --cw:max(64px, calc((100dvh - 462px) * .238));
-    display:flex; flex-wrap:wrap; justify-content:center; gap:16px var(--gx); align-content:start;
-    flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -8px; padding:10px 8px 8px; scrollbar-width:thin; }
+  /* The list fills the rest of the panel and shows six decks at a time: 2 across and 3 down on
+     portrait screens, 3 by 2 on wider ones, 6 in a row on a phone held sideways. The cards are
+     sized from the space they have, with a sliver of the next row peeking out to show it scrolls. */
+  .deck-wrap { flex:1 1 0; min-height:0; container:decks / size; margin:0 -8px; }
+  .deck-list { --cols:2; --rows:3; --g:12px; --pad:8px; --peek:clamp(14px, 5cqh, 30px);
+    height:100%; display:grid; grid-template-columns:repeat(var(--cols), minmax(0, 1fr)); gap:var(--g); align-content:start;
+    grid-auto-rows:max(112px, calc((100cqh - var(--pad) - var(--peek) - var(--rows) * var(--g)) / var(--rows)));
+    overflow-y:auto; overscroll-behavior:contain; padding:var(--pad) 8px; scroll-padding-top:var(--pad); scroll-snap-type:y proximity; scrollbar-width:thin; }
+  @container decks (min-aspect-ratio:6 / 5) { .deck-list { --cols:3; --rows:2; --g:16px; } }
+  @container decks (min-aspect-ratio:3 / 1) { .deck-list { --cols:6; --rows:1; --g:10px; } }
+  @container decks (min-width:700px) { .deck-list { --g:20px; } }
   /* When there are more decks than fit, the list scrolls and fades at the edge that has more. */
   .deck-list.more-below { -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent); mask-image:linear-gradient(#000 calc(100% - 36px), transparent); }
   .deck-list.more-above { -webkit-mask-image:linear-gradient(transparent, #000 36px); mask-image:linear-gradient(transparent, #000 36px); }
   .deck-list.more-above.more-below { -webkit-mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image:linear-gradient(transparent, #000 36px, #000 calc(100% - 36px), transparent); }
-  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; flex:none; width:min(var(--cw), calc((100% - (var(--cols) - 1) * var(--gx)) / var(--cols) - .5px)); min-height:0; aspect-ratio:5 / 7; padding:0; border:0; border-radius:12px; background:none;
-    color:var(--ink); font-weight:500; isolation:isolate; container:tile / inline-size; transition:transform .2s; }
+  .tile { --c1:#f08a7e; --c2:#c9486a; position:relative; display:block; min-width:0; min-height:0; padding:0; border:0; border-radius:16px; background:none; scroll-snap-align:start;
+    color:var(--ink); font-weight:500; isolation:isolate; container:tile / size; transition:transform .2s; }
   .tile:active { transform:scale(.97); }
-  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:10cqw 8cqw; border-radius:12px;
+  .tile .tf { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:8cqh 8cqw; border-radius:16px;
     background:var(--card); border:1px solid transparent; box-shadow:0 10px 22px -16px rgba(0,0,0,.9); transition:background .25s, border-color .25s, box-shadow .25s; }
-  .tile .ct { flex:none; font-size:clamp(7px, 6.8cqw, 10.5px); font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--c2); font-variant-numeric:tabular-nums; white-space:nowrap; margin-top:3cqw; transition:color .25s; }
-  .tile .art { position:relative; flex:none; width:46%; aspect-ratio:1; max-height:40%; margin:0 0 10cqw; transition:opacity .3s, filter .3s; }
+  .tile .ct { flex:none; font-size:clamp(9px, min(5.6cqw, 7cqh), 11.5px); font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--c2); font-variant-numeric:tabular-nums; white-space:nowrap; margin-top:min(4cqh, 12px); transition:color .25s; }
+  .tile .art { position:relative; flex:none; width:min(44cqw, 36cqh); aspect-ratio:1; margin:0 0 min(6cqh, 22px); transition:opacity .3s, filter .3s; }
   .tile .art svg { position:absolute; inset:0; width:100%; height:100%; fill:none; stroke:var(--c2); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; overflow:visible; }
   .tile .art svg * { vector-effect:non-scaling-stroke; }
   .tile .art .fill { fill:var(--c2); stroke:none; }
@@ -221,8 +227,8 @@
   .tile .art .soft { opacity:.45; }
   .tile .art .gold { stroke:#c8912a; stroke-width:2; }
   .tile .art .card { stroke:#fffaf4; stroke-width:1.2; }
-  .tile .nm { flex:none; font-family:var(--serif); font-weight:500; font-size:clamp(10px, 11cqw, 17px); line-height:1.15; letter-spacing:.005em; color:var(--ink); text-wrap:balance; transition:color .3s; }
-  .tile .chk { position:absolute; top:max(7px, 7cqw); right:max(7px, 7cqw); width:clamp(13px, 13cqw, 20px); height:clamp(13px, 13cqw, 20px); border-radius:50%; display:grid; place-items:center;
+  .tile .nm { flex:none; font-family:var(--serif); font-weight:500; font-size:clamp(14px, min(10cqw, 12cqh), 23px); line-height:1.15; letter-spacing:.005em; color:var(--ink); text-wrap:balance; transition:color .3s; }
+  .tile .chk { position:absolute; top:clamp(8px, 6cqmin, 14px); right:clamp(8px, 6cqmin, 14px); width:clamp(18px, 12cqmin, 26px); height:clamp(18px, 12cqmin, 26px); border-radius:50%; display:grid; place-items:center;
     border:1px solid color-mix(in srgb, var(--c2) 45%, transparent); color:transparent; transition:background .15s, color .15s, border-color .15s; }
   .tile .chk .ico { width:70%; height:70%; stroke-width:3; }
   /* Picked and unpicked decks look the same; only the tick shows which are picked. */
@@ -245,10 +251,13 @@
   .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
   .tile[data-deck="Midnight Questions"] { --c1:#6c6fd8; --c2:#2a2c72; }
   .tile[data-deck="Money & Work"] { --c1:#4fa36b; --c2:#1f5a37; }
-  /* Very small cards (small phones held sideways): drop the rule and tighten the type. */
-  @container tile (max-width:80px) { .tile .tf { padding:9cqw 6cqw 8cqw; } .tile .art { margin:0 0 7cqw; width:50%; } .tile .nm { font-size:9.5px; } .tile .ct { font-size:7px; letter-spacing:.1em; } }
-  /* The tiniest cards (a small phone on its side) keep just the art and the name. */
-  @container tile (max-width:56px) { .tile .tf { padding:6cqw 4cqw; } .tile .art { width:44%; margin:0 0 6cqw; } .tile .nm { font-size:8.5px; line-height:1.1; } .tile .ct { display:none; } .tile .chk { width:11px; height:11px; top:5px; right:5px; } }
+  /* A line about the deck, on cards with room for it. */
+  .tile .bl { flex:none; max-width:26ch; margin-top:min(3cqh, 8px); font-size:clamp(11.5px, min(5.4cqw, 6.4cqh), 14px); line-height:1.35; color:color-mix(in srgb, var(--ink) 68%, var(--card)); text-wrap:balance;
+    overflow:hidden; display:none; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  @container tile (min-width:170px) and (min-height:200px) { .tile .bl { display:-webkit-box; } }
+  /* Short cards (a phone held sideways): the art and name sit closer together. */
+  @container tile (max-height:150px) { .tile .tf { padding:8px 6px; } .tile .art { width:min(40cqw, 32cqh); margin-bottom:4cqh; } .tile .ct { margin-top:2cqh; } }
+  @container tile (max-height:110px) { .tile .ct { display:none; } }
   @media (hover:hover) { .tile:hover .tf { border-color:var(--c1); } }
   .pick-opt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-shrink:0; padding:10px 12px 10px 14px; border-radius:14px; background:var(--bg3); border:1px solid var(--line); }
   .pick-opt .t { display:flex; flex-direction:column; gap:1px; font-size:14px; font-weight:500; min-width:0; }
@@ -283,7 +292,6 @@
     .picker { grid-column:1 / -1; grid-row:2; }
     .picker { gap:10px; padding:14px 16px; }
     .pick-head p, .pick-opt small { display:none; }
-    .deck-list { --cols:12; --gx:8px; --cw:max(52px, calc((100vh - 262px) * .714)); --cw:max(52px, calc((100dvh - 262px) * .714)); gap:8px; }
     .pick-opt { padding:6px 10px 6px 12px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; min-height:0; max-height:none; }
     .side { display:flex; flex-direction:column; gap:8px; grid-column:2; grid-row:2; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; }
@@ -304,7 +312,6 @@
 
   /* Tablets and up: more room to breathe. */
   @media (min-width:700px) and (min-height:521px) {
-    .deck-list { --cols:4; --gx:20px; --cw:max(96px, calc((100vh - 514px) * .238)); --cw:max(96px, calc((100dvh - 514px) * .238)); gap:22px var(--gx); }
     #game { max-width:580px; justify-content:center; }
     .scene { max-height:780px; }
     body.answer-mode .scene { max-height:none; }
@@ -342,9 +349,8 @@
     .brand { font-size:24px; }
     .brand .heart-badge { width:32px; height:32px; font-size:16px; border-radius:10px; }
     .scene, body.answer-mode .scene { grid-column:1; grid-row:2; height:auto; max-height:none; min-height:0; }
-    .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:center; width:min(100%, 640px); max-height:100%; padding:30px; }
+    .picker { grid-column:1 / -1; grid-row:2; justify-self:center; align-self:stretch; width:min(100%, 640px); padding:30px; }
     .picker { width:min(100%, 900px); }
-    .deck-list { --cols:6; --gx:18px; --cw:max(90px, calc((100vh - 418px) * .357)); --cw:max(90px, calc((100dvh - 418px) * .357)); gap:18px; }
     .face { border-radius:28px; padding:calc(var(--cw) * .15) calc(var(--cw) * .1); }
     .back::before { inset:14px; border-radius:18px; }
     .front .q { font-size:calc(var(--cw) * .058); }
@@ -492,7 +498,7 @@
         <h2 id="pickTitle">Choose your decks</h2>
         <p>Pick one, a few, or all of them. Your place in each is saved.</p>
       </div>
-      <div class="deck-list" id="deckList" role="group" aria-labelledby="pickTitle"></div>
+      <div class="deck-wrap"><div class="deck-list" id="deckList" role="group" aria-labelledby="pickTitle"></div></div>
       <div class="pick-opt hidden" id="freshOpt">
         <span class="t"><span id="freshLbl">Only cards we haven't seen</span><small id="freshSub"></small></span>
         <button class="switch" id="freshSwitch" role="switch" aria-checked="false" aria-labelledby="freshLbl"><i></i></button>
@@ -831,12 +837,12 @@ function renderPicker(s, first) {
   const tile = (cls, pressed, name, blurb, art, count, unused, attrs) =>
     `<button class="tile ${cls}${fresh && !unused ? ' spent' : ''}" aria-pressed="${pressed}" title="${escapeHtml(blurb)}" ${attrs}><span class="tf">` +
     `<span class="art" aria-hidden="true"><svg viewBox="${(DECK_ART[art] || DECK_ART.All)[0]}" preserveAspectRatio="xMidYMid meet">${(DECK_ART[art] || DECK_ART.All)[1]}</svg></span>` +
-    `<span class="nm">${escapeHtml(name)}</span><span class="ct">${countLine(count, unused)}</span>` +
+    `<span class="nm">${escapeHtml(name)}</span><span class="bl">${escapeHtml(blurb)}</span><span class="ct">${countLine(count, unused)}</span>` +
     `<span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span></button>`;
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
   $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
     s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
-  fitDeckRows(); deckEdges();
+  deckEdges();
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
   const saved = s.saved[key];
@@ -855,25 +861,13 @@ $('deckList').onclick = e => {
   else { const n = b.dataset.deck; pickSel.has(n) ? pickSel.delete(n) : pickSel.add(n); }
   renderPicker(room, false);
 };
-// At most 12 tiles show at once (3 rows of 4 on phones, 2 of 6 on desktop, 1 of 12 sideways).
-// Past that the list scrolls, with a peek of the next row, instead of the tiles shrinking.
-const MAX_VISIBLE_TILES = 12;
-const fitDeckRows = () => {
-  const L = $('deckList'), tiles = L.querySelectorAll('.tile');
-  if (tiles.length <= MAX_VISIBLE_TILES) { L.style.maxHeight = ''; return; }
-  const cs = getComputedStyle(L), cols = parseInt(cs.getPropertyValue('--cols')) || 4;
-  const rows = Math.max(1, Math.floor(MAX_VISIBLE_TILES / cols)), h = tiles[0].getBoundingClientRect().height;
-  if (!h) return;
-  const gap = parseFloat(cs.rowGap) || 0, peek = Math.min(h * .3, 40);
-  L.style.maxHeight = `${parseFloat(cs.paddingTop) + rows * h + rows * gap + peek}px`;
-};
 const deckEdges = () => {
   const L = $('deckList');
   L.classList.toggle('more-above', L.scrollTop > 2);
   L.classList.toggle('more-below', L.scrollTop + L.clientHeight < L.scrollHeight - 2);
 };
 $('deckList').addEventListener('scroll', deckEdges, { passive: true });
-addEventListener('resize', () => { fitDeckRows(); deckEdges(); });
+addEventListener('resize', deckEdges);
 $('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicker(room, false); };
 
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
