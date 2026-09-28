@@ -6,7 +6,7 @@
 //   is sent over that socket and broadcast back to both.
 // - Accounts go through database functions in Supabase (see supabase/schema.sql).
 import { DurableObject } from 'cloudflare:workers';
-import { randomCode, newRoom, upgradeRoom, publicState, applyAction } from './game.js';
+import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary } from './game.js';
 import { Db, DbError } from './db.js';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
@@ -180,12 +180,14 @@ async function adminApi(request, url, db, env, token, state) {
   // data, drop that copy so it's rebuilt from the database (players reconnect on their own).
   const refreshCouple = couple => couple && closeRoom(`couple:${couple}`, { code: 1012, reason: 'Refreshing' });
   if (path === 'stats' && request.method === 'GET') {
-    const [stats, live] = await Promise.all([
+    const [stats, live, play] = await Promise.all([
       db.rpc('admin_stats', { p_token: token }),
       statsStub(env).fetch('https://stats/live').then(r => r.json()),
+      statsStub(env).fetch('https://stats/play').then(r => r.json()),
     ]);
-    return json(200, { ...stats, live });
+    return json(200, { ...stats, live, play });
   }
+  if (path === 'decks' && request.method === 'GET') return json(200, deckSummary());
   if (path === 'users' && request.method === 'GET') return json(200, await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' }));
   if (path === 'couples' && request.method === 'GET') return json(200, await db.rpc('admin_couples', { p_token: token }));
   if (path === 'couple' && request.method === 'GET') return json(200, await db.rpc('admin_couple', { p_token: token, p_couple_id: url.searchParams.get('id') || '' }));
@@ -235,11 +237,33 @@ async function statsFetch(ctx, request) {
   const url = new URL(request.url);
   const today = () => new Date().toISOString().slice(0, 10);
   if (url.pathname === '/report') {
-    const r = await request.json();
+    const { played, ...r } = await request.json();
     const key = `room:${r.room}`;
     const old = (await ctx.storage.get(key)) || { createdAt: Date.now() };
     await ctx.storage.put(key, { ...old, ...r, at: Date.now() });
+    if (played) await countPlay(ctx, today(), played);
     return json(200, { ok: true });
+  }
+  if (url.pathname === '/play') {
+    // The last 30 days of play, guest rooms included (the database only sees couples).
+    const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 86400e3).toISOString().slice(0, 10));
+    const saved = await ctx.storage.list({ prefix: 'play:' });
+    const byDay = new Map([...saved].map(([k, v]) => [k.slice(5), v]));
+    const byDeck = {}, total = { guestCards: 0, coupleCards: 0, talk: 0, answer: 0 };
+    for (const d of days) {
+      const p = byDay.get(d);
+      if (!p) continue;
+      for (const [deck, n] of Object.entries(p.decks || {})) byDeck[deck] = (byDeck[deck] || 0) + n;
+      for (const k of Object.keys(total)) total[k] += p[k] || 0;
+    }
+    const old = new Date(Date.now() - 90 * 86400e3).toISOString().slice(0, 10);
+    for (const d of byDay.keys()) if (d < old) await ctx.storage.delete(`play:${d}`);
+    return json(200, {
+      since: [...byDay.keys()].sort()[0] || null, days,
+      cards: days.map(d => byDay.get(d)?.cards || 0),
+      answers: days.map(d => byDay.get(d)?.answers || 0),
+      byDeck, ...total,
+    });
   }
   if (url.pathname === '/gone') {
     await ctx.storage.delete(`room:${(await request.json()).room}`);
@@ -275,6 +299,20 @@ async function statsFetch(ctx, request) {
     });
   }
   return json(404, { error: 'Not found' });
+}
+
+// Daily play counters: cards dealt (by deck, mode and room type) and answers written.
+async function countPlay(ctx, day, { deck, mode, couple, answered }) {
+  const key = `play:${day}`;
+  const p = (await ctx.storage.get(key)) || { cards: 0, answers: 0, guestCards: 0, coupleCards: 0, talk: 0, answer: 0, decks: {} };
+  if (answered) p.answers++;
+  if (deck) {
+    p.cards++;
+    p[couple ? 'coupleCards' : 'guestCards']++;
+    p[mode === 'answer' ? 'answer' : 'talk']++;
+    p.decks[deck] = (p.decks[deck] || 0) + 1;
+  }
+  await ctx.storage.put(key, p);
 }
 
 // ---- One room ----
@@ -362,11 +400,17 @@ export class Room extends DurableObject {
     const player = ws.deserializeAttachment();
     let action;
     try { action = JSON.parse(message); } catch { return; }
+    const before = cardKey(this.room.order[this.room.index]);
     const result = applyAction(this.room, player.id, true, action);
     if (!result) return;
     await this.save();
     this.broadcast();
-    this.reportPresence();
+    // A new card dealt (going back doesn't count), or an answer written, is counted as play.
+    const card = this.room.order[this.room.index];
+    const dealt = action.type !== 'prev' && cardKey(card) !== before;
+    const answered = Boolean(result.answer);
+    this.reportPresence(dealt || answered
+      ? { deck: dealt ? card.c : null, mode: this.room.mode, couple: Boolean(this.room.coupleId), answered } : null);
     if (this.room.coupleId) this.persist(player.token, result);
   }
 
@@ -382,13 +426,14 @@ export class Room extends DurableObject {
   }
 
   // Tells the stats object who's here and what they're doing, for the admin dashboard.
-  reportPresence() {
+  reportPresence(played = null) {
     if (!this.room) return;
     const players = [...this.players()].map(([id, name]) => ({ id, name }));
     const body = JSON.stringify({
       room: this.room.code, couple: Boolean(this.room.coupleId), coupleId: this.room.coupleId || null,
       players: players.length, people: players, mode: this.room.mode, category: this.room.category,
       card: this.room.index + 1, total: this.room.order.length, answered: Object.keys(this.room.answers).length,
+      deck: this.room.order[this.room.index]?.c || null, played,
     });
     this.ctx.waitUntil(statsStub(this.env).fetch('https://stats/report', { method: 'POST', body }).catch(() => {}));
   }
