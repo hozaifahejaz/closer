@@ -252,6 +252,17 @@
   .tile[data-deck="Long Distance"] { --c1:#4fb0d6; --c2:#1c5f7d; }
   .tile[data-deck="Midnight Questions"] { --c1:#6c6fd8; --c2:#2a2c72; }
   .tile[data-deck="Money & Work"] { --c1:#4fa36b; --c2:#1f5a37; }
+  .tile[data-deck="Alien Interview"] { --c1:#8bc34a; --c2:#3f6b16; }
+  .tile[data-deck="Genie Wishes"] { --c1:#a15ee0; --c2:#4d1f86; }
+  .tile[data-deck="Amnesia"] { --c1:#e0a47a; --c2:#8a5028; }
+  .tile[data-deck="Act It Out"] { --c1:#f0617d; --c2:#9a1f3c; }
+  .tile[data-deck="Job Interview"] { --c1:#3f8f9e; --c2:#164c57; }
+  .tile[data-deck="Unsent"] { --c1:#8fb4d9; --c2:#345b85; }
+  .tile[data-deck="Bad Advice"] { --c1:#f4823c; --c2:#99400b; }
+  .tile[data-deck="How Much Would You Pay"] { --c1:#c9b458; --c2:#6a5c14; }
+  .tile[data-deck="The Worst"] { --c1:#a1887f; --c2:#5d4037; }
+  .tile[data-deck="Tiny Vows"] { --c1:#f7a0b8; --c2:#a63a5c; }
+  .tile[data-deck="Comfort Codes"] { --c1:#c3a6e8; --c2:#5c3f8f; }
   /* Short cards (a phone held sideways): the art and name sit closer together. */
   @container tile (max-height:150px) { .tile .tf { padding:8px 6px; } .tile .art { width:min(40cqw, 32cqh); margin-bottom:4cqh; } .tile .ct { margin-top:2cqh; } }
   @container tile (max-height:110px) { .tile .ct { display:none; } }
@@ -655,8 +666,14 @@ function getName() { const n = $('name').value.trim(); if (!n) { $('err').textCo
 
 $('create').onclick = async () => {
   me = getName(); if (!me) return;
-  const r = await fetch('/api/rooms', { method: 'POST' }).then(r => r.json());
-  connect(r.code);
+  $('create').disabled = true;
+  try {
+    const res = await fetch('/api/rooms', { method: 'POST' });
+    const r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
+    await connect(r.code);
+  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Closer. Check your connection and try again." : err.message; }
+  finally { $('create').disabled = false; }
 };
 $('join').onclick = () => {
   me = getName(); if (!me) return;
@@ -698,7 +715,9 @@ document.addEventListener('visibilitychange', () => {
 
 async function connect(code) {
   $('err').textContent = '';
-  const check = await fetch(`/api/rooms/${code}`, { method: 'GET' });
+  let check;
+  try { check = await fetch(`/api/rooms/${code}`, { method: 'GET' }); }
+  catch { $('err').textContent = "Can't reach Closer. Check your connection and try again."; return; }
   if (check.status === 404) { $('err').textContent = 'No room with that code.'; return; }
   openSocket(`/api/rooms/${code}/ws?name=${encodeURIComponent(me)}&id=${encodeURIComponent(clientId)}`, 'Could not join (the room may be full).');
   history.replaceState(null, '', `?room=${code}`);
@@ -720,7 +739,8 @@ function render(s) {
   $('cat').textContent = s.card.category;
   $('num').textContent = `${s.index + 1} / ${s.total}`;
   $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
-  const key = s.decks.join('|') + s.index;
+  // Includes the question: a fresh deal can put a different card at the same place.
+  const key = s.decks.join('|') + ':' + s.index + ':' + s.card.text;
   if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
     $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
@@ -773,6 +793,17 @@ const DECK_BLURBS = {
   'Long Distance': 'For missing each other from miles away.',
   'Midnight Questions': 'The strange, big thoughts that come out late at night.',
   'Money & Work': 'Jobs, ambition, spending and saving.',
+  'Alien Interview': 'Explain life on Earth, and the two of you, to an alien.',
+  'Genie Wishes': 'Three wishes, but the genie has rules.',
+  'Amnesia': 'What if one of you woke up and forgot everything?',
+  'Act It Out': "Show, don't tell. Act out your answer.",
+  'Job Interview': 'Interview each other for the role of partner.',
+  'Unsent': 'The messages you wrote and never sent.',
+  'Bad Advice': 'Terrible advice only.',
+  'How Much Would You Pay': 'Put a price on the things that matter.',
+  'The Worst': 'Worst dates, photos and ideas. The funnier the better.',
+  'Tiny Vows': 'Small, everyday promises.',
+  'Comfort Codes': 'How each of you likes to be looked after.',
 };
 // Artwork for each deck: [viewBox, drawing]. Lines are drawn in the deck's color on the card.
 const DECK_ART = {
@@ -818,6 +849,17 @@ const DECK_ART = {
     '<path d="M38 44v-6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v6M21 58h50"/><rect class="fill" x="42" y="54.5" width="8" height="7" rx="1.5"/>' +
     '<path class="tint" d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56z"/><ellipse cx="89" cy="56" rx="11" ry="4"/><path d="M78 56v21c0 2.2 5 4 11 4s11-1.8 11-4V56M78 63c0 2.2 5 4 11 4s11-1.8 11-4M78 70c0 2.2 5 4 11 4s11-1.8 11-4"/>' +
     '<path class="soft" d="M18 86h86"/>'],
+  'Alien Interview': ['16 14 88 76', '<path class="tint" d="M48 42a12 12 0 0 1 24 0z"/><path d="M48 42a12 12 0 0 1 24 0M60 30v-6"/><circle class="fill" cx="60" cy="22" r="2"/><ellipse class="tint" cx="60" cy="47" rx="30" ry="8"/><ellipse cx="60" cy="47" rx="30" ry="8"/><g class="fill"><circle cx="44" cy="48" r="1.8"/><circle cx="60" cy="50" r="1.8"/><circle cx="76" cy="48" r="1.8"/></g><path class="soft" d="M50 56l-10 26M70 56l10 26M36 86h48"/>'],
+  'Genie Wishes': ['20 12 84 72', '<path class="tint" d="M34 70h40c0-10-9-16-20-16s-20 6-20 16z"/><path d="M34 70h40c0-10-9-16-20-16s-20 6-20 16zM74 66c8 0 14-4 20-10M34 64c-8 0-10-10-2-10M48 54c0-4 3-6 6-6s6 2 6 6M44 70v6h20v-6M40 80h28"/><path class="soft" d="M94 54c4-8-6-10-2-18s12-6 8-14"/><path class="fill" d="M86 16l1.6 4.4 4.4 1.6-4.4 1.6L86 28l-1.6-4.4-4.4-1.6 4.4-1.6z"/>'],
+  'Amnesia': ['22 12 76 76', '<g transform="rotate(-6 56 48)"><rect class="tint" x="34" y="22" width="44" height="54" rx="3"/><rect x="34" y="22" width="44" height="54" rx="3"/><rect class="soft" x="39" y="27" width="34" height="32" rx="1.5"/></g><path d="M51 37a5 5 0 1 1 7 4.6c-1.3.7-2 1.7-2 3.2v1"/><circle class="fill" cx="56" cy="51" r="1.8"/><path class="soft" stroke-dasharray="2 4" d="M86 30c6 6 6 18 0 26"/>'],
+  'Act It Out': ['18 16 84 72', '<path class="tint" d="M32 30h32v18c0 12-7 20-16 20s-16-8-16-20z"/><path d="M32 30h32v18c0 12-7 20-16 20s-16-8-16-20zM39 42c2-2 4-2 6 0M51 42c2-2 4-2 6 0M40 54c4 5 12 5 16 0"/><g transform="rotate(12 76 58)"><path class="tint" d="M60 40h32v18c0 12-7 20-16 20s-16-8-16-20z"/><path d="M60 40h32v18c0 12-7 20-16 20s-16-8-16-20zM67 54c2 2 4 2 6 0M79 54c2 2 4 2 6 0M68 68c4-5 12-5 16 0"/></g>'],
+  'Job Interview': ['24 12 72 80', '<path class="soft" d="M44 18L32 88M76 18l12 70"/><path d="M44 18l16 10 16-10"/><path class="tint" d="M54 28h12l-2 8h-8z"/><path class="tint" d="M56 36l-6 34 10 10 10-10-6-34z"/><path d="M54 28h12l-2 8h-8zM56 36l-6 34 10 10 10-10-6-34z"/><path class="soft" d="M54 50l12-6M52 62l16-8"/>'],
+  'Unsent': ['16 20 90 64', '<rect class="tint" x="24" y="32" width="60" height="42" rx="4"/><rect x="24" y="32" width="60" height="42" rx="4"/><path d="M24 36l30 22 30-22"/><path class="fill" d="M54 67c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z"/><path class="soft" stroke-dasharray="3 5" d="M88 30c6-4 10-4 14 0"/>'],
+  'Bad Advice': ['20 14 80 76', '<path class="tint" d="M60 20l32 56H28z"/><path d="M60 20l32 56H28zM60 40v18"/><circle class="fill" cx="60" cy="66" r="2.4"/><path class="soft" d="M24 84h72"/>'],
+  'How Much Would You Pay': ['18 14 84 70', '<path class="soft" d="M36 48c-6-8-8-20-2-28"/><path class="tint" d="M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z"/><path d="M42 30h44a6 6 0 0 1 6 6v28a6 6 0 0 1-6 6H42L26 50z"/><circle cx="38" cy="50" r="3.5"/><path d="M72 43c-1.5-2-4-3-6.5-3-3 0-5.5 1.6-5.5 4.3 0 5.7 12.5 3.2 12.5 9.4 0 2.8-2.7 4.5-6 4.5-2.7 0-5.2-1.2-6.8-3.3M66 36v28"/>'],
+  'The Worst': ['16 14 88 76', '<path class="tint" d="M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z"/><path d="M36 56a12 12 0 0 1 2-23.8A17 17 0 0 1 71 28a14 14 0 0 1 13 28z"/><path class="soft" d="M40 64l-3 8M46 78l-2 5M76 64l-3 8M82 78l-2 5"/><path class="fill" d="M60 58h9l-6 10h6L54 86l4-13h-6z"/>'],
+  'Tiny Vows': ['28 10 64 76', '<circle class="tint" cx="60" cy="62" r="20"/><circle cx="60" cy="62" r="20"/><circle class="soft" cx="60" cy="62" r="15"/><path class="tint" d="M50 30l5-8h10l5 8-10 12z"/><path d="M50 30l5-8h10l5 8-10 12zM50 30h20M57 22l3 8 3-8"/><path class="soft" d="M80 22l4-4M84 30h5M40 22l-4-4M36 30h-5"/>'],
+  'Comfort Codes': ['20 16 80 76', '<path class="soft" d="M46 36c-3-4 3-6 0-10M56 36c-3-4 3-6 0-10M66 36c-3-4 3-6 0-10"/><path class="tint" d="M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12z"/><path d="M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12zM74 48h4a8 8 0 0 1 0 16h-4"/><path class="fill" d="M54 68c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z"/><path class="soft" d="M28 88h56"/>'],
 };
 const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
