@@ -684,34 +684,58 @@ $('join').onclick = () => {
 
 // One live connection to the room. Phones drop connections when they sleep or
 // switch networks, so it quietly reconnects; the room keeps its state meanwhile.
-let ws = null, wsPath = null, retry = 0;
+// live: in sync. reconnecting: dropped and trying again. replaced: the same person
+// opened the room on another device, which took over their seat.
+let ws = null, wsPath = null, retry = 0, link = 'live';
+function setLink(l) { link = l; if (room) renderPartners(room); }
 function openSocket(path, failMessage) {
   wsPath = path;
   const sock = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`);
-  sock.onopen = () => { retry = 0; };
-  sock.onmessage = e => render(JSON.parse(e.data));
+  let opened = false;
+  sock.onopen = () => { opened = true; retry = 0; };
+  sock.onmessage = e => { link = 'live'; render(JSON.parse(e.data)); };
   sock.onclose = e => {
     if (sock !== ws) return; // replaced by a newer connection
-    if (e.code === 4000) { toast('Opened on another device'); return; }
-    if (e.code === 4001) {
-      // Closed by Closer's team: back to the start screen.
-      room = null; ws = null;
-      history.replaceState(null, '', '/');
-      document.body.classList.remove('in-game', 'answer-mode');
-      $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
-      const why = e.reason || 'This room was closed.';
-      $('err').textContent = why;
-      // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
-      if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
-      return;
-    }
+    if (e.code === 4000) { setLink('replaced'); toast('Opened on another device'); return; }
+    if (e.code === 4001) return leaveRoom(e.reason || 'This room was closed.');
     if (!room) { $('err').textContent = failMessage; return; }
-    setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
+    setLink('reconnecting');
+    const again = () => setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
+    // Refused outright rather than dropped: the room may be gone for good (a guest room
+    // forgotten after hours away, a sign-in ended elsewhere, no longer linked).
+    if (opened) return again();
+    roomGone().then(why => { if (sock !== ws) return; if (why) leaveRoom(why); else again(); });
   };
 }
+// Why the room can't be reopened, or null if it can (or we can't tell while offline).
+async function roomGone() {
+  if (!room) return null;
+  try {
+    if (room.couple) {
+      const res = await fetch('/api/me', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.status === 401) { setToken(null); account = null; return 'Please log in again.'; }
+      return res.ok && !(await res.json()).partner ? "You're no longer linked." : null;
+    }
+    return (await fetch(`/api/rooms/${room.code}`)).status === 404 ? 'This room has ended. Start a new one.' : null;
+  } catch { return null; }
+}
+// Back to the start screen, e.g. when the room was closed by Closer's team or has ended.
+function leaveRoom(why) {
+  const wasCouple = room && room.couple;
+  room = null; ws = null; link = 'live';
+  history.replaceState(null, '', '/');
+  document.body.classList.remove('in-game', 'answer-mode', 'choosing', 'auto-reveal');
+  $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
+  if (wasCouple && !account) show('authBox'); // signed out elsewhere
+  $('err').textContent = why;
+  // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
+  if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
+}
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && room && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
+  if (document.visibilityState === 'visible' && room && link !== 'replaced' && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
 });
+// After another device took over the seat, tapping the partner pill takes it back.
+$('partners').onclick = () => { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } };
 
 async function connect(code) {
   $('err').textContent = '';
@@ -730,10 +754,7 @@ function render(s) {
   $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
   $('share').classList.toggle('hidden', !!s.couple); $('shareTop').classList.toggle('hidden', !!s.couple);
   const partner = s.partners.filter(p => p !== me);
-  const together = s.partners.length === 2;
-  $('partners').innerHTML = together
-    ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner[0] || s.partners[1])}</b>`
-    : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
+  renderPartners(s);
   $('decksLabel').textContent = deckName(s.decks) + (s.fresh ? ' · new only' : '');
   renderPicker(s, first);
   $('cat').textContent = s.card.category;
@@ -756,6 +777,17 @@ function render(s) {
   renderMode(s, partner[0]);
 }
 
+function renderPartners(s) {
+  const partner = s.partners.find(p => p !== me) || s.partners[1];
+  $('partners').classList.toggle('pill-btn', link === 'replaced');
+  $('partners').title = link === 'replaced' ? 'You opened this room on another device. Tap to use it here' : '';
+  $('partners').innerHTML =
+    link === 'replaced' ? '<span class="dot"></span><b class="name">Use here</b>' :
+    link === 'reconnecting' ? '<span class="dot"></span><span>Reconnecting…</span>' :
+    s.partners.length === 2 ? `<span class="dot on"></span><span class="wide-only">With</span><b class="name">${escapeHtml(partner)}</b>`
+    : '<span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span>';
+}
+
 function renderMode(s, partnerName = 'your partner') {
   $('modeTalk').classList.toggle('on', s.mode === 'talk');
   $('modeAnswer').classList.toggle('on', s.mode === 'answer');
@@ -770,11 +802,12 @@ function renderMode(s, partnerName = 'your partner') {
   if (s.revealed) {
     $('answerReveal').innerHTML = s.revealed.map(a => `<div class="a"><div class="who">${a.mine ? 'You' : escapeHtml(a.name)}</div>${escapeHtml(a.text)}</div>`).join('');
   }
+  const Partner = partnerName[0].toUpperCase() + partnerName.slice(1);
   $('answerStatus').textContent =
     s.revealed ? 'Now talk about it ♡' :
-    s.partners.length < 2 ? 'Waiting for your partner to join…' :
-    answered ? `Locked in. Waiting for ${partnerName}…` :
-    s.partnerAnswered ? `${partnerName} has answered. Your turn.` : `Hidden until you've both answered.`;
+    answered ? (s.partners.length < 2 ? 'Locked in. Waiting for your partner to join…' : `Locked in. Waiting for ${partnerName}…`) :
+    s.partnerAnswered ? `${Partner} has answered. Your turn.` :
+    s.partners.length < 2 ? 'Waiting for your partner to join…' : `Hidden until you've both answered.`;
 }
 // ---- Deck picker ----
 const DECK_BLURBS = {
@@ -916,9 +949,11 @@ $('freshSwitch').onclick = () => { pickFresh = !pickFresh; if (room) renderPicke
 
 function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// Returns false when the tap couldn't be sent (offline for a moment).
 const act = body => {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(body));
-  else toast('Reconnecting…');
+  if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(body)); return true; }
+  toast(link === 'replaced' ? 'Open on another device. Tap “Use here” at the top' : 'Reconnecting…');
+  return false;
 };
 const flip = () => { if (room && room.tapToReveal) act({ type: 'flip' }); };
 $('scene').onclick = e => { if (e.target.id !== 'fav') flip(); };
@@ -927,7 +962,8 @@ document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ 
 $('lockIn').onclick = () => {
   const text = $('answerText').value.trim();
   if (!text) return toast('Write something first');
-  act({ type: 'answer', id: clientId, text }); $('answerText').value = '';
+  // Keep what they wrote if it couldn't be sent, so a dropped connection never loses an answer.
+  if (act({ type: 'answer', text })) $('answerText').value = '';
 };
 $('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReveal });
 $('next').onclick = () => act({ type: 'next' });

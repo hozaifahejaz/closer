@@ -107,10 +107,11 @@ const statsStub = env => roomStub(env, STATS);
 
 // Passes who the player is to the room via headers the browser can't set on its own
 // (the Worker overwrites them on every request).
-function withPlayer(request, { id, name, token = '', couple = '' }) {
+function withPlayer(request, { id, name, token = '', couple = '', partnerName = '' }) {
   const headers = new Headers(request.headers);
   headers.set('x-player-id', id);
   headers.set('x-player-name', encodeURIComponent(name));
+  headers.set('x-partner-name', encodeURIComponent(partnerName));
   headers.set('x-player-token', token);
   headers.set('x-couple-id', couple);
   return new Request(request.url, { method: request.method, headers });
@@ -165,7 +166,7 @@ async function accountApi(request, url, db, env) {
   if (url.pathname === '/api/couple/ws') {
     if (!state.couple_id) return json(409, { error: 'Link with your partner first' });
     return roomStub(env, `couple:${state.couple_id}`)
-      .fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id }));
+      .fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id, partnerName: state.partner?.name || '' }));
   }
   return json(404, { error: 'Not found' });
 }
@@ -387,6 +388,17 @@ export class Room extends DurableObject {
     const existing = this.ctx.getWebSockets(player.id);
     if (!existing.length && this.players().size >= 2) return json(409, { error: 'Room is full' });
     for (const ws of existing) ws.close(4000, 'Opened somewhere else');
+
+    // Names are remembered so answers can still be shown with a name while someone is away.
+    // A couple's id is made of both partners' ids, so the partner's id is the other half.
+    const names = { [player.id]: player.name };
+    const partnerName = decodeURIComponent(request.headers.get('x-partner-name') || '');
+    const partnerId = coupleId && coupleId.split(':').find(id => id !== player.id);
+    if (partnerId && partnerName) names[partnerId] = partnerName;
+    if (Object.entries(names).some(([id, n]) => this.room.names?.[id] !== n)) {
+      this.room.names = { ...this.room.names, ...names };
+      await this.save();
+    }
 
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [player.id]);
