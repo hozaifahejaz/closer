@@ -130,7 +130,7 @@ async function accountApi(request, url, db, env) {
   }
 
   // Logging out may use it too, so a page that lost its saved token still ends the session.
-  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws')) ||
+  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/home' || url.pathname === '/api/couple/ws')) ||
     (request.method === 'POST' && url.pathname === '/api/logout')) && sameOrigin(request, url);
   const fromCookie = !tokenOf(request, url) && readsWithCookie ? cookieToken(request) : null;
   const token = tokenOf(request, url) || fromCookie;
@@ -147,6 +147,21 @@ async function accountApi(request, url, db, env) {
     // for people who signed in before it existed.
     const res = json(200, { ...publicMe(state), ...(fromCookie ? { token } : {}) });
     return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
+  }
+  if (url.pathname === '/api/home' && request.method === 'GET') {
+    // The home screen: who you are, and for a linked couple a few numbers and their latest favorites.
+    const home = { me: publicMe(state), stats: null, favorites: [] };
+    if (state.couple_id) {
+      const [saved, room] = await Promise.all([
+        db.rpc('couple_data', { p_token: token }),
+        roomStub(env, `couple:${state.couple_id}`).fetch('https://room/summary').then(r => r.json()).catch(() => ({ seen: 0 })),
+      ]);
+      const byCard = {};
+      for (const a of saved.answers) byCard[a.card_key] = (byCard[a.card_key] || 0) + 1;
+      home.stats = { seen: room.seen || 0, answered: Object.values(byCard).filter(n => n > 1).length, favorites: saved.favorites.length };
+      home.favorites = saved.favorites.slice(-3).reverse();
+    }
+    return json(200, home);
   }
   if (url.pathname === '/api/link' && request.method === 'POST') {
     if (await tooMany(env.AUTH_LIMIT, `link:${state.id}`)) return slowDown();
@@ -337,6 +352,11 @@ export class Room extends DurableObject {
       await this.save();
       this.reportPresence();
       return json(200, { code });
+    }
+    if (url.pathname === '/summary') {
+      // How many cards a couple has seen, for their home screen. Doesn't create the room.
+      const r = this.room;
+      return json(200, { seen: r ? new Set([...Object.keys(r.seen || {}), ...Object.keys(r.answers || {})]).size : 0 });
     }
     if (url.pathname === '/exists') {
       return this.room ? json(200, { code: this.room.code, partners: this.players().size }) : json(404, { error: 'Room not found' });

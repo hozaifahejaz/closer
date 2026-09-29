@@ -399,6 +399,110 @@
   @media (min-width:960px) and (min-height:521px) and (pointer:coarse) { .keys { display:none; } }
   @media (min-width:1400px) and (min-height:521px) { :root { --sw:380px; } }
 
+  /* ---------- Home (signed in) ---------- */
+  body.in-dash .lobbyView, body.in-dash .foot { display:none; }
+  .dash { width:100%; max-width:560px; flex:1; display:flex; flex-direction:column; gap:14px; }
+  .dtop { display:flex; align-items:center; gap:8px; min-height:40px; }
+  .dtop .brand { font-size:22px; }
+  .dtop .pill-btn { text-decoration:none; }
+  @media (hover:hover) { .dtop .pill-btn:hover { background:var(--raise); border-color:var(--line2); } }
+  .dcard { background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:22px; padding:clamp(16px, 5vw, 24px);
+    box-shadow:0 24px 50px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04); }
+  .dcard h2 { font-family:var(--serif); font-weight:600; font-size:clamp(20px, 5.6vw, 24px); line-height:1.2; margin:0; }
+  .dcard .note { color:var(--muted); font-size:14px; line-height:1.5; margin:6px 0 0; }
+  /* The partner code sits first until the two of you are linked. */
+  .invite { border-color:rgba(232,118,111,.55); background:linear-gradient(160deg, rgba(232,118,111,.14), rgba(109,58,120,.12) 60%), rgba(42,28,46,.92); }
+  .invite .ihead { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
+  .invite .ihead .heart-badge { width:38px; height:38px; border-radius:12px; font-size:18px; }
+  .invite .lbl2 { font-size:13px; font-weight:500; color:var(--muted); margin:0 0 7px; }
+  .invite .or { margin:16px 0; }
+  .invite .row > button { flex:0 0 auto; min-width:78px; padding:0 18px; }
+  .invite .bigcode, .invite input.code { min-height:52px; }
+  @media (max-width:340px) { .invite .bigcode { letter-spacing:.18em; text-indent:.18em; font-size:19px; } .invite .row > button { min-width:0; padding:0 12px; } .invite .ihead .heart-badge { display:none; } }
+  .play { position:relative; overflow:hidden; background:var(--grad); border:0; color:#fff; padding:clamp(20px, 6vw, 30px); min-height:190px; display:flex; flex-direction:column; }
+  .play::before { content:''; position:absolute; inset:0; background:radial-gradient(420px 240px at 20% 0%, rgba(255,255,255,.2), transparent 70%); pointer-events:none; }
+  .play .eyebrow { position:relative; font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#ffe3dc; margin:0 0 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:64px; }
+  .play h2 { position:relative; font-size:clamp(23px, 6.6vw, 30px); max-width:15ch; padding-right:56px; }
+  .play .note { position:relative; color:#ffe6ea; max-width:30ch; padding-right:56px; }
+  .play .go { position:relative; margin-top:auto; padding-top:18px; display:flex; gap:10px; }
+  .play .go button { flex:1; background:#fff; color:#3a1d33; box-shadow:0 12px 26px -14px rgba(0,0,0,.6); }
+  .play .go button .ico { font-size:18px; }
+  .play .cards { position:absolute; right:-14px; top:14px; width:96px; height:110px; pointer-events:none; }
+  .play .cards i { position:absolute; inset:0; border-radius:14px; border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.1); }
+  .play .cards i:first-child { transform:rotate(14deg) translate(10px, 4px); }
+  .play .cards i:last-child { transform:rotate(-4deg); background:rgba(251,243,234,.95); border-color:transparent; }
+  .play .cards i:last-child::after { content:''; position:absolute; left:14px; right:24px; top:24px; height:6px; border-radius:3px; background:#e7cfd3; box-shadow:0 14px 0 #e7cfd3, 0 28px 0 -1px #efdfe0; }
+  .stats { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
+  .stat { background:rgba(42,28,46,.92); border:1px solid var(--line); border-radius:18px; padding:14px 10px; text-align:center; min-width:0; }
+  .stat b { display:block; font-family:var(--serif); font-weight:600; font-size:clamp(22px, 7vw, 30px); line-height:1.1; font-variant-numeric:tabular-nums; }
+  .stat span { display:block; margin-top:4px; font-size:12px; line-height:1.3; color:var(--muted); }
+  .favs .fhead { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .favs .fhead .ico { color:var(--accent); font-size:18px; }
+  .favs h2 { font-size:19px; }
+  .favs ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .favs li { background:var(--card); color:var(--ink); border-radius:14px; padding:12px 14px; font-family:var(--serif); font-size:16px; line-height:1.35; font-weight:500; overflow-wrap:anywhere; }
+  .favs .empty { color:var(--muted); font-size:14px; line-height:1.5; margin:0; }
+  .dfoot { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 18px; margin-top:auto; padding-top:6px; }
+  .dfoot .link { width:auto; min-height:36px; font-size:13px; }
+  .demo-bar { position:fixed; left:50%; bottom:max(12px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:9; display:flex; gap:4px; align-items:center; padding:4px 4px 4px 12px;
+    background:rgba(18,11,20,.94); border:1px solid var(--line2); border-radius:999px; box-shadow:0 16px 40px -16px rgba(0,0,0,.8); font-size:12px; color:var(--muted); white-space:nowrap; }
+  .demo-bar button { min-height:30px; padding:4px 12px; font-size:12px; border-radius:999px; background:transparent; color:var(--muted); }
+  .demo-bar button.on { background:var(--raise); color:#fff; }
+  body.demo .dash { padding-bottom:52px; }
+  @media (max-width:340px) { .demo-bar > span { display:none; } .stat { padding:12px 6px; } .stat span { font-size:11px; } }
+  button.brand { background:none; padding:0 6px 0 0; min-height:36px; color:var(--text); border-radius:10px; }
+  button.brand:disabled { opacity:1; cursor:default; }
+  button.brand:disabled .back-ico { display:none; }
+  button.brand .back-ico { font-size:18px; color:var(--muted); margin-right:-3px; }
+  /* Shorter phones: tighter cards so the home fits on one screen. */
+  @media (max-height:700px) and (max-width:699px) {
+    .dash { gap:10px; }
+    .dcard, .play { padding:16px 18px; }
+    .play { min-height:0; }
+    .play .go { padding-top:14px; }
+    .play .cards { width:80px; height:92px; }
+    .invite .ihead { margin-bottom:12px; }
+    .invite .ihead .note { display:none; }
+    .invite .or { margin:10px 0; }
+    .invite .lbl2, .invite label { margin-bottom:5px; }
+    .invite .bigcode, .invite input.code { min-height:48px; }
+    .stat { padding:10px 6px; }
+    .favs .fhead { margin-bottom:10px; }
+    .favs li { padding:10px 12px; font-size:15px; }
+    .dfoot { padding-top:0; }
+    .favs li:nth-child(n+3) { display:none; }
+  }
+  @media (min-width:700px) and (min-height:521px) { .dash { max-width:620px; justify-content:center; } }
+  /* Desktop: the big play card on the left, numbers and favorites on the right. */
+  @media (min-width:960px) and (min-height:521px) {
+    .dash { max-width:1000px; display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr); grid-auto-rows:auto; align-content:center; gap:18px 22px; padding:8px 0; }
+    .dtop, .invite, .dfoot { grid-column:1 / -1; }
+    .play { grid-column:1; grid-row:span 2; min-height:340px; padding:36px; }
+    .dash.solo .play { grid-column:1 / -1; min-height:260px; }
+    .play h2 { padding-right:0; max-width:14ch; }
+    .play .note { padding-right:0; max-width:36ch; font-size:15px; }
+    .dash.solo .play h2 { max-width:none; }
+    .play .cards { width:150px; height:180px; right:-10px; top:28px; }
+    .play .cards i:last-child::after { top:34px; height:8px; box-shadow:0 20px 0 #e7cfd3, 0 40px 0 -1px #efdfe0; }
+    .play h2 { font-size:36px; }
+    .play .go button { flex:0 1 280px; }
+    .stats, .favs { grid-column:2; }
+    .invite { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr) auto minmax(0, 1fr); align-items:end; gap:0 22px; padding:24px 26px; }
+    .invite .ihead { margin:0; align-self:center; }
+    .invite .or { flex-direction:column; margin:0; align-self:stretch; justify-content:center; }
+    .invite .or::before, .invite .or::after { width:1px; height:auto; }
+  }
+  @media (orientation:landscape) and (max-height:520px) {
+    .dash { max-width:900px; display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(0, 1fr); gap:10px 14px; }
+    .dtop, .invite, .dfoot { grid-column:1 / -1; }
+    .play { grid-column:1; grid-row:span 2; min-height:0; }
+    .dash.solo .play { grid-column:1 / -1; }
+    .play { align-self:start; padding:18px 22px; }
+    .play .note { display:none; }
+    .stats, .favs { grid-column:2; }
+    .favs li:nth-child(n+2) { display:none; }
+  }
+
   @media (prefers-reduced-motion:reduce) { .card, button, .panel, .switch i { transition:none; } .reveal .a, .q.swap { animation:none; } }
 </style>
 </head>
@@ -412,6 +516,8 @@
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
     <symbol id="i-cards" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="17" rx="2.5"/><path d="M4.5 7.5v10A3.5 3.5 0 0 0 8 21h8"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
 
@@ -455,31 +561,7 @@
         <button class="ghost" id="join">Join</button>
       </div>
       <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
-    </div>
-
-    <!-- Signed in, not linked yet -->
-    <div id="linkBox" class="stack hidden">
-      <p class="hello">Hi <span id="helloName"></span>! Link with your partner</p>
-      <div><label>Your code: send it to your partner</label>
-      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode">Share</button></div></div>
-      <div class="or">or enter theirs</div>
-      <div class="row">
-        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Partner's code">
-        <button class="ghost" id="linkGo">Link</button>
-      </div>
-      <p class="hint">You only do this once. After that you'll always land in your shared room.</p>
-      <div><a class="link hidden" data-admin href="/admin">Admin dashboard</a>
-      <button class="link" type="button" data-logout>Log out</button></div>
-    </div>
-
-    <!-- Signed in and linked -->
-    <div id="homeBox" class="stack hidden">
-      <p class="hello">You &amp; <span id="partnerName"></span></p>
-      <button class="primary" id="startCouple">Open our cards</button>
-      <p class="hint">Your answers and favorites are saved to your account.</p>
-      <div><button class="link" type="button" id="unlink">Unlink partner</button>
-      <a class="link hidden" data-admin href="/admin">Admin dashboard</a>
-      <button class="link" type="button" data-logout>Log out</button></div>
+      <a class="link hidden" id="demoLink" href="/?demo">Preview the signed-in home (demo)</a>
     </div>
 
     <div class="err" id="err" role="alert"></div>
@@ -487,10 +569,61 @@
   </main>
   <p class="foot"><a href="/privacy">Privacy policy</a></p>
 
+  <!-- Home: where you land once signed in -->
+  <main id="dash" class="dash hidden">
+    <header class="dtop">
+      <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
+      <a class="pill pill-btn hidden" data-admin href="/admin">Admin</a>
+      <button class="pill pill-btn" type="button" data-logout>Log out</button>
+    </header>
+
+    <!-- Only until the two of you are linked -->
+    <section class="dcard invite hidden" id="dInvite" aria-labelledby="inviteTitle">
+      <div class="ihead">
+        <span class="heart-badge" aria-hidden="true"><svg class="ico"><use href="#i-link"/></svg></span>
+        <div><h2 id="inviteTitle">Link with your partner</h2><p class="note">Send them your code, or type in theirs. You only do this once.</p></div>
+      </div>
+      <div><p class="lbl2">Your code</p>
+      <div class="row"><div class="bigcode" id="myCode"></div><button class="ghost" id="shareMyCode">Share</button></div></div>
+      <div class="or">or</div>
+      <div><label for="partnerCode">Their code</label>
+      <div class="row">
+        <input id="partnerCode" class="code" maxlength="6" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false">
+        <button class="ghost" id="linkGo">Link</button>
+      </div></div>
+    </section>
+
+    <section class="dcard play" aria-labelledby="playTitle">
+      <div class="cards" aria-hidden="true"><i></i><i></i></div>
+      <p class="eyebrow" id="dHello"></p>
+      <h2 id="playTitle"></h2>
+      <p class="note" id="playNote"></p>
+      <div class="go"><button id="playGo"></button></div>
+    </section>
+
+    <section class="stats hidden" id="dStats" aria-label="Your numbers">
+      <div class="stat"><b id="stSeen">0</b><span>cards played</span></div>
+      <div class="stat"><b id="stAnswered">0</b><span>answered together</span></div>
+      <div class="stat"><b id="stFavs">0</b><span>favorites</span></div>
+    </section>
+
+    <section class="dcard favs hidden" id="dFavs" aria-labelledby="favTitle">
+      <div class="fhead"><svg class="ico fill"><use href="#i-heart"/></svg><h2 id="favTitle">Latest favorites</h2></div>
+      <ul id="favList"></ul>
+      <p class="empty hidden" id="favEmpty">Tap the heart on any card to keep it here.</p>
+    </section>
+
+    <div class="dfoot">
+      <button class="link hidden" type="button" id="unlink">Unlink partner</button>
+      <a class="link" href="/privacy">Privacy policy</a>
+    </div>
+  </main>
+  <div class="demo-bar hidden" id="demoBar"><span>Demo:</span><button id="demoNew">Not linked</button><button id="demoLinked">Linked</button></div>
+
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
-      <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
+      <button class="brand" id="homeBtn" disabled aria-label="Closer"><svg class="ico back-ico"><use href="#i-back"/></svg><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></button>
       <span class="pill" id="roomPill">Room <b id="code"></b></span>
       <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       <span class="pill" id="partners"><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></span>
@@ -569,8 +702,12 @@ const params = new URLSearchParams(location.search);
 if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
 
 // ---- Lobby screens ----
+// 'dash' is the signed-in home; the others are panels on the start screen.
 function show(box) {
-  for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
+  const home = box === 'dash';
+  for (const id of ['authBox', 'guestBox']) $(id).classList.toggle('hidden', id !== box);
+  $('dash').classList.toggle('hidden', !home);
+  document.body.classList.toggle('in-dash', home);
   $('err').textContent = '';
   $('lobby').classList.add('ready');
   clearInterval(linkPoll);
@@ -589,19 +726,38 @@ async function api(path, body) {
   return data;
 }
 
-function showAccount(a) {
+// The home screen. The partner code is on top until the two of you are linked;
+// after that it's gone and your shared cards, numbers and favorites take over.
+function showAccount(a, home = null) {
   account = a;
   document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
-  if (a.partner) {
-    $('partnerName').textContent = a.partner.name;
-    show('homeBox');
-  } else {
-    $('helloName').textContent = a.name;
-    $('myCode').textContent = a.inviteCode;
-    show('linkBox');
+  const linked = Boolean(a.partner);
+  $('dInvite').classList.toggle('hidden', linked);
+  $('dash').classList.toggle('solo', !linked);
+  $('dStats').classList.toggle('hidden', !linked);
+  $('dFavs').classList.toggle('hidden', !linked);
+  $('unlink').classList.toggle('hidden', !linked);
+  $('dHello').textContent = linked ? `${a.name} & ${a.partner.name}` : `Hi ${a.name}`;
+  $('playTitle').textContent = linked ? 'Ready for a few questions?' : 'Your shared cards open here';
+  $('playNote').textContent = linked ? 'Pick your decks and see the same card at the same moment.' : "Once you're linked. Want to play now? Start a room and send the code.";
+  $('playGo').innerHTML = linked ? 'Open our cards<svg class="ico"><use href="#i-right"/></svg>' : 'Start a guest room';
+  $('myCode').textContent = a.inviteCode || '';
+  const st = home?.stats;
+  $('stSeen').textContent = st ? st.seen : '–'; $('stAnswered').textContent = st ? st.answered : '–'; $('stFavs').textContent = st ? st.favorites : '–';
+  const favs = home?.favorites || [];
+  $('favList').innerHTML = favs.map(q => `<li>${escapeHtml(q)}</li>`).join('');
+  $('favEmpty').classList.toggle('hidden', favs.length > 0 || !home);
+  show('dash');
+  if (!linked && !demo) {
     // Notice when the partner types in our code on their phone.
-    linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
+    linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) loadHome(); } catch {} }, 4000);
   }
+}
+// Draws the home screen at once, then fills in the numbers.
+async function loadHome() {
+  if (demo) return showAccount(demoMe(), demoHome());
+  if (account) showAccount(account);
+  try { const h = await api('/api/home'); showAccount(h.me, h); } catch {}
 }
 
 let signingUp = true;
@@ -624,55 +780,99 @@ $('authBox').onsubmit = async e => {
   try {
     const r = await api(signingUp ? '/api/signup' : '/api/login', body);
     setToken(r.token); $('password').value = '';
-    showAccount(r.me);
+    showAccount(r.me); loadHome();
   } catch (err) { $('err').textContent = err.message; }
   finally { $('authGo').disabled = false; }
 };
 $('showGuest').onclick = () => { show('guestBox'); $('showAuth').classList.remove('hidden'); };
 $('showAuth').onclick = () => show('authBox');
 document.querySelectorAll('[data-logout]').forEach(b => b.onclick = async () => {
+  if (demo) { location.href = '/'; return; }
   try { await api('/api/logout', {}); } catch {}
   setToken(null); account = null; show('authBox');
 });
 $('unlink').onclick = async () => {
   if (!confirm(`Unlink from ${account.partner.name}? Your saved answers stay saved.`)) return;
-  try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+  if (demo) { demoLinked = false; return loadHome(); }
+  try { await api('/api/unlink', {}); account.partner = null; loadHome(); } catch (err) { toast(err.message); }
 };
 $('linkGo').onclick = async () => {
   const code = $('partnerCode').value.trim().toUpperCase();
-  if (code.length !== 6) { $('err').textContent = 'Partner codes are 6 letters.'; return; }
-  try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+  if (code.length !== 6) { toast('Partner codes are 6 letters'); return; }
+  if (demo) { demoLinked = true; $('partnerCode').value = ''; return loadHome(); }
+  try { await api('/api/link', { code }); $('partnerCode').value = ''; loadHome(); } catch (err) { toast(err.message); }
 };
 $('shareMyCode').onclick = async () => {
   const text = `Join me on Closer! Sign up at ${location.origin} and enter my code: ${account.inviteCode}`;
   try { if (navigator.share) await navigator.share({ title: 'Closer', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
   catch { toast(`Your code: ${account.inviteCode}`); }
 };
-$('startCouple').onclick = () => {
-  couple = true; me = account.name; $('err').textContent = '';
-  openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not open your room. Please try again.');
+$('playGo').onclick = async () => {
+  me = account.name;
+  if (account.partner) {
+    if (demo) return toast('In the real app this opens your shared cards');
+    couple = true;
+    openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not open your room. Please try again.');
+    return;
+  }
+  $('playGo').disabled = true;
+  try { await createRoom(); } catch (err) { toast(err.message); } finally { $('playGo').disabled = false; }
 };
+// Signed in: the logo in the game goes back home.
+$('homeBtn').onclick = () => {
+  if (!account) return;
+  const sock = ws; ws = null; room = null; lastKey = ''; couple = false; picking = false;
+  try { sock && sock.close(); } catch {}
+  history.replaceState(null, '', demo ? '/?demo' : '/');
+  document.body.classList.remove('in-game', 'answer-mode', 'choosing');
+  $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
+  $('homeBtn').disabled = true;
+  loadHome();
+};
+
+// ---- Demo of the signed-in home (/?demo). Nothing here touches accounts. ----
+const demo = params.has('demo');
+let demoLinked = params.get('demo') === 'linked';
+const demoMe = () => ({ name: 'Sam', inviteCode: 'KQ7RMX', isAdmin: false, partner: demoLinked ? { name: 'Alex' } : null });
+const demoHome = () => ({ stats: demoLinked ? { seen: 42, answered: 17, favorites: 6 } : null, favorites: demoLinked ? [
+  "What's a moment with me you replay when you miss me?",
+  'What small thing do I do that makes you feel looked after?',
+  'If we had a free weekend and no plans, what would you want us to do?',
+] : [] });
+if (demo) {
+  document.body.classList.add('demo');
+  $('demoBar').classList.remove('hidden');
+  const mark = () => { $('demoNew').classList.toggle('on', !demoLinked); $('demoLinked').classList.toggle('on', demoLinked); };
+  $('demoNew').onclick = () => { demoLinked = false; mark(); loadHome(); };
+  $('demoLinked').onclick = () => { demoLinked = true; mark(); loadHome(); };
+  mark();
+}
 
 (async function init() {
   try { accounts = (await fetch('/api/config').then(r => r.json())).accounts; } catch {}
-  if (!accounts || params.get('room')) return show('guestBox');
+  if (demo) { $('demoBar').classList.toggle('hidden', false); return loadHome(); }
+  if (!accounts || params.get('room')) { $('demoLink').classList.toggle('hidden', accounts); return show('guestBox'); }
   // Even without a saved token, the sign-in cookie may still be there.
-  try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
+  try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); loadHome(); }
   catch (err) { show('authBox'); if (token) $('err').textContent = err.message; }
 })();
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
 function getName() { const n = $('name').value.trim(); if (!n) { $('err').textContent = 'Add your name first.'; return null; } try { localStorage.setItem('closer:name', n); } catch {} return n; }
 
+async function createRoom() {
+  let r;
+  try {
+    const res = await fetch('/api/rooms', { method: 'POST' });
+    r = await res.json().catch(() => ({}));
+    if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
+  } catch (err) { throw err instanceof TypeError ? new Error("Can't reach Closer. Check your connection and try again.") : err; }
+  await connect(r.code);
+}
 $('create').onclick = async () => {
   me = getName(); if (!me) return;
   $('create').disabled = true;
-  try {
-    const res = await fetch('/api/rooms', { method: 'POST' });
-    const r = await res.json().catch(() => ({}));
-    if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
-    await connect(r.code);
-  } catch (err) { $('err').textContent = err instanceof TypeError ? "Can't reach Closer. Check your connection and try again." : err.message; }
+  try { await createRoom(); } catch (err) { $('err').textContent = err.message; }
   finally { $('create').disabled = false; }
 };
 $('join').onclick = () => {
@@ -697,12 +897,13 @@ function openSocket(path, failMessage) {
       // Closed by Closer's team: back to the start screen.
       room = null; ws = null;
       history.replaceState(null, '', '/');
-      document.body.classList.remove('in-game', 'answer-mode');
+      document.body.classList.remove('in-game', 'answer-mode', 'choosing');
       $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
+      $('homeBtn').disabled = true;
       const why = e.reason || 'This room was closed.';
       $('err').textContent = why;
-      // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
-      if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
+      // Signed in: things may have changed (e.g. no longer linked), so refresh the home screen.
+      if (account) { toast(why); api('/api/me').then(m => { account = m; loadHome(); }).catch(() => {}); }
       return;
     }
     if (!room) { $('err').textContent = failMessage; return; }
@@ -727,6 +928,7 @@ let lastKey = '';
 function render(s) {
   const first = !room; room = s;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
+  if (first) { clearInterval(linkPoll); $('dash').classList.add('hidden'); document.body.classList.remove('in-dash'); $('homeBtn').disabled = !account; $('homeBtn').setAttribute('aria-label', account ? 'Back to home' : 'Closer'); }
   $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
   $('share').classList.toggle('hidden', !!s.couple); $('shareTop').classList.toggle('hidden', !!s.couple);
   const partner = s.partners.filter(p => p !== me);
