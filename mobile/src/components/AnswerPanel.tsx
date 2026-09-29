@@ -17,10 +17,13 @@ export function AnswerPanel({ room, cardKey, partnerName, onLockIn, compact }:
   }, [!!room.revealed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const answered = room.myAnswer !== null;
+  // A partner's answer counts even while they're away (they may have answered on another day).
+  const Partner = partnerName.charAt(0).toUpperCase() + partnerName.slice(1);
+  const away = room.partners.length < 2;
   const status = room.revealed ? 'Now talk about it ♡'
-    : room.partners.length < 2 ? 'Waiting for your partner to join…'
-    : answered ? `Locked in. Waiting for ${partnerName}…`
-    : room.partnerAnswered ? `${partnerName} has answered. Your turn.` : "Hidden until you've both answered.";
+    : answered ? (away ? 'Locked in. Waiting for your partner to join…' : `Locked in. Waiting for ${partnerName}…`)
+    : room.partnerAnswered ? `${Partner} has answered. Your turn.`
+    : away ? 'Waiting for your partner to join…' : "Hidden until you've both answered.";
 
   return (
     <View style={[st.box, compact && { padding: 12 }]}>
