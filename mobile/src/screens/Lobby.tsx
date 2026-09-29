@@ -20,9 +20,10 @@ type Props = {
   onSession: (token: string | null, account: Account | null) => void;
   onPlay: (conn: Connection) => void;
   startAsGuest?: boolean; // just left a guest room
+  onDemo?: () => void; // preview the signed-in home (only offered when accounts are off)
 };
 
-export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest }: Props) {
+export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest, onDemo }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [guest, setGuest] = useState(!accounts || !!startAsGuest);
@@ -173,7 +174,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
             <Button kind="ghost" title="Join" onPress={join} busy={busy === 'join'} style={{ minWidth: 92 }} />
           </View>
-          {accounts ? <Button kind="link" title="Sign up or log in instead" onPress={() => { setGuest(false); setErr(''); }} /> : null}
+          {accounts ? <Button kind="link" title="Sign up or log in instead" onPress={() => { setGuest(false); setErr(''); }} />
+            : onDemo ? <Button kind="link" title="Preview the signed-in home (demo)" onPress={onDemo} /> : null}
         </View>
       )}
 

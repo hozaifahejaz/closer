@@ -17,6 +17,7 @@ import { colors } from './src/theme';
 import type { Connection } from './src/useRoom';
 import { Game } from './src/screens/Game';
 import { Lobby } from './src/screens/Lobby';
+import { Home } from './src/screens/Home';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -48,6 +49,9 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Fraunces_500Medium, Fraunces_600SemiBold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
   const [state, setState] = useState<Boot | null>(null);
   const [conn, setConn] = useState<Connection | null>(null);
+  // A preview of the signed-in home with made-up data, for servers with accounts off.
+  const [demo, setDemo] = useState<null | { linked: boolean }>(null);
+  const demoAccount: Account = { id: 'demo', name: 'Sam', inviteCode: 'KQ7RMX', isAdmin: false, partner: demo?.linked ? { id: 'demo2', name: 'Alex' } : null };
 
   useEffect(() => { boot().then(setState); }, []);
   const ready = fontsLoaded && !!state;
@@ -79,8 +83,12 @@ export default function App() {
         <View style={st.boot}><ActivityIndicator color={colors.accent} /></View>
       ) : conn ? (
         <Game conn={conn} onLeave={onLeave} />
+      ) : demo || state.account ? (
+        // Signed in: the home screen, whether or not the two of you are linked yet.
+        <Home token={state.token} account={demo ? demoAccount : state.account!} clientId={state.clientId} notice={state.notice} onSession={onSession} onPlay={onPlay}
+          demo={demo ? { linked: demo.linked, setLinked: linked => setDemo({ linked }), exit: () => setDemo(null) } : undefined} />
       ) : (
-        <Lobby accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
+        <Lobby onDemo={() => setDemo({ linked: false })} accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
           notice={state.notice} onSession={onSession} onPlay={onPlay} />
       )}
     </SafeAreaProvider>
