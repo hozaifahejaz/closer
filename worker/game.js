@@ -125,8 +125,12 @@ export const questionText = card => DECK[card.c]?.[card.i];
 export function publicState(room, players, viewerId) {
   const card = room.order[room.index];
   const answers = room.answers[cardKey(card)] || {};
-  const ids = [...players.keys()];
-  const bothAnswered = ids.length === 2 && ids.every(id => id in answers);
+  // Answers count whether or not the partner is connected right now: a phone that
+  // sleeps for a moment mustn't hide answers already revealed, and a couple's partner
+  // may have answered this card on another day.
+  const others = Object.keys(answers).filter(id => id !== viewerId);
+  const bothAnswered = viewerId in answers && others.length > 0;
+  const nameOf = id => players.get(id) || room.names?.[id] || 'Partner';
   return {
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
@@ -147,9 +151,9 @@ export function publicState(room, players, viewerId) {
     favorites: room.favorites,
     mode: room.mode,
     myAnswer: answers[viewerId] ?? null,
-    partnerAnswered: ids.some(id => id !== viewerId && id in answers),
+    partnerAnswered: others.length > 0,
     // Your own answer first, so both partners see the answers in the same, predictable layout.
-    revealed: bothAnswered ? ids.map(id => ({ name: players.get(id), text: answers[id], mine: id === viewerId })).sort((a, b) => b.mine - a.mine) : null,
+    revealed: bothAnswered ? [viewerId, ...others].map(id => ({ name: nameOf(id), text: answers[id], mine: id === viewerId })) : null,
   };
 }
 
