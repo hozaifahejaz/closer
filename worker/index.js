@@ -78,6 +78,7 @@ export default {
       }
       const m = url.pathname.match(/^\/api\/rooms\/([A-Z]{4})(\/ws)?$/);
       if (m) {
+        if (await tooMany(env.ROOM_LOOKUP_LIMIT, `room:${clientIp(request)}`)) return slowDown();
         const stub = roomStub(env, m[1]);
         if (!m[2]) return stub.fetch('https://room/exists');
         const id = (url.searchParams.get('id') || '').slice(0, 64) || crypto.randomUUID();
@@ -202,7 +203,7 @@ async function adminApi(request, url, db, env, token, state) {
     if (action === 'admin') args.p_on = Boolean(on);
     await db.rpc(fn, args);
     const { couple } = body;
-    if (action === 'delete' || action === 'unlink') await refreshCouple(couple);
+    if (['password', 'signout', 'delete', 'unlink'].includes(action)) await refreshCouple(couple);
     return json(200, { ok: true });
   }
   if (path === 'rooms' && request.method === 'GET') return statsStub(env).fetch('https://stats/rooms');
@@ -402,6 +403,10 @@ export class Room extends DurableObject {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [player.id]);
     server.serializeAttachment(player);
+    if (this.markActivity(player)) {
+      await this.save();
+      this.recordActivity(player);
+    }
     this.broadcast();
     this.reportPresence();
     return new Response(null, { status: 101, webSocket: client });
@@ -415,6 +420,7 @@ export class Room extends DurableObject {
     const before = cardKey(this.room.order[this.room.index]);
     const result = applyAction(this.room, player.id, true, action);
     if (!result) return;
+    const recordActivity = this.markActivity(player);
     await this.save();
     this.broadcast();
     // A new card dealt (going back doesn't count), or an answer written, is counted as play.
@@ -423,7 +429,10 @@ export class Room extends DurableObject {
     const answered = Boolean(result.answer);
     this.reportPresence(dealt || answered
       ? { deck: dealt ? card.c : null, mode: this.room.mode, couple: Boolean(this.room.coupleId), answered } : null);
-    if (this.room.coupleId) this.persist(player.token, result);
+    if (this.room.coupleId) {
+      if (recordActivity) this.recordActivity(player);
+      this.persist(player.token, result);
+    }
   }
 
   webSocketClose(ws) {
@@ -493,7 +502,23 @@ export class Room extends DurableObject {
     if (name) await this.statsGone(name);
   }
 
+  // Signed-in players count as active at most once every 5 minutes (for the admin stats).
+  markActivity(player) {
+    if (!this.room?.coupleId) return false;
+    const activityAt = this.room.activityAt ||= {};
+    const now = Date.now();
+    if (now - (activityAt[player.id] || 0) < 5 * 60_000) return false;
+    activityAt[player.id] = now;
+    return true;
+  }
+
   // Saving is best effort: a database hiccup must never break the live game.
+  recordActivity(player) {
+    if (!this.room?.coupleId) return;
+    const call = this.db.rpc('record_activity', { p_token: player.token });
+    this.ctx.waitUntil(call.catch(err => console.error('Could not record activity:', err.message)));
+  }
+
   persist(token, { answer, favorite }) {
     let call;
     if (answer) call = this.db.rpc('save_answer', { p_token: token, p_card_key: answer.cardKey, p_question: answer.question, p_text: answer.text });
