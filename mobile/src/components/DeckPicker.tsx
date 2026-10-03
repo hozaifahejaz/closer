@@ -86,7 +86,7 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
   const toggle = (name: string | null) => {
     tap();
     if (name === null) setSel(sel.size === list.length ? new Set() : new Set(list.map(d => d.name)));
-    else { const next = new Set(sel); next.has(name) ? next.delete(name) : next.add(name); setSel(next); }
+    else { const next = new Set(sel); if (next.has(name)) next.delete(name); else next.add(name); setSel(next); }
   };
   // Before the first deal there is no card to go back to, so closing leaves the room.
   const close = () => { if (room.started) send({ type: 'choose', on: false }); else onLeave(); };
@@ -167,7 +167,7 @@ export function DeckPicker({ room, send, onLeave, banner }: { room: RoomState; s
           {room.couple ? (
             <View style={[st.opt, short && { paddingVertical: 10 }]}>
               <View style={{ flex: 1 }}>
-                <Text style={st.optT}>Only cards we haven't seen</Text>
+                <Text style={st.optT}>Only cards we haven&apos;t seen</Text>
                 <Text style={st.optS}>{seen ? `You've seen ${seen} of ${sum(list, d => d.count)} so far` : 'Skip cards you two have already seen'}</Text>
               </View>
               <Toggle on={fresh} onChange={setFreshOn} label="Only cards we haven't seen" />

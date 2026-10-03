@@ -1,10 +1,10 @@
-import { Platform } from 'react-native';
+import { resolveServer, tokenStorageKey } from './serverConfig';
 
-// The apps talk to the same server (and so the same rooms, accounts and saved
-// answers) as the website. On web (only used for previews) the page is served
-// from the server itself, so it uses its own address.
-const LIVE = 'https://closer.hozaiphaa.workers.dev';
-
-export const SERVER = Platform.OS === 'web' && typeof location !== 'undefined' ? location.origin : LIVE;
-export const WEBSITE = LIVE;
+// Expo replaces these explicit EXPO_PUBLIC references while bundling. They
+// contain public origins only; credentials never belong in these variables.
+const config = resolveServer(process.env.EXPO_PUBLIC_CLOSER_SERVER, process.env.EXPO_PUBLIC_CLOSER_ENVIRONMENT, __DEV__);
+export const SERVER = config.server;
+export const CONFIG_ERROR = config.error;
+export const TOKEN_KEY = tokenStorageKey(SERVER);
+export const WEBSITE = SERVER;
 export const socketUrl = (path: string) => SERVER.replace(/^http/, 'ws') + path;

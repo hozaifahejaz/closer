@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Action } from '../api';
 import { WEBSITE } from '../config';
@@ -15,11 +15,11 @@ import { Button, HeartBadge, Segmented, tap, Toggle } from '../components/ui';
 const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 
 export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: string) => void }) {
-  const { room, link, send, reclaim } = useRoom(conn, onLeave);
+  const { room, link, send, reclaim, draft, setDraft, answerPending, error } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [toast, setToast] = useState('');
-  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const [toastOpacity] = useState(() => new Animated.Value(0));
   const keyboard = useKeyboardVisible();
   const first = useRef(true);
 
@@ -32,6 +32,12 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       Animated.timing(toastOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
     ]).start();
   }, [toastOpacity]);
+
+  useEffect(() => { if (error) say(error); }, [error, say]);
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { onLeave(); return true; });
+    return () => subscription.remove();
+  }, [onLeave]);
 
   const act = useCallback((a: Action) => {
     const ok = send(a);
@@ -60,7 +66,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   const partner = room.partners.find(p => p !== me) || (room.partners.length === 2 ? room.partners[1] : '');
   const together = room.partners.length === 2;
   // Includes the question: a fresh deal or a rebuilt room can put a different card at the same place.
-  const cardKey = room.decks.join('|') + ':' + room.index + ':' + (room.card?.text ?? '');
+  const cardKey = room.card.id;
   const answerMode = room.mode === 'answer';
   const wide = width >= 760 && width > height * 1.05;
 
@@ -95,7 +101,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   const card = (
     <Card cardKey={cardKey} category={room.card?.category ?? ''} text={room.card?.text ?? ''} position={`${room.index + 1} / ${room.total}`}
       flipped={room.flipped} tapToReveal={room.tapToReveal} favorite={room.favorites.includes(room.card?.text ?? '')}
-      onFlip={() => act({ type: 'flip' })} onFavorite={() => act({ type: 'favorite' })} onSwipe={dir => act({ type: dir })} />
+      onFlip={() => act({ type: 'flip' })} onFavorite={() => act({ type: 'favorite', cardKey, generation: room.generation })} onSwipe={dir => act({ type: dir })} />
   );
 
   // Short phones fold the two bottom rows into one; while typing an answer, only the card and the answer stay.
@@ -140,8 +146,9 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
         </>
       )}
       {answerMode ? (
-        <AnswerPanel room={room} cardKey={cardKey} partnerName={partner || 'your partner'} compact={compact || typing}
-          onLockIn={text => act({ type: 'answer', text })} />
+        <AnswerPanel room={room} partnerName={partner || 'your partner'} compact={compact || typing}
+          text={draft} onChangeText={setDraft} pending={answerPending}
+          onLockIn={text => act({ type: 'answer', cardKey, generation: room.generation, text })} />
       ) : null}
       {typing ? null : nav}
       {typing || compact ? null : (

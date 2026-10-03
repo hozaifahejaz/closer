@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -68,7 +68,7 @@ export function Segmented<T extends string>({ value, options, onChange, style }:
 
 // The website's rounded switch, animated natively.
 export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
-  const x = useRef(new Animated.Value(on ? 1 : 0)).current;
+  const [x] = useState(() => new Animated.Value(on ? 1 : 0));
   useEffect(() => { Animated.spring(x, { toValue: on ? 1 : 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start(); }, [on, x]);
   return (
     <Pressable onPress={() => { tap(); onChange(!on); }} accessibilityRole="switch" accessibilityLabel={label}

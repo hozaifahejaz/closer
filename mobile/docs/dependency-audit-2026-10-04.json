@@ -1,0 +1,95 @@
+{
+  "checkedOn": "2026-10-04",
+  "scope": "mobile npm dependency tree; Android and iOS production JavaScript source maps",
+  "auditCountsBefore": {
+    "moderate": 8,
+    "high": 17,
+    "total": 25
+  },
+  "auditCountsAfter": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 17,
+    "critical": 0,
+    "total": 17
+  },
+  "remainingUniqueAdvisories": 2,
+  "remainingAffectedPackages": [
+    "@expo/cli",
+    "@expo/code-signing-certificates",
+    "@expo/metro",
+    "@expo/metro-config",
+    "@expo/metro-file-map",
+    "@react-native/community-cli-plugin",
+    "@react-native/virtualized-lists",
+    "braces",
+    "expo",
+    "expo-updates",
+    "metro",
+    "metro-config",
+    "metro-file-map",
+    "metro-transform-worker",
+    "micromatch",
+    "node-forge",
+    "react-native"
+  ],
+  "runtimeBundleEvidence": [
+    {
+      "platform": "android",
+      "sourceCount": 751,
+      "nodeToolPackageSources": []
+    },
+    {
+      "platform": "ios",
+      "sourceCount": 753,
+      "nodeToolPackageSources": []
+    }
+  ],
+  "fixed": [
+    {
+      "package": "uuid",
+      "previousVersion": "7.0.3",
+      "installedVersion": "11.1.1",
+      "advisory": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "path": "expo-splash-screen -> @expo/config-plugins -> xcode -> uuid",
+      "patchedVersions": [
+        "11.1.1",
+        "12.0.1",
+        "13.0.1"
+      ],
+      "resolution": "Scoped npm override xcode.uuid=11.1.1; CommonJS is preserved. Security regression verifies undersized v5 buffers throw; compatibility test exercises xcode.generateUuid.",
+      "productionReachability": "Xcode build tooling only. Existing xcode calls v4(), not the affected v3/v5/v6 buffer APIs. No UUID package sources in the exported mobile bundles."
+    }
+  ],
+  "deferred": [
+    {
+      "package": "braces",
+      "installedVersion": "3.0.3",
+      "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "paths": [
+        "expo -> @expo/cli -> @expo/metro-file-map -> micromatch -> braces",
+        "expo -> @expo/metro -> metro-file-map -> micromatch -> braces"
+      ],
+      "patchedVersions": [],
+      "registryLatestChecked": "3.0.3",
+      "productionReachability": "Metro/Node tooling matches file patterns during development/builds. No braces source appears in Android/iOS production JavaScript maps; no application route accepts brace patterns. Tooling remains vulnerable if fed adversarial deeply nested patterns.",
+      "nextAction": "Use trusted build inputs; monitor upstream for a patched release and update the transitive dependency when one exists. There is currently no safe released package upgrade for this advisory."
+    },
+    {
+      "package": "node-forge",
+      "installedVersion": "1.4.0",
+      "advisory": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "paths": [
+        "expo -> @expo/cli -> node-forge",
+        "expo-updates -> @expo/code-signing-certificates -> node-forge"
+      ],
+      "patchedVersions": [],
+      "registryLatestChecked": "1.4.0",
+      "productionReachability": "Node certificate/signing tooling invokes forge RSA/certificate verification. No node-forge source appears in Android/iOS production JavaScript maps. This does not audit the separate native OS update verifier. Tooling must treat externally supplied certificates/signatures as untrusted.",
+      "nextAction": "Use trusted signing inputs; monitor upstream forge/Expo tooling and apply an officially patched transitive release. No patched release currently exists."
+    }
+  ],
+  "nativeCompatibility": "No app.json/native dependency version changes; runtimeVersion remains appVersion 1.0.0. Added only lint tooling and the scoped xcode build-tool UUID override.",
+  "rejectedAutomaticFix": "npm audit suggests major downgrades including Expo 57 to 44.0.6, expo-updates to 0.11.7, and React Native to 0.72.17. These are incompatible replacements, not safe fixes for this application."
+}

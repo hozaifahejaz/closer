@@ -22,9 +22,9 @@ const EASE = Easing.bezier(0.2, 0.7, 0.2, 1);
 
 // The question card: tap to flip it (for both of you), swipe for the next or previous one.
 export function Card({ cardKey, category, text, position, flipped, tapToReveal, favorite, onFlip, onFavorite, onSwipe }: Props) {
-  const turn = useRef(new Animated.Value(flipped ? 1 : 0)).current;
-  const drag = useRef(new Animated.Value(0)).current;
-  const swap = useRef(new Animated.Value(1)).current;
+  const [turn] = useState(() => new Animated.Value(flipped ? 1 : 0));
+  const [drag] = useState(() => new Animated.Value(0));
+  const [swap] = useState(() => new Animated.Value(1));
   const [shown, setShown] = useState({ category, text, position });
   const [size, setSize] = useState({ w: 320, h: 420 });
   const last = useRef({ key: cardKey, flipped });
@@ -53,8 +53,10 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
   }, [cardKey, flipped, category, text, position, turn, swap]);
 
   const swipe = useRef(onSwipe);
-  swipe.current = onSwipe;
-  const pan = useRef(PanResponder.create({
+  useEffect(() => { swipe.current = onSwipe; }, [onSwipe]);
+  // PanResponder stores these handlers; it does not invoke them during render.
+  // eslint-disable-next-line react-hooks/refs
+  const [pan] = useState(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
     onPanResponderMove: Animated.event([null, { dx: drag }], { useNativeDriver: false }),
     onPanResponderRelease: (_, g) => {
@@ -63,7 +65,7 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
       Animated.spring(drag, { toValue: 0, useNativeDriver: false, speed: 18, bounciness: 6 }).start();
     },
     onPanResponderTerminate: () => Animated.spring(drag, { toValue: 0, useNativeDriver: false }).start(),
-  })).current;
+  }));
 
   const backStyle = {
     opacity: turn.interpolate({ inputRange: [0, 0.5, 0.501, 1], outputRange: [1, 1, 0, 0] }),

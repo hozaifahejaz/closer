@@ -26,10 +26,25 @@ The admin dashboard stays on the website.
 2. On a computer with Node 20+:
    ```bash
    cd mobile
-   npm install
+   npm ci
+   cp .env.example .env.local  # set your computer's reachable server URL
    npx expo start          # add --tunnel if the phone isn't on the same Wi-Fi
    ```
 3. Scan the QR code (Camera app on iPhone, Expo Go on Android).
+
+Local development requires an explicit `EXPO_PUBLIC_CLOSER_SERVER`; this avoids
+sending test accounts and room changes to production. Start the current Worker
+from the main branch and use its reachable origin. For a physical Android device,
+an HTTPS staging or tunnel URL avoids cleartext networking restrictions. Never
+put secrets in an `EXPO_PUBLIC_` variable.
+
+Set `EXPO_PUBLIC_CLOSER_ENVIRONMENT=preview` and `EXPO_PUBLIC_CLOSER_SERVER` in the
+EAS **preview** environment to use staging. The `preview` build profile uses its
+own update channel. `production` and the compatible existing `apk` profile use
+the production channel; their default origin is the live Closer Worker. Publish
+with the matching EAS environment, and do not publish a staging bundle to production.
+Sign-in tokens are stored separately for each server; existing production logins
+keep their original storage key.
 
 ### Without a computer (EAS Update)
 
@@ -55,17 +70,42 @@ Expo Go always loads the newest update on that channel from this link:
 - `src/screens/Game.tsx`: the room; `src/useRoom.ts` is its WebSocket connection
 - `src/components/`: the card, deck picker, answer panel and shared controls
 - `src/api.ts`: the `/api` calls and the room state the server sends
+- `src/roomSession.ts`: per-room/player drafts and acknowledged actions; retries reuse the same action id
 
 The server needs nothing app-specific: the apps send the sign-in token in the
 `Authorization` header (and as `?token=` on the room socket), which the Worker
-already accepts.
+already accepts. The app requests room protocol 2. Deploy the matching current
+Worker before publishing this update. Answer/favorite actions include the stable
+card id; only a matching successful acknowledgement clears a draft.
+Commands also keep the room's original data generation when retried, so a retry
+cannot restore an answer that an admin deleted in the meantime.
+
+Unfinished drafts and pending actions survive changing modes, cards, and leaving
+and reopening a room while the app process is alive. Signing out clears them.
+Guest room connection details are saved securely so a restarted app can offer
+**Resume room** for up to six hours; the server checks whether the room still exists.
+Draft text itself is not persisted across force quit or OS process termination.
+
+This repair keeps SDK/native dependencies and `runtimeVersion` unchanged for the
+existing 1.0.0 Android runtime. Android Back now returns to the lobby. A migration
+to Expo Router is deferred to a future native build because it adds native
+navigation dependencies. Whenever native dependencies change, bump the app/runtime
+version and build a new binary before publishing matching updates.
 
 ## Checks
 
 ```bash
-npx tsc --noEmit
+npm test                 # Node 22.18+; built-in test runner, no device/backend needed
+npm run typecheck
+npm run lint
 npx expo export --platform ios --platform android   # bundles both apps
 ```
+
+The [dependency audit](docs/dependency-audit-2026-10-04.json) records the fixed
+Xcode-tooling UUID advisory and two remaining upstream build/signing advisories
+with no patched release. Their Node packages are absent from both production
+JavaScript source maps. `npm audit` therefore still exits nonzero; do not apply
+its suggested incompatible Expo/React Native major downgrades.
 
 ## Store builds (later)
 

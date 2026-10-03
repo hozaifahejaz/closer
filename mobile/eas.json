@@ -5,11 +5,24 @@
   },
   "build": {
     "apk": {
+      "extends": "production",
       "channel": "production",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
+    },
+    "preview": {
+      "channel": "preview",
+      "environment": "preview",
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_CLOSER_ENVIRONMENT": "preview" },
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "channel": "production",
+      "environment": "production",
+      "env": { "EXPO_PUBLIC_CLOSER_ENVIRONMENT": "production" }
     }
   }
 }

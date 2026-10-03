@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { RoomState } from '../api';
 import { colors, fonts, radius } from '../theme';
@@ -6,18 +6,18 @@ import { Icon } from './Icon';
 import { Button } from './ui';
 
 // Answer & reveal: each of you writes privately; both answers show once you've both locked in.
-export function AnswerPanel({ room, cardKey, partnerName, onLockIn, compact }:
-  { room: RoomState; cardKey: string; partnerName: string; onLockIn: (text: string) => boolean; compact?: boolean }) {
-  const [text, setText] = useState('');
-  const pop = useRef(new Animated.Value(0)).current;
-  useEffect(() => { setText(''); }, [cardKey]);
+export function AnswerPanel({ room, partnerName, onLockIn, compact, text, onChangeText, pending }:
+  { room: RoomState; partnerName: string; onLockIn: (text: string) => boolean; compact?: boolean;
+    text: string; onChangeText: (text: string) => void; pending: boolean }) {
+  const [pop] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (!room.revealed) { pop.setValue(0); return; }
     Animated.timing(pop, { toValue: 1, duration: 380, easing: Easing.bezier(0.2, 0.7, 0.2, 1), useNativeDriver: true }).start();
   }, [!!room.revealed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const answered = room.myAnswer !== null;
-  const status = room.revealed ? 'Now talk about it ♡'
+  const status = pending ? 'Saving your answer…'
+    : room.revealed ? 'Now talk about it ♡'
     : room.partners.length < 2 ? 'Waiting for your partner to join…'
     : answered ? `Locked in. Waiting for ${partnerName}…`
     : room.partnerAnswered ? `${partnerName} has answered. Your turn.` : "Hidden until you've both answered.";
@@ -41,11 +41,11 @@ export function AnswerPanel({ room, cardKey, partnerName, onLockIn, compact }:
         </View>
       ) : (
         <View style={{ gap: compact ? 8 : 10 }}>
-          <TextInput value={text} onChangeText={setText} multiline maxLength={1000} placeholder="Write your answer…"
+          <TextInput value={text} onChangeText={onChangeText} editable={!pending} multiline maxLength={1000} placeholder="Write your answer…"
             placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]}
             accessibilityLabel="Your answer" textAlignVertical="top" />
-          <Button title="Lock in my answer" icon="lock" disabled={!text.trim()}
-            onPress={() => { if (onLockIn(text.trim())) setText(''); }} style={compact && { minHeight: 46 }} />
+          <Button title={pending ? 'Saving…' : 'Lock in my answer'} icon="lock" disabled={!text.trim()} busy={pending}
+            onPress={() => onLockIn(text.trim())} style={compact && { minHeight: 46 }} />
         </View>
       )}
       {/* On short screens the two answers speak for themselves. */}

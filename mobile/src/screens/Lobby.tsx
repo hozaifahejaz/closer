@@ -7,6 +7,7 @@ import { WEBSITE } from '../config';
 import { setItem } from '../storage';
 import { cardGradient, colors, fonts, radius } from '../theme';
 import type { Connection } from '../useRoom';
+import type { GuestResume } from '../sessionRecovery';
 import { Icon, IconName } from '../components/Icon';
 import { Button, Field, HeartBadge, Or, Segmented } from '../components/ui';
 
@@ -17,12 +18,14 @@ type Props = {
   clientId: string;
   savedName: string;
   notice: string; // e.g. "This room was closed", shown once when coming back from a room
-  onSession: (token: string | null, account: Account | null) => void;
+  onSession: (token: string | null, account: Account | null, expectedToken?: string | null) => void;
   onPlay: (conn: Connection) => void;
   startAsGuest?: boolean; // just left a guest room
+  resume: GuestResume | null;
+  onForgetResume: () => void;
 };
 
-export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest }: Props) {
+export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest, resume, onForgetResume }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [guest, setGuest] = useState(!accounts || !!startAsGuest);
@@ -41,7 +44,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   useEffect(() => { if (!accounts) setGuest(true); }, [accounts]);
 
   const fail = (e: unknown) => {
-    if (e instanceof ApiError && e.status === 401 && token) onSession(null, null);
+    if (e instanceof ApiError && e.status === 401 && token) onSession(null, null, token);
     setErr(e instanceof Error ? e.message : 'Something went wrong, please try again');
   };
   const run = async (what: string, f: () => Promise<void>) => {
@@ -54,8 +57,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   useEffect(() => {
     if (!waitingForPartner || !token) return;
     const t = setInterval(async () => {
-      try { const m = await api<Account>('/api/me', token); if (m.partner) onSession(token, m); }
-      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null); }
+      try { const m = await api<Account>('/api/me', token); if (m.partner) onSession(token, m, token); }
+      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null, token); }
     }, 4000);
     return () => clearInterval(t);
   }, [waitingForPartner, token, onSession]);
@@ -66,8 +69,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   useEffect(() => {
     if (!offline) return;
     const retry = async () => {
-      try { onSession(token, await api<Account>('/api/me', token)); }
-      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null); }
+      try { onSession(token, await api<Account>('/api/me', token), token); }
+      catch (e) { if (e instanceof ApiError && e.status === 401) onSession(null, null, token); }
     };
     const t = setInterval(retry, 8000);
     const sub = AppState.addEventListener('change', s => { if (s === 'active') retry(); });
@@ -100,12 +103,21 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
     try { await api(`/api/rooms/${code}`, null); } catch (e) { throw e instanceof ApiError && e.status === 404 ? new Error('No room with that code.') : e; }
     onPlay({ kind: 'guest', code, name: n, id: clientId });
   });
+  const resumeRoom = () => run('resume', async () => {
+    if (!resume) return;
+    try { await api(`/api/rooms/${resume.code}`, null); }
+    catch (e) {
+      if (e instanceof ApiError && e.status === 404) { onForgetResume(); throw new Error('Your previous room has ended. Start a new one.'); }
+      throw e;
+    }
+    onPlay(resume);
+  });
 
   const linkPartner = () => run('link', async () => {
     const code = partnerCode.trim().toUpperCase();
     if (code.length !== 6) throw new Error('Partner codes are 6 letters.');
     await api('/api/link', token, { code });
-    onSession(token, await api<Account>('/api/me', token));
+    onSession(token, await api<Account>('/api/me', token), token);
   });
   const shareCode = async () => {
     if (!account) return;
@@ -113,7 +125,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   };
   const logout = () => run('logout', async () => {
     try { await api('/api/logout', token, {}); } catch {}
-    onSession(null, null);
+    onSession(null, null, token);
   });
   const unlink = () => {
     if (!account?.partner) return;
@@ -121,7 +133,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       { text: 'Cancel', style: 'cancel' },
       { text: 'Unlink', style: 'destructive', onPress: () => run('unlink', async () => {
         await api('/api/unlink', token, {});
-        onSession(token, await api<Account>('/api/me', token));
+        onSession(token, await api<Account>('/api/me', token), token);
       }) },
     ]);
   };
@@ -164,6 +176,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
 
       {view === 'guest' && (
         <View style={[st.stack, compact && { gap: 10 }]}>
+          {resume ? <Button kind="ghost" title={`Resume room ${resume.code}`} onPress={resumeRoom} busy={busy === 'resume'} /> : null}
           <Field label={compact ? undefined : 'Your name'} value={name} onChangeText={setName} maxLength={24} placeholder={compact ? 'Your name' : 'e.g. Sam'} inputStyle={compact && st.inputCompact} autoComplete="given-name" textContentType="givenName" />
           <Button title="Start a new room" onPress={create} busy={busy === 'create'} style={compact && st.btnCompact} />
           <Or>or join your partner</Or>
@@ -194,7 +207,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
             <Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} style={{ minWidth: 92 }} />
           </View>
-          <Text style={st.hint}>You only do this once. After that you'll always land in your shared room.</Text>
+          <Text style={st.hint}>You only do this once. After that you&apos;ll always land in your shared room.</Text>
           <Button kind="link" title="Log out" onPress={logout} />
         </View>
       )}
@@ -208,7 +221,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
             </View>
             <Text style={st.hello}>You & {account.partner.name}</Text>
           </View>
-          <Button title="Open our cards" iconRight="right" onPress={() => onPlay({ kind: 'couple', token: token!, name: account.name })} style={compact && st.btnCompact} />
+          <Button title="Open our cards" iconRight="right" onPress={() => onPlay({ kind: 'couple', token: token!, name: account.name, id: account.id })} style={compact && st.btnCompact} />
           <Text style={st.hint}>Your answers and favorites are saved to your account.</Text>
           <View style={st.links}>
             <Button kind="link" title="Unlink partner" onPress={unlink} />
@@ -277,7 +290,7 @@ function MiniDeck() {
       </LinearGradient>
       <View style={[st.miniCard, st.miniFront]}>
         <Text style={st.miniCat}>GETTING CLOSER</Text>
-        <Text style={st.miniQ}>What's a moment with me you replay when you miss me?</Text>
+        <Text style={st.miniQ}>What&apos;s a moment with me you replay when you miss me?</Text>
       </View>
     </View>
   );

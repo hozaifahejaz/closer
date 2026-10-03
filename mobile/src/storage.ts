@@ -14,7 +14,7 @@ export async function getItem(key: string): Promise<string | null> {
 
 export async function setItem(key: string, value: string | null): Promise<void> {
   try {
-    if (web) value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
+    if (web) { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }
     else if (value === null) await SecureStore.deleteItemAsync(secureKey(key));
     else await SecureStore.setItemAsync(secureKey(key), value);
   } catch {}
