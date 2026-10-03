@@ -190,26 +190,33 @@ async function adminApi(request, url, db, env, token, state) {
     return json(200, { ...stats, live, play });
   }
   if (path === 'decks' && request.method === 'GET') return json(200, deckSummary());
-  if (path === 'users' && request.method === 'GET') return json(200, await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' }));
+  if (path === 'users' && request.method === 'GET') {
+    const users = await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' });
+    return json(200, users.map(({ invite_code, ...visible }) => visible));
+  }
   if (path === 'couples' && request.method === 'GET') return json(200, await db.rpc('admin_couples', { p_token: token }));
-  if (path === 'couple' && request.method === 'GET') return json(200, await db.rpc('admin_couple', { p_token: token, p_couple_id: url.searchParams.get('id') || '' }));
   if (path === 'action' && request.method === 'POST') {
     const body = await readBody(request);
-    const { action, user, password, on } = body;
-    const fn = { password: 'admin_set_password', signout: 'admin_sign_out', unlink: 'admin_unlink', delete: 'admin_delete_user', admin: 'admin_set_admin' }[action];
+    const { action, user, on } = body;
+    const fn = { signout: 'admin_sign_out', unlink: 'admin_unlink', delete: 'admin_delete_user', admin: 'admin_set_admin' }[action];
     if (!fn) return json(400, { error: 'Unknown action' });
     const args = { p_token: token, p_user: String(user || '') };
-    if (action === 'password') args.p_password = String(password || '');
     if (action === 'admin') args.p_on = Boolean(on);
     await db.rpc(fn, args);
     const { couple } = body;
-    if (['password', 'signout', 'delete', 'unlink'].includes(action)) await refreshCouple(couple);
+    if (['signout', 'delete', 'unlink'].includes(action)) await refreshCouple(couple);
     return json(200, { ok: true });
   }
-  if (path === 'rooms' && request.method === 'GET') return statsStub(env).fetch('https://stats/rooms');
+  if (path === 'rooms' && request.method === 'GET') {
+    const rooms = await statsStub(env).fetch('https://stats/rooms').then(r => r.json());
+    return json(200, rooms.map(({ room, coupleId, ...visible }) => visible));
+  }
   if (path === 'room' && request.method === 'POST') {
-    const { action, room, player } = await readBody(request);
-    if (typeof room !== 'string' || !room) return json(400, { error: 'Which room?' });
+    const { action, handle, player } = await readBody(request);
+    if (typeof handle !== 'string' || !handle) return json(400, { error: 'Which room?' });
+    const rooms = await statsStub(env).fetch('https://stats/rooms').then(r => r.json());
+    const room = rooms.find(r => r.handle === handle)?.room;
+    if (!room) return json(404, { error: 'Room not found' });
     if (action === 'close') await closeRoom(room, { reason: 'This room was closed' });
     else if (action === 'kick') await roomStub(env, room).fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ player: String(player || '') }) });
     else return json(400, { error: 'Unknown action' });
@@ -223,8 +230,8 @@ async function adminApi(request, url, db, env, token, state) {
   }
   if (path === 'delete-data' && request.method === 'POST') {
     const { couple, card, user } = await readBody(request);
-    if (card) await db.rpc('admin_delete_answer', { p_token: token, p_couple_id: String(couple || ''), p_card_key: String(card), p_user: String(user || '') });
-    else await db.rpc('admin_delete_couple_data', { p_token: token, p_couple_id: String(couple || '') });
+    if (card != null || user != null) return json(400, { error: 'Only couple data deletion is available' });
+    await db.rpc('admin_delete_couple_data', { p_token: token, p_couple_id: String(couple || '') });
     await refreshCouple(String(couple || ''));
     return json(200, { ok: true });
   }
@@ -242,7 +249,7 @@ async function statsFetch(ctx, request) {
     const { played, ...r } = await request.json();
     const key = `room:${r.room}`;
     const old = (await ctx.storage.get(key)) || { createdAt: Date.now() };
-    await ctx.storage.put(key, { ...old, ...r, at: Date.now() });
+    await ctx.storage.put(key, { ...old, ...r, handle: old.handle || crypto.randomUUID(), at: Date.now() });
     if (played) await countPlay(ctx, today(), played);
     return json(200, { ok: true });
   }
@@ -282,6 +289,7 @@ async function statsFetch(ctx, request) {
     const rooms = [];
     for (const [key, r] of await ctx.storage.list({ prefix: 'room:' })) {
       if (r.at < stale) { await ctx.storage.delete(key); continue; }
+      if (!r.handle) { r.handle = crypto.randomUUID(); await ctx.storage.put(key, r); }
       rooms.push(r);
     }
     if (url.pathname === '/rooms') return json(200, rooms.sort((a, b) => b.at - a.at));
