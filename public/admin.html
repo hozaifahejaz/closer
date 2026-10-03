@@ -102,14 +102,9 @@
   .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--raise); color:var(--accent); font-weight:600; }
   .actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .actions button { font-size:12px; padding:6px 10px; }
-  .answers { margin-top:10px; }
-  .answers .q { font-family:Fraunces,serif; font-size:15px; margin-top:12px; }
-  .answers .a { color:var(--muted); margin-top:4px; overflow-wrap:anywhere; }
-  .answers .a b { color:var(--ink); font-weight:600; }
   .people { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .person { display:inline-flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--line); border-radius:999px; padding:3px 4px 3px 12px; }
-  .person button, .a button { font-size:11px; padding:3px 8px; }
-  .a button { margin-left:6px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .person button { font-size:11px; padding:3px 8px; }
   /* Decks */
   .decks { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap:12px; }
   .deck { --c:#e8766f; position:relative; background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px 16px 14px 20px; overflow:hidden; text-align:left; font-weight:400; font-size:14px; }
@@ -174,7 +169,7 @@
       <div class="rowHead"><h2>Activity</h2><div class="seg" id="range"><button data-days="7">7 days</button><button data-days="30" class="on">30 days</button></div></div>
       <div class="grid2">
         <div class="panel"><div class="chartHead"><h2>Cards played</h2><b id="playTotal"></b></div><div class="chart" id="playChart"></div><div class="axis" id="playAxis"></div><div class="note" id="playNote"></div></div>
-        <div class="panel"><div class="chartHead"><h2>Answers written</h2><b id="writtenTotal"></b></div><div class="chart" id="writtenChart" style="--c:var(--accent2)"></div><div class="axis" id="writtenAxis"></div><div class="note">Guest rooms included. Saved answers (couples only) are below.</div></div>
+        <div class="panel"><div class="chartHead"><h2>Answers written</h2><b id="writtenTotal"></b></div><div class="chart" id="writtenChart" style="--c:var(--accent2)"></div><div class="axis" id="writtenAxis"></div><div class="note">Guest rooms included. Only counts are shown.</div></div>
         <div class="panel"><div class="chartHead"><h2>Sign-ups</h2><b id="signupTotal"></b></div><div class="chart" id="signupChart"></div><div class="axis" id="signupAxis"></div></div>
         <div class="panel"><div class="chartHead"><h2>Answers saved</h2><b id="answerTotal"></b></div><div class="chart" id="answerChart" style="--c:var(--accent2)"></div><div class="axis" id="answerAxis"></div></div>
       </div>
@@ -218,7 +213,6 @@
           <input id="coupleSearch" placeholder="Search by name or email" autocomplete="off">
           <select id="coupleSort"><option value="active">Recently active</option><option value="answers">Most answers</option><option value="favorites">Most favorites</option></select>
           <button class="quiet" id="exportCouples">Export list</button>
-          <button class="quiet" id="exportAllAnswers">Export all answers</button>
         </div>
         <div class="count" id="coupleCount" style="margin-bottom:4px"></div>
         <div class="list" id="coupleList"></div>
@@ -484,10 +478,9 @@ function renderUsers() {
   $('userList').innerHTML = list.length ? list.map(u => `
     <div data-user="${u.id}">
       <div class="who"><b>${esc(u.name)}</b><span>${esc(u.email)}</span>${u.is_admin ? '<span class="badge">Admin</span>' : ''}</div>
-      <div class="meta">Joined ${ago(u.created_at)} · ${u.partner ? `Linked with ${esc(u.partner.name)} (${esc(u.partner.email)})` : `Not linked · code ${esc(u.invite_code)}`}
+      <div class="meta">Joined ${ago(u.created_at)} · ${u.partner ? `Linked with ${esc(u.partner.name)} (${esc(u.partner.email)})` : 'Not linked'}
         · ${plural(u.answers, 'answer', 'answers')} · last login ${ago(u.last_login)}${u.last_answer ? ` · last answer ${ago(u.last_answer)}` : ''}</div>
       <div class="actions">
-        <button data-act="password">Set new password</button>
         <button data-act="signout">Sign out everywhere</button>
         ${u.partner ? '<button data-act="unlink">Unlink partner</button>' : ''}
         ${u.id === me.id ? '' : `<button data-act="admin">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>`}
@@ -504,8 +497,8 @@ async function loadUsers() {
 $('search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
 $('userSort').onchange = renderUsers;
 $('userFilter').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) { userFilter = b.dataset.v; renderUsers(); } };
-$('exportUsers').onclick = () => downloadCsv('closer-accounts', ['Name', 'Email', 'Joined', 'Partner', 'Partner email', 'Answers', 'Last login', 'Last answer', 'Admin', 'Invite code'],
-  shownUsers().map(u => [u.name, u.email, iso(u.created_at), u.partner?.name, u.partner?.email, u.answers, iso(u.last_login), iso(u.last_answer), u.is_admin ? 'yes' : '', u.invite_code]));
+$('exportUsers').onclick = () => downloadCsv('closer-accounts', ['Name', 'Email', 'Joined', 'Partner', 'Partner email', 'Answers', 'Last login', 'Last answer', 'Admin'],
+  shownUsers().map(u => [u.name, u.email, iso(u.created_at), u.partner?.name, u.partner?.email, u.answers, iso(u.last_login), iso(u.last_answer), u.is_admin ? 'yes' : '']));
 
 $('userList').onclick = async e => {
   const btn = e.target.closest('button[data-act]');
@@ -513,11 +506,7 @@ $('userList').onclick = async e => {
   const u = users.find(x => x.id === btn.closest('[data-user]').dataset.user);
   const act = btn.dataset.act;
   const body = { action: act, user: u.id, couple: u.partner ? [u.id, u.partner.id].sort().join(':') : null };
-  if (act === 'password') {
-    const pw = prompt(`New password for ${u.name} (at least 6 characters). They'll be signed out and can log in with it.`);
-    if (!pw) return;
-    body.password = pw;
-  } else if (act === 'delete') {
+  if (act === 'delete') {
     if (prompt(`This deletes ${u.name}'s account and all their answers. It can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
   } else if (act === 'unlink') {
     if (!confirm(`Unlink ${u.name} from ${u.partner.name}? Their saved answers stay.`)) return;
@@ -528,7 +517,7 @@ $('userList').onclick = async e => {
   btn.disabled = true;
   try {
     await api('/api/admin/action', body);
-    toast({ password: 'Password changed', signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
+    toast({ signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
     await loadUsers();
   } catch (err) { toast(err.message); btn.disabled = false; }
 };
@@ -553,8 +542,7 @@ function renderCouples() {
     <div data-couple="${esc(c.id)}">
       <div class="who"><b>${esc(coupleName(c))}</b><span class="meta" style="margin:0">${esc(c.partners[0].email)} · ${esc(c.partners[1].email)}</span></div>
       <div class="meta">${plural(c.answers, 'answer', 'answers')} · ${plural(c.favorites, 'favorite', 'favorites')} · last answer ${ago(c.last_activity)}</div>
-      <div class="actions"><button data-view>View answers</button><button class="quiet" data-download>Download answers</button><button class="danger" data-wipe>Delete all answers</button></div>
-      <div class="answers hidden"></div>
+      <div class="actions"><button class="danger" data-wipe>Delete saved answers and favorites</button></div>
     </div>`).join('') : `<div class="empty">${couples.length ? 'No couples match' : 'No linked couples yet'}</div>`;
 }
 
@@ -565,27 +553,8 @@ async function loadCouples() {
 $('coupleSearch').oninput = renderCouples;
 $('coupleSort').onchange = renderCouples;
 
-const ANSWER_HEADER = ['Couple', 'Deck', 'Question', 'Answered by', 'Answer', 'Answered at'];
-const answerRows = (c, d) => d.answers.map(a => [coupleName(c), a.card_key.split(':').slice(0, -1).join(':'), a.question, a.name, a.text, iso(a.created_at)]);
-
 $('exportCouples').onclick = () => downloadCsv('closer-couples', ['Partner 1', 'Email 1', 'Partner 2', 'Email 2', 'Answers', 'Favorites', 'Last answer'],
   shownCouples().map(c => [c.partners[0].name, c.partners[0].email, c.partners[1].name, c.partners[1].email, c.answers, c.favorites, iso(c.last_activity)]));
-
-$('exportAllAnswers').onclick = async () => {
-  const btn = $('exportAllAnswers');
-  const list = shownCouples().filter(c => Number(c.answers));
-  if (!list.length) return toast('No answers to export');
-  btn.disabled = true;
-  try {
-    const rows = [];
-    for (const [i, c] of list.entries()) {
-      btn.textContent = `Exporting ${i + 1} of ${list.length}…`;
-      rows.push(...answerRows(c, await api(`/api/admin/couple?id=${encodeURIComponent(c.id)}`)));
-    }
-    downloadCsv('closer-answers', ANSWER_HEADER, rows);
-  } catch (err) { toast(err.message); }
-  btn.disabled = false; btn.textContent = 'Export all answers';
-};
 
 async function deleteData(body, done) {
   try { await api('/api/admin/delete-data', body); toast(done); await loadCouples(); }
@@ -600,33 +569,6 @@ $('coupleList').onclick = async e => {
     if (prompt(`Delete all of ${coupleName(c)}'s saved answers and favorites? Their accounts stay. This can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
     return deleteData({ couple: c.id }, 'Answers deleted');
   }
-  if (e.target.closest('button[data-download]')) {
-    const d = await api(`/api/admin/couple?id=${encodeURIComponent(c.id)}`).catch(err => (toast(err.message), null));
-    if (d) downloadCsv(`closer-answers-${coupleName(c).replace(/[^\w]+/g, '-').toLowerCase()}`, ANSWER_HEADER, answerRows(c, d));
-    return;
-  }
-  const one = e.target.closest('button[data-del-answer]');
-  if (one) {
-    if (!confirm('Delete this answer? This can\'t be undone.')) return;
-    return deleteData({ couple: row.dataset.couple, card: one.dataset.card, user: one.dataset.user }, 'Answer deleted');
-  }
-  const btn = e.target.closest('button[data-view]');
-  if (!btn) return;
-  const box = row.querySelector('.answers');
-  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); btn.textContent = 'View answers'; return; }
-  const d = await api(`/api/admin/couple?id=${encodeURIComponent(row.dataset.couple)}`).catch(err => (toast(err.message), null));
-  if (!d) return;
-  const byQuestion = new Map();
-  for (const a of d.answers) {
-    if (!byQuestion.has(a.question)) byQuestion.set(a.question, []);
-    byQuestion.get(a.question).push(a);
-  }
-  box.innerHTML = (byQuestion.size ? [...byQuestion].map(([q, as]) =>
-    `<div class="q">${esc(q)}</div>${as.map(a => `<div class="a"><b>${esc(a.name)}:</b> ${esc(a.text)}<button data-del-answer data-card="${esc(a.card_key)}" data-user="${esc(a.user_id)}">Delete</button></div>`).join('')}`).join('')
-    : '<div class="empty">No answers yet</div>')
-    + (d.favorites.length ? `<div class="q">♡ Favorites</div>${d.favorites.map(f => `<div class="a">${esc(f)}</div>`).join('')}` : '');
-  box.classList.remove('hidden');
-  btn.textContent = 'Hide answers';
 };
 
 // ---- Rooms ----
@@ -644,8 +586,8 @@ function renderRooms() {
   $('clearGuests').disabled = !rooms.some(r => !r.couple);
   const list = rooms.filter(ROOM_FILTERS.find(f => f[0] === roomFilter)[2]);
   $('roomList').innerHTML = list.length ? list.map(r => `
-    <div data-room="${esc(r.room)}">
-      <div class="who"><b>${r.couple ? '♡ Couple room' : `Guest room ${esc(r.room)}`}</b>
+    <div data-handle="${esc(r.handle)}">
+      <div class="who"><b>${r.couple ? '♡ Couple room' : 'Guest room'}</b>
         <span class="meta" style="margin:0">${r.players ? `<span class="nowDot">●</span> ${r.players} in the room` : 'empty'} · ${r.mode === 'answer' ? 'Answer & reveal' : 'Just talk'} · ${esc(r.category)} · card ${r.card} of ${r.total}</span></div>
       <div class="meta">Started ${ago(r.createdAt)} · last used ${ago(r.at)}${r.deck ? ` · on ${esc(r.deck)}` : ''}${r.couple ? '' : ` · ${plural(r.answered, 'card', 'cards')} answered`}</div>
       <div class="people">${(r.people || []).map(p => `<span class="person">${esc(p.name)}<button data-kick="${esc(p.id)}">Remove</button></span>`).join('') || '<span class="meta" style="margin:0">Nobody connected</span>'}</div>
@@ -659,20 +601,20 @@ async function loadRooms() {
 $('roomFilter').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) { roomFilter = b.dataset.v; renderRooms(); } };
 
 $('roomList').onclick = async e => {
-  const row = e.target.closest('[data-room]');
+  const row = e.target.closest('[data-handle]');
   if (!row) return;
-  const r = rooms.find(x => x.room === row.dataset.room);
+  const r = rooms.find(x => x.handle === row.dataset.handle);
   const kick = e.target.closest('button[data-kick]');
   const close = e.target.closest('button[data-close]');
   let body;
   if (kick) {
     const who = r.people.find(p => p.id === kick.dataset.kick);
     if (!confirm(`Remove ${who ? who.name : 'this person'} from the room? They can rejoin with the code.`)) return;
-    body = { action: 'kick', room: r.room, player: kick.dataset.kick };
+    body = { action: 'kick', handle: r.handle, player: kick.dataset.kick };
   } else if (close) {
     if (!confirm(r.couple ? 'Close this couple\'s room? Anyone in it is sent back to the start. Their saved answers stay.'
-      : `Close guest room ${r.room}? Anyone in it is sent back to the start, and the room and its answers are deleted.`)) return;
-    body = { action: 'close', room: r.room };
+      : 'Close this guest room? Anyone in it is sent back to the start, and the room and its answers are deleted.')) return;
+    body = { action: 'close', handle: r.handle };
   } else return;
   try { await api('/api/admin/room', body); toast(kick ? 'Removed' : 'Room closed'); setTimeout(() => loadRooms().catch(() => {}), 400); }
   catch (err) { toast(err.message); }
