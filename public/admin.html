@@ -489,12 +489,17 @@ function renderUsers() {
     </div>`).join('') : '<div class="empty">No accounts found</div>';
 }
 
-let searchTimer;
+let searchTimer, searchRevision = 0;
 async function loadUsers() {
-  users = await api(`/api/admin/users?q=${encodeURIComponent($('search').value)}`);
+  const revision = ++searchRevision, query = $('search').value;
+  let result;
+  try { result = await api(`/api/admin/users?q=${encodeURIComponent(query)}`); }
+  catch (err) { if (revision === searchRevision && query === $('search').value) throw err; return; }
+  if (revision !== searchRevision || query !== $('search').value) return;
+  users = result;
   renderUsers();
 }
-$('search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
+$('search').oninput = () => { ++searchRevision; clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
 $('userSort').onchange = renderUsers;
 $('userFilter').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) { userFilter = b.dataset.v; renderUsers(); } };
 $('exportUsers').onclick = () => downloadCsv('closer-accounts', ['Name', 'Email', 'Joined', 'Partner', 'Partner email', 'Answers', 'Last login', 'Last answer', 'Admin'],

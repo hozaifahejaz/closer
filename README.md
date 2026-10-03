@@ -16,30 +16,46 @@ There are two modes, and either partner can switch between them:
 Either partner can flip the card, go to the next or previous question, switch category, or save a favorite, and the other sees it instantly.
 
 ## Run it
+Use Node.js 22 or newer.
 ```
-npm install
-npx wrangler dev      # http://localhost:8787
+npm ci
+npm start            # http://localhost:8787
 ```
-Open it on two devices (same Wi-Fi: use your computer's local IP), tap "Play as a guest", start a room and share the code.
+Open two browser windows, tap "Play as a guest", start a room and share the code. To use two devices on the same Wi-Fi, run `npm start -- --ip 0.0.0.0` and use your computer's local IP.
 For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY` in a `.dev.vars` file.
+Use a separate Supabase development project when testing accounts; the checked-in URL is production. Without `CLOSER_DB_KEY`, local development is guest-only.
+
+## Checks
+```
+npm test             # Worker/game/browser regressions
+npm run test:db      # isolated temporary PostgreSQL regression database
+npx wrangler deploy --dry-run
+```
+The database checks need PostgreSQL with `pgcrypto` and never use the production database. Put `initdb`, `pg_ctl`, and `psql` on your `PATH` before running them.
 
 ## What's in it
 - `worker/index.js`: the Cloudflare Worker. Each room is a Durable Object; both partners hold a WebSocket to it and every tap is broadcast to both. Max 2 people per room.
 - `worker/game.js`: the game rules (deck order, flip, answers, favorites). `worker/db.js`: calls the account functions in Supabase.
 - `public/index.html`: the whole app (lobby, flip card, controls), mobile-first.
-- `supabase/schema.sql`: accounts, partner links, saved answers and favorites.
-- `questions.json`: 482 questions across 8 decks. Always add new questions at the end of a deck. To remove one, replace it with `null` rather than deleting it: cards are numbered by their place in the deck, and saved answers and progress refer to those numbers.
-- `server.js` + `supabase.js` + `render.yaml`: the older Node version for Render, kept until the Cloudflare move is done.
+- `worker/room-storage.js`: stores individual answers and deck progress separately to stay within Durable Object value limits.
+- `supabase/migrations/`: authoritative database history. `supabase/schema.sql` is the original bootstrap; apply subsequent migrations in order for a new environment.
+- `questions.json`: 1,378 questions across 26 decks. Always add new questions at the end of a deck. To remove one, replace it with `null` rather than deleting it: cards are numbered by their place in the deck, and saved answers and progress refer to those numbers.
+
+The obsolete Node/Render server was retired because it used a different transport from the current app. Cloudflare Wrangler is the supported local and production runtime.
+
+## Reliable saves and session changes
+Answer and favorite commands use protocol version 2: each carries a unique command ID, the displayed card ID, and the room's data generation. The server acknowledges after durable storage, retries Supabase writes in order, and deduplicates reconnect retries. Explicit data deletion increments the generation so old pending commands cannot recreate deleted answers.
+
+Drafts remain in memory when changing questions, modes, or reconnecting. They are cleared when signing out and are not persisted across a page reload. Returning to an unsent question restores its draft.
+
+Couple sockets revalidate authentication and the partner relationship before accepting actions or sending private state. Unlinking rotates both invitation codes; previous codes cannot reconnect a former partner. Clients that predate protocol 2 must refresh or install the compatible mobile update before saving.
 
 ## Admin dashboard
 `/admin` shows live and total numbers (people in rooms right now, sign-ups, couples, answers, the most answered and favorited questions), account details, and each couple's answer and favorite counts. It does not expose written answers, invite codes, guest room join codes, or account passwords. Admins can sign someone out everywhere, unlink a couple, delete an account, or make someone else an admin. The Rooms tab lists open guest and couple rooms with who's in them; admins can remove a person, close a room, or close all guest rooms. On the Couples tab they can delete all of a couple's saved answers and favorites.
 An account is an admin when `profiles.is_admin` is set: promote the first one in the Supabase SQL editor once that account exists (see `supabase/migrations/20260925210759_admin_by_account_only.sql`), and admins can promote others from the dashboard. Admin is never granted by email alone, because sign-up doesn't verify emails. Admins see an "Admin dashboard" link after logging in.
 
-## Roadmap
-1. **Prototype (this)**: pairing by code, synced card, flip, next/back, categories, shared favorites.
-2. **Real product**: accounts so a couple stays paired, saved history of answered questions, rooms that survive a server restart (database such as Supabase or Firebase), hosting on a public URL.
-3. **Mobile app**: wrap as a React Native / Expo app or a PWA, push notifications ("your partner is waiting on a card"), a daily question.
-4. **Depth features**: voice notes, question packs (long distance, newlyweds, spicy), streaks.
+## Further product work
+The native Expo app is maintained on the `mobile-apps` branch. A browsable saved-answer library, purchase entitlement flow, account recovery, and end-to-end encryption require separate product and security designs.
 
 ## Accounts setup
 Accounts turn on when these environment variables are set (without them the app runs guest-only):

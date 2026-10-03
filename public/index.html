@@ -117,6 +117,8 @@
   .pill b.name { letter-spacing:0; overflow:hidden; text-overflow:ellipsis; }
   .top #partners { flex:0 1 auto; min-width:0; }
   .pill-btn { min-height:0; font-weight:600; color:var(--text); cursor:pointer; }
+  #partners { min-height:0; font-weight:400; }
+  #partners:disabled { opacity:1; cursor:default; }
   #shareTop { display:none; }
   .dot { width:8px; height:8px; border-radius:50%; background:#6b5a6d; flex:none; }
   .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
@@ -493,7 +495,7 @@
       <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
       <span class="pill" id="roomPill">Room <b id="code"></b></span>
       <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
-      <span class="pill" id="partners"><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></span>
+      <button type="button" class="pill" id="partners" disabled><span class="dot"></span><span>Waiting<span class="wide-only"> for partner</span>…</span></button>
     </div>
     <div class="scene" id="scene" title="Flip the card" role="button" tabindex="0" aria-label="Flip the card">
       <div class="card" id="card">
@@ -576,6 +578,11 @@ function show(box) {
   clearInterval(linkPoll);
 }
 function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
+function clearSession(why = '') {
+  setToken(null); account = null;
+  leaveRoom(why); drafts.clear(); pendingCommands.clear(); $('answerText').value = '';
+  show('authBox'); $('err').textContent = why;
+}
 
 async function api(path, body) {
   const res = await fetch(path, {
@@ -584,7 +591,7 @@ async function api(path, body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && token) { setToken(null); account = null; show('authBox'); }
+  if (res.status === 401 && (token || account)) clearSession('Please log in again.');
   if (!res.ok) throw new Error(data.error || 'Something went wrong, please try again');
   return data;
 }
@@ -631,8 +638,12 @@ $('authBox').onsubmit = async e => {
 $('showGuest').onclick = () => { show('guestBox'); $('showAuth').classList.remove('hidden'); };
 $('showAuth').onclick = () => show('authBox');
 document.querySelectorAll('[data-logout]').forEach(b => b.onclick = async () => {
-  try { await api('/api/logout', {}); } catch {}
-  setToken(null); account = null; show('authBox');
+  b.disabled = true;
+  try {
+    await api('/api/logout', {});
+    clearSession();
+  } catch (err) { $('err').textContent = `Could not log out. ${err.message}`; }
+  finally { b.disabled = false; }
 });
 $('unlink').onclick = async () => {
   if (!confirm(`Unlink from ${account.partner.name}? Your saved answers stay saved.`)) return;
@@ -686,16 +697,38 @@ $('join').onclick = () => {
 // switch networks, so it quietly reconnects; the room keeps its state meanwhile.
 // live: in sync. reconnecting: dropped and trying again. replaced: the same person
 // opened the room on another device, which took over their seat.
-let ws = null, wsPath = null, retry = 0, link = 'live';
+let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false;
 function setLink(l) { link = l; if (room) renderPartners(room); }
 function openSocket(path, failMessage) {
+  const url = new URL(path, location.origin);
+  url.searchParams.set('protocol', '2');
+  path = url.pathname + url.search;
   wsPath = path;
+  socketReady = false;
+  const previous = ws;
   const sock = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`);
-  let opened = false;
+  if (previous) previous.close();
+  let opened = false, receivedState = false;
   sock.onopen = () => { opened = true; retry = 0; };
-  sock.onmessage = e => { link = 'live'; render(JSON.parse(e.data)); };
+  sock.onmessage = e => {
+    if (sock !== ws) return;
+    let message;
+    try { message = JSON.parse(e.data); } catch { return; }
+    if (!message || typeof message !== 'object') return;
+    if (message.type === 'ack') return acknowledge(message);
+    if (!message.card || !Array.isArray(message.partners)) return;
+    link = 'live'; socketReady = true;
+    render(message);
+    if (!receivedState) {
+      receivedState = true;
+      if (supportsCommands(message)) {
+        for (const pending of pendingCommands.values()) if (pending.roomId === message.roomId) act(pending.body);
+      }
+    }
+  };
   sock.onclose = e => {
     if (sock !== ws) return; // replaced by a newer connection
+    socketReady = false;
     if (e.code === 4000) { setLink('replaced'); toast('Opened on another device'); return; }
     if (e.code === 4001) return leaveRoom(e.reason || 'This room was closed.');
     if (!room) { $('err').textContent = failMessage; return; }
@@ -713,7 +746,7 @@ async function roomGone() {
   try {
     if (room.couple) {
       const res = await fetch('/api/me', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.status === 401) { setToken(null); account = null; return 'Please log in again.'; }
+      if (res.status === 401) { clearSession('Please log in again.'); return 'Please log in again.'; }
       return res.ok && !(await res.json()).partner ? "You're no longer linked." : null;
     }
     return (await fetch(`/api/rooms/${room.code}`)).status === 404 ? 'This room has ended. Start a new one.' : null;
@@ -722,7 +755,11 @@ async function roomGone() {
 // Back to the start screen, e.g. when the room was closed by Closer's team or has ended.
 function leaveRoom(why) {
   const wasCouple = room && room.couple;
-  room = null; ws = null; link = 'live';
+  saveDraft();
+  clearTimeout(cardTextTimer); lastKey = '';
+  const previous = ws;
+  room = null; ws = null; link = 'live'; socketReady = false;
+  if (previous) previous.close();
   history.replaceState(null, '', '/');
   document.body.classList.remove('in-game', 'answer-mode', 'choosing', 'auto-reveal');
   $('game').classList.add('hidden'); $('lobby').classList.remove('hidden');
@@ -747,8 +784,44 @@ async function connect(code) {
   history.replaceState(null, '', `?room=${code}`);
 }
 
-let lastKey = '';
+// Drafts and in-flight commands belong to the room and question that created
+// them, even when the partner moves the shared deck before a save completes.
+const drafts = new Map(), pendingCommands = new Map();
+const draftKey = s => s ? JSON.stringify([s.roomId || s.code, s.card.id || `${s.card.category}:${s.card.text}`]) : null;
+const supportsCommands = s => s && s.protocolVersion === 2 && typeof s.roomId === 'string' && typeof s.card.id === 'string' && Number.isInteger(s.generation) && s.generation >= 0;
+function saveDraft() {
+  const key = draftKey(room);
+  if (key) drafts.set(key, $('answerText').value);
+}
+$('answerText').oninput = saveDraft;
+function pendingFor(type) {
+  return [...pendingCommands.values()].find(p => p.key === draftKey(room) && p.body.type === type);
+}
+function acknowledge(message) {
+  const pending = pendingCommands.get(message.id);
+  if (!pending || (message.cardKey && message.cardKey !== pending.body.cardKey)) return;
+  saveDraft();
+  pendingCommands.delete(message.id);
+  if (message.ok && pending.body.type === 'answer' && drafts.get(pending.key) === pending.draft) {
+    drafts.delete(pending.key);
+    if (draftKey(room) === pending.key) $('answerText').value = '';
+  }
+  if (!message.ok) toast(message.error || 'Could not save. Please try again.');
+  if (room) renderMode(room, room.partners.find(p => p !== me));
+}
+function cardAction(type, text) {
+  if (!supportsCommands(room)) { toast('A room update is needed. Please refresh and try again.'); return; }
+  if (pendingFor(type)) { toast('Waiting for your previous save…'); return; }
+  saveDraft();
+  const body = { type, id: crypto.randomUUID(), cardKey: room.card.id, generation: room.generation, ...(type === 'answer' ? { text } : {}) };
+  pendingCommands.set(body.id, { body, roomId: room.roomId, key: draftKey(room), draft: $('answerText').value });
+  act(body);
+  renderMode(room, room.partners.find(p => p !== me));
+}
+
+let lastKey = '', cardTextTimer = null;
 function render(s) {
+  saveDraft();
   const first = !room; room = s;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
   $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
@@ -760,11 +833,11 @@ function render(s) {
   $('cat').textContent = s.card.category;
   $('num').textContent = `${s.index + 1} / ${s.total}`;
   $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
-  // Includes the question: a fresh deal can put a different card at the same place.
-  const key = s.decks.join('|') + ':' + s.index + ':' + s.card.text;
+  const key = draftKey(s);
+  clearTimeout(cardTextTimer);
   if (key !== lastKey && $('card').classList.contains('flipped') && !s.flipped) {
     // Let the card flip face-down before swapping text, so the next question isn't spoiled.
-    $('card').classList.remove('flipped'); setTimeout(() => $('q').textContent = s.card.text, 300);
+    $('card').classList.remove('flipped'); cardTextTimer = setTimeout(() => $('q').textContent = s.card.text, 300);
   } else {
     if (key !== lastKey && lastKey && s.flipped) { const q = $('q'); q.classList.remove('swap'); void q.offsetWidth; q.classList.add('swap'); }
     $('q').textContent = s.card.text; $('card').classList.toggle('flipped', s.flipped);
@@ -772,7 +845,7 @@ function render(s) {
   $('revealSwitch').setAttribute('aria-checked', String(s.tapToReveal));
   document.body.classList.toggle('auto-reveal', !s.tapToReveal);
   $('scene').setAttribute('role', s.tapToReveal ? 'button' : 'group'); $('scene').title = s.tapToReveal ? 'Flip the card' : ''; $('scene').setAttribute('aria-label', s.tapToReveal ? 'Flip the card' : 'Question card'); $('scene').tabIndex = s.tapToReveal ? 0 : -1;
-  if (key !== lastKey) $('answerText').value = '';
+  if (key !== lastKey) $('answerText').value = drafts.get(key) || '';
   lastKey = key;
   renderMode(s, partner[0]);
 }
@@ -780,6 +853,7 @@ function render(s) {
 function renderPartners(s) {
   const partner = s.partners.find(p => p !== me) || s.partners[1];
   $('partners').classList.toggle('pill-btn', link === 'replaced');
+  $('partners').disabled = link !== 'replaced';
   $('partners').title = link === 'replaced' ? 'You opened this room on another device. Tap to use it here' : '';
   $('partners').innerHTML =
     link === 'replaced' ? '<span class="dot"></span><b class="name">Use here</b>' :
@@ -789,6 +863,8 @@ function renderPartners(s) {
 }
 
 function renderMode(s, partnerName = 'your partner') {
+  const pending = pendingFor('answer');
+  $('lockIn').disabled = !!pending;
   $('modeTalk').classList.toggle('on', s.mode === 'talk');
   $('modeAnswer').classList.toggle('on', s.mode === 'answer');
   $('answer').classList.toggle('hidden', s.mode !== 'answer');
@@ -806,6 +882,7 @@ function renderMode(s, partnerName = 'your partner') {
   $('answerStatus').textContent =
     s.revealed ? 'Now talk about it ♡' :
     answered ? (s.partners.length < 2 ? 'Locked in. Waiting for your partner to join…' : `Locked in. Waiting for ${partnerName}…`) :
+    pending ? 'Saving your answer…' :
     s.partnerAnswered ? `${Partner} has answered. Your turn.` :
     s.partners.length < 2 ? 'Waiting for your partner to join…' : `Hidden until you've both answered.`;
 }
@@ -917,8 +994,12 @@ function renderPicker(s, first) {
     `<span class="nm">${escapeHtml(name)}</span><span class="ct">${countLine(count, unused)}</span>` +
     `<span class="chk"><svg class="ico"><use href="#i-check"/></svg></span></span></button>`;
   const sum = (list, f) => list.reduce((n, d) => n + f(d), 0);
+  const focused = $('deckList').contains(document.activeElement) ? document.activeElement.closest('.tile') : null;
+  const focusedDeck = focused?.dataset.deck;
+  const focusedAll = focused?.hasAttribute('data-all');
   $('deckList').innerHTML = tile('all', pickSel.size === all, 'All decks', 'Every question, shuffled together.', 'All', sum(s.deckList, d => d.count), sum(s.deckList, left), 'data-all') +
     s.deckList.map(d => tile('', pickSel.has(d.name), d.name, DECK_BLURBS[d.name] || '', d.name, d.count, left(d), `data-deck="${escapeHtml(d.name)}"`)).join('');
+  if (focused) [...$('deckList').querySelectorAll('.tile')].find(b => focusedAll ? b.hasAttribute('data-all') : b.dataset.deck === focusedDeck)?.focus({ preventScroll: true });
   deckEdges();
   const picked = s.deckList.filter(d => pickSel.has(d.name));
   const key = picked.length === all ? 'All' : picked.map(d => d.name).join('|');
@@ -951,19 +1032,20 @@ function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&l
 
 // Returns false when the tap couldn't be sent (offline for a moment).
 const act = body => {
-  if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(body)); return true; }
+  if (socketReady && ws && ws.readyState === WebSocket.OPEN) {
+    try { ws.send(JSON.stringify(body)); return true; } catch {}
+  }
   toast(link === 'replaced' ? 'Open on another device. Tap “Use here” at the top' : 'Reconnecting…');
   return false;
 };
 const flip = () => { if (room && room.tapToReveal) act({ type: 'flip' }); };
 $('scene').onclick = e => { if (e.target.id !== 'fav') flip(); };
-$('fav').onclick = e => { e.stopPropagation(); act({ type: 'favorite' }); };
+$('fav').onclick = e => { e.stopPropagation(); cardAction('favorite'); };
 document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ type: 'mode', mode: b.dataset.mode }));
 $('lockIn').onclick = () => {
   const text = $('answerText').value.trim();
   if (!text) return toast('Write something first');
-  // Keep what they wrote if it couldn't be sent, so a dropped connection never loses an answer.
-  if (act({ type: 'answer', text })) $('answerText').value = '';
+  cardAction('answer', text);
 };
 $('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReveal });
 $('next').onclick = () => act({ type: 'next' });
@@ -977,7 +1059,7 @@ document.addEventListener('keydown', e => {
   if (k === ' ' || k === 'enter') flip();
   else if (k === 'arrowright') act({ type: 'next' });
   else if (k === 'arrowleft') act({ type: 'prev' });
-  else if (k === 'f') act({ type: 'favorite' });
+  else if (k === 'f') cardAction('favorite');
   else return;
   e.preventDefault();
 });

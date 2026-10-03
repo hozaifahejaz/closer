@@ -129,9 +129,12 @@ export function publicState(room, players, viewerId) {
   // sleeps for a moment mustn't hide answers already revealed, and a couple's partner
   // may have answered this card on another day.
   const others = Object.keys(answers).filter(id => id !== viewerId);
-  const bothAnswered = viewerId in answers && others.length > 0;
-  const nameOf = id => players.get(id) || room.names?.[id] || 'Partner';
+  const bothAnswered = Object.hasOwn(answers, viewerId) && others.length > 0;
+  const nameOf = id => players.get(id) || (Object.hasOwn(room.names || {}, id) ? room.names[id] : null) || 'Partner';
   return {
+    roomId: room.code,
+    protocolVersion: 2,
+    generation: room.generation || 0,
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
     deckList: CATEGORIES.map(name => ({ name, count: cards(name).length, used: cards(name).filter(card => isUsed(room, card)).length })),
@@ -146,11 +149,11 @@ export function publicState(room, players, viewerId) {
     total: room.order.length,
     flipped: room.flipped,
     tapToReveal: tapToReveal(room),
-    card: { category: card.c, text: questionText(card) },
+    card: { id: cardKey(card), category: card.c, text: questionText(card) },
     partners: [...players.values()],
     favorites: room.favorites,
     mode: room.mode,
-    myAnswer: answers[viewerId] ?? null,
+    myAnswer: Object.hasOwn(answers, viewerId) ? answers[viewerId] : null,
     partnerAnswered: others.length > 0,
     // Your own answer first, so both partners see the answers in the same, predictable layout.
     revealed: bothAnswered ? [viewerId, ...others].map(id => ({ name: nameOf(id), text: answers[id], mine: id === viewerId })) : null,
@@ -160,6 +163,8 @@ export function publicState(room, players, viewerId) {
 // Applies one action. Returns false for anything unrecognised, otherwise an
 // object describing what (if anything) should be saved for a couple.
 export function applyAction(room, actorId, isPlayer, action) {
+  if (!action || typeof action !== 'object' || Array.isArray(action)) return false;
+  if (['answer', 'favorite'].includes(action.type) && action.cardKey !== cardKey(room.order[room.index])) return false;
   const result = act(room, actorId, isPlayer, action);
   if (result) markSeen(room);
   return result;
