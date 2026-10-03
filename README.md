@@ -33,7 +33,7 @@ For accounts locally, put `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `CLOSER_DB_KEY
 
 ## Admin dashboard
 `/admin` shows live and total numbers (people in rooms right now, sign-ups, couples, answers, the most answered and favorited questions), account details, and each couple's answer and favorite counts. It does not expose written answers, invite codes, guest room join codes, or account passwords. Admins can sign someone out everywhere, unlink a couple, delete an account, or make someone else an admin. The Rooms tab lists open guest and couple rooms with who's in them; admins can remove a person, close a room, or close all guest rooms. On the Couples tab they can delete all of a couple's saved answers and favorites.
-An account is an admin when `profiles.is_admin` is set: promote the first one in the Supabase SQL editor once that account exists (see `supabase/migrations/20260925_admin_by_account.sql`), and admins can promote others from the dashboard. Admin is never granted by email alone, because sign-up doesn't verify emails. Admins see an "Admin dashboard" link after logging in.
+An account is an admin when `profiles.is_admin` is set: promote the first one in the Supabase SQL editor once that account exists (see `supabase/migrations/20260925210759_admin_by_account_only.sql`), and admins can promote others from the dashboard. Admin is never granted by email alone, because sign-up doesn't verify emails. Admins see an "Admin dashboard" link after logging in.
 
 ## Roadmap
 1. **Prototype (this)**: pairing by code, synced card, flip, next/back, categories, shared favorites.

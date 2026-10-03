@@ -1,14 +1,14 @@
 # Supabase Migration History Reconciliation
 
-**Status:** Design approved; implementation awaits spec review.
+**Status:** Implemented on 2026-10-04. The historical SQL gaps remain documented in four marker files.
 
 ## Goal
 
-Make the repository's local Supabase migration version list match the ten migration versions already recorded in the production Closer database, while leaving the live database schema, data, migration ledger, and Cloudflare deployment unchanged.
+Make the repository's local Supabase migration version list match the ten historical migration versions recorded in the production Closer database. The later admin answer privacy migration adds an eleventh matching local and remote version. The reconciliation itself leaves the live database schema, data, migration ledger, and Cloudflare deployment unchanged.
 
 ## Current state
 
-- Supabase records ten applied migrations with 14-digit version IDs.
+- Supabase recorded ten historical migrations with 14-digit version IDs before the admin answer privacy migration.
 - The repository tracks five migration SQL files with date-only IDs, so their versions do not match the remote ledger.
 - The five earlier applied migrations have no original SQL files in any available Git branch history.
 - `supabase/schema.sql` contains the core Closer tables, account functions, and server-key checks, and predates the admin and activity changes. It is the available base-schema snapshot; its fit to the live schema must be checked read-only before using it as a migration baseline.
@@ -38,12 +38,12 @@ Treat the applied Supabase ledger as the version-ID source of truth. Build a ver
 - Change local repository files only.
 - Do not run `supabase db push`, `supabase migration repair`, or any SQL against the production project.
 - Do not modify application code, Cloudflare configuration, or deployed resources.
-- Do not commit or push the migration implementation unless separately requested.
+- The migration implementation was committed and pushed with the subsequent GitHub update request.
 - Preserve existing SQL bodies for the five tracked migrations; only their filenames change.
 
 ## Verification
 
-- Compare local migration filename prefixes with the ten versions returned by the Supabase migration ledger; require exact set equality with no missing or extra IDs.
+- Compare local migration filename prefixes with all versions returned by the Supabase migration ledger, including the later privacy migration; require exact set equality with no missing or extra IDs.
 - Compare the baseline and the later migration effects to the live schema using read-only catalog queries before treating the sequence as reproducible.
 - Confirm the baseline content matches `supabase/schema.sql` and the activity migration matches the recoverable full-version copy.
 - Review the four marker files to ensure each clearly identifies unavailable historical SQL and the baseline representation.

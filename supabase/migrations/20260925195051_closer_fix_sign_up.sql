@@ -1,0 +1,4 @@
+-- Historical migration marker. The original SQL was not retained.
+-- The combined end-state of the sign-up fixes is represented by
+-- 20260925194909_closer_initial_schema.sql, copied from supabase/schema.sql.
+-- This marker preserves the migration version already applied in production.
