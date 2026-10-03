@@ -6,74 +6,141 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#1d1420">
+<meta name="color-scheme" content="dark">
 <title>Closer Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --ink:#f4e9ef; --muted:#a893a9; --accent:#e8766f; --line:#3d2b41; --good:#7fd6a0; --bad:#ff9a8f; }
+  :root { --bg:#1d1420; --bg2:#2a1c2e; --bg3:#1a111c; --raise:#3a2640; --ink:#f4e9ef; --muted:#a893a9; --accent:#e8766f; --accent2:#9a7ff0; --line:#3d2b41; --good:#7fd6a0; --bad:#ff9a8f; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; font-size:14px;
-    padding:max(16px, env(safe-area-inset-top)) 16px 40px; }
-  .wrap { max-width:1000px; margin:0 auto; }
-  header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-  h1 { font-family:Fraunces,serif; font-weight:600; font-size:24px; margin:0; margin-right:auto; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); font-weight:600; margin:0 0 12px; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; font-size:14px; line-height:1.4;
+    padding:max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+  .wrap { max-width:1120px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap; margin-bottom:16px; }
+  h1 { font-family:Fraunces,serif; font-weight:600; font-size:24px; margin:0; }
+  .headRight { margin-left:auto; display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:1.4px; color:var(--muted); font-weight:600; margin:0 0 12px; }
   a { color:var(--muted); }
-  .tabs { display:flex; background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:4px; }
-  .tabs button { background:transparent; color:var(--muted); padding:8px 14px; border-radius:9px; }
-  .tabs button.on { background:#3a2640; color:#fff; }
-  button { font-family:inherit; font-size:14px; font-weight:600; border:0; border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--ink); background:#3a2640; }
+  .tabs { display:flex; gap:2px; width:100%; background:var(--bg3); border:1px solid var(--line); border-radius:12px; padding:4px; overflow-x:auto; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tabs button { flex:1 0 auto; background:transparent; color:var(--muted); padding:9px 14px; border-radius:9px; white-space:nowrap; }
+  .tabs button.on { background:var(--raise); color:#fff; }
+  button { font-family:inherit; font-size:14px; font-weight:600; border:0; border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--ink); background:var(--raise); }
+  button:disabled { opacity:.5; cursor:default; }
   button.danger { background:#5a2430; color:#ffd9d4; }
-  input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit; }
-  .panel { background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:16px; }
-  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; margin-bottom:16px; }
-  .tile { background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  button.quiet { background:transparent; border:1px solid var(--line); color:var(--muted); }
+  @media (hover:hover) { button:not(:disabled):hover { filter:brightness(1.15); } }
+  input, select { padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg3); color:#fff; font-size:16px; font-family:inherit; min-width:0; }
+  select { font-size:14px; padding-right:28px; -webkit-appearance:none; appearance:none;
+    background:var(--bg3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a893a9' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 10px center; }
+  input:focus, select:focus { outline:none; border-color:var(--accent); }
+  .panel { background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:16px; min-width:0; }
+  .tiles { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
+  .tile { background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px 16px; min-width:0; }
   .tile .v { font-size:28px; font-weight:600; font-variant-numeric:tabular-nums; }
   .tile .l { color:var(--muted); font-size:13px; margin-top:2px; }
   .tile .s { color:var(--muted); font-size:12px; margin-top:6px; }
   .live .v::before { content:''; display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); margin-right:8px; vertical-align:middle; }
-  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; margin-bottom:16px; }
+  @media (max-width:760px) { .grid2 { grid-template-columns:1fr; } }
   .grid2 .panel { margin-bottom:0; }
+  .rowHead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .rowHead h2 { margin:0; }
+  .seg { display:inline-flex; background:var(--bg3); border:1px solid var(--line); border-radius:10px; padding:3px; }
+  .seg button { background:transparent; color:var(--muted); font-size:13px; padding:5px 10px; border-radius:7px; }
+  .seg button.on { background:var(--raise); color:#fff; }
   /* Bar chart: one series, thin bars anchored to the baseline, 2px gaps. */
   .chart { position:relative; height:140px; display:flex; align-items:flex-end; gap:2px; border-bottom:1px solid var(--line); }
-  .chart .bar { flex:1; position:relative; height:100%; display:flex; align-items:flex-end; cursor:default; }
-  .chart .bar i { display:block; width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:0; }
-  .chart .bar:hover i { background:#f3a49e; }
+  .chart .bar { flex:1; position:relative; height:100%; display:flex; align-items:flex-end; }
+  .chart .bar i { display:block; width:100%; background:var(--c, var(--accent)); border-radius:4px 4px 0 0; }
+  .chart .bar.hot i { filter:brightness(1.25); }
   .axis { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-top:6px; }
-  .chartHead { display:flex; justify-content:space-between; align-items:baseline; }
+  .chartHead { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
   .chartHead b { font-size:20px; font-variant-numeric:tabular-nums; }
+  .note { color:var(--muted); font-size:12px; margin-top:8px; }
   .tip { position:fixed; pointer-events:none; background:#0f0a11; border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:12px; white-space:nowrap; z-index:10; }
+  /* Two-part split bars (guest vs couple, talk vs answer). */
+  .split { margin:4px 0 16px; }
+  .split:last-child { margin-bottom:0; }
+  .split .track { display:flex; gap:2px; height:12px; margin:8px 0 6px; }
+  .split .track i { display:block; height:100%; border-radius:4px; min-width:4px; }
+  .split .legend { display:flex; justify-content:space-between; gap:10px; font-size:13px; color:var(--muted); }
+  .split .legend span::before { content:''; display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--c); margin-right:6px; }
+  .split .legend b { color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+  /* Funnel: each step a bar, with the share of the step above. */
+  .funnel .step { margin:10px 0; }
+  .funnel .step:first-child { margin-top:0; }
+  .funnel .lab { display:flex; justify-content:space-between; gap:8px; font-size:13px; }
+  .funnel .lab span { color:var(--muted); }
+  .funnel .lab b { font-variant-numeric:tabular-nums; }
+  .funnel .track { height:10px; margin-top:6px; background:var(--bg3); border-radius:4px; }
+  .funnel .track i { display:block; height:100%; background:var(--accent); border-radius:4px; }
   ol.top { margin:0; padding:0; list-style:none; }
   ol.top li { display:flex; gap:10px; align-items:baseline; padding:7px 0; border-top:1px solid var(--line); }
   ol.top li:first-child { border-top:0; }
-  ol.top .q { flex:1; }
+  ol.top .q { flex:1; min-width:0; }
   ol.top .n { color:var(--muted); font-variant-numeric:tabular-nums; }
   .hbar { display:flex; align-items:center; gap:10px; margin:8px 0; }
-  .hbar span:first-child { width:150px; flex:none; color:var(--muted); font-size:13px; }
-  .hbar .track { flex:1; height:10px; }
-  .hbar .track i { display:block; height:100%; background:var(--accent); border-radius:0 4px 4px 0; }
-  .hbar .n { width:40px; text-align:right; font-variant-numeric:tabular-nums; }
+  .hbar > span:first-child { width:170px; flex:none; color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hbar .track { flex:1; height:10px; min-width:0; }
+  .hbar .track i { display:block; height:100%; background:var(--c, var(--accent)); border-radius:0 4px 4px 0; min-width:2px; }
+  .hbar .n { width:44px; text-align:right; font-variant-numeric:tabular-nums; }
+  /* Toolbars above lists. */
+  .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .toolbar input { flex:1 1 220px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips button { font-size:13px; padding:6px 11px; border-radius:999px; background:var(--bg3); border:1px solid var(--line); color:var(--muted); font-weight:500; }
+  .chips button.on { background:var(--raise); border-color:var(--raise); color:#fff; }
+  .chips button b { font-weight:600; margin-left:4px; color:inherit; opacity:.75; }
+  .count { color:var(--muted); font-size:13px; }
   .list > div { border-top:1px solid var(--line); padding:12px 0; }
   .list > div:first-child { border-top:0; }
-  .who { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+  .who { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; min-width:0; }
   .who b { font-size:15px; }
+  .who span { overflow-wrap:anywhere; }
   .meta { color:var(--muted); font-size:13px; margin-top:4px; }
-  .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:#3a2640; color:var(--accent); font-weight:600; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--raise); color:var(--accent); font-weight:600; }
   .actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .actions button { font-size:12px; padding:6px 10px; }
-  .answers { margin-top:10px; }
-  .answers .q { font-family:Fraunces,serif; font-size:15px; margin-top:12px; }
-  .answers .a { color:var(--muted); margin-top:4px; }
-  .answers .a b { color:var(--ink); font-weight:600; }
-  .roomsHead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .people { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .person { display:inline-flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--line); border-radius:999px; padding:3px 4px 3px 12px; }
-  .person button, .a button { font-size:11px; padding:3px 8px; }
-  .a button { margin-left:6px; background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .person button { font-size:11px; padding:3px 8px; }
+  /* Decks */
+  .decks { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap:12px; }
+  .deck { --c:#e8766f; position:relative; background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px 16px 14px 20px; overflow:hidden; text-align:left; font-weight:400; font-size:14px; }
+  .deck::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c); }
+  .deck.on { border-color:var(--c); }
+  .deck .name { font-family:Fraunces,serif; font-size:17px; font-weight:600; display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .deck .name small { font-family:Inter,sans-serif; font-size:12px; color:var(--muted); font-weight:500; white-space:nowrap; }
+  .deck dl { display:grid; grid-template-columns:1fr auto; gap:4px 10px; margin:10px 0 0; font-size:13px; }
+  .deck dt { color:var(--muted); }
+  .deck dd { margin:0; font-variant-numeric:tabular-nums; text-align:right; }
+  .deck .meter { height:6px; background:var(--bg3); border-radius:3px; margin-top:10px; }
+  .deck .meter i { display:block; height:100%; background:var(--c); border-radius:3px; min-width:2px; }
+  .nowDot { color:var(--good); }
+  .qlist > div { display:flex; gap:10px; align-items:baseline; border-top:1px solid var(--line); padding:9px 0; }
+  .qlist > div:first-child { border-top:0; }
+  .qlist .dot { flex:none; width:9px; height:9px; border-radius:3px; background:var(--c); transform:translateY(1px); }
+  .qlist .t { flex:1; min-width:0; }
+  .qlist .t small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  .qlist .tags { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+  mark { background:rgba(232,118,111,.28); color:inherit; border-radius:3px; padding:0 1px; }
+  .more { display:block; margin:12px auto 0; }
   .empty { color:var(--muted); padding:20px 0; text-align:center; }
   .gate { max-width:380px; margin:12vh auto; text-align:center; }
-  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:#0f0a11; border:1px solid var(--line); padding:10px 16px; border-radius:10px; }
+  .toast { position:fixed; left:50%; bottom:max(20px, env(safe-area-inset-bottom)); transform:translateX(-50%); background:#0f0a11; border:1px solid var(--line); padding:10px 16px; border-radius:10px; z-index:20; max-width:calc(100% - 32px); }
   .hidden { display:none !important; }
-  @media (max-width:500px) { .hbar span:first-child { width:110px; } .tabs { width:100%; } .tabs button { flex:1; padding:8px 4px; font-size:13px; } }
+  @media (max-width:560px) {
+    h1 { font-size:21px; }
+    .panel { padding:14px; border-radius:14px; }
+    .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+    .tile { padding:12px; }
+    .tile .v { font-size:23px; }
+    .hbar > span:first-child { width:108px; }
+    .toolbar select { flex:1 1 auto; }
+    .tabs button { padding:8px 6px; font-size:13px; }
+  }
+  @media (max-width:340px) { .tiles { grid-template-columns:1fr; } .headRight #updated { display:none; } }
 </style>
 </head>
 <body>
@@ -87,44 +154,76 @@
   <div id="app" class="hidden">
     <header>
       <h1>Closer Admin</h1>
-      <div class="tabs">
+      <div class="headRight"><span id="updated"></span><button class="quiet" id="refresh" title="Refresh">Refresh</button><a href="/">Open app</a></div>
+      <div class="tabs" role="tablist">
         <button data-tab="overview" class="on">Overview</button>
+        <button data-tab="decks">Decks</button>
         <button data-tab="accounts">Accounts</button>
         <button data-tab="couples">Couples</button>
         <button data-tab="rooms">Rooms</button>
       </div>
-      <a href="/">Open app</a>
     </header>
 
     <section id="overview">
       <div class="tiles" id="tiles"></div>
+      <div class="rowHead"><h2>Activity</h2><div class="seg" id="range"><button data-days="7">7 days</button><button data-days="30" class="on">30 days</button></div></div>
       <div class="grid2">
-        <div class="panel"><div class="chartHead"><h2>Sign-ups, last 30 days</h2><b id="signupTotal"></b></div><div class="chart" id="signupChart"></div><div class="axis" id="signupAxis"></div></div>
-        <div class="panel"><div class="chartHead"><h2>Answers, last 30 days</h2><b id="answerTotal"></b></div><div class="chart" id="answerChart"></div><div class="axis" id="answerAxis"></div></div>
+        <div class="panel"><div class="chartHead"><h2>Cards played</h2><b id="playTotal"></b></div><div class="chart" id="playChart"></div><div class="axis" id="playAxis"></div><div class="note" id="playNote"></div></div>
+        <div class="panel"><div class="chartHead"><h2>Answers written</h2><b id="writtenTotal"></b></div><div class="chart" id="writtenChart" style="--c:var(--accent2)"></div><div class="axis" id="writtenAxis"></div><div class="note">Guest rooms included. Only counts are shown.</div></div>
+        <div class="panel"><div class="chartHead"><h2>Sign-ups</h2><b id="signupTotal"></b></div><div class="chart" id="signupChart"></div><div class="axis" id="signupAxis"></div></div>
+        <div class="panel"><div class="chartHead"><h2>Answers saved</h2><b id="answerTotal"></b></div><div class="chart" id="answerChart" style="--c:var(--accent2)"></div><div class="axis" id="answerAxis"></div></div>
       </div>
-      <div class="grid2" style="margin-top:16px">
+      <div class="grid2">
+        <div class="panel"><h2>How people play, last 30 days</h2><div id="splits"></div></div>
+        <div class="panel"><h2>From sign-up to answering</h2><div class="funnel" id="funnel"></div></div>
+      </div>
+      <div class="grid2">
         <div class="panel"><h2>Most answered questions</h2><ol class="top" id="topAnswered"></ol></div>
         <div class="panel"><h2>Most favorited questions</h2><ol class="top" id="topFavorited"></ol></div>
       </div>
-      <div class="panel" style="margin-top:16px"><h2>Answers by category</h2><div id="byCategory"></div></div>
+    </section>
+
+    <section id="decks" class="hidden">
+      <div class="rowHead"><span class="count" id="deckSummary"></span>
+        <div class="seg" id="deckSort"><button data-sort="played" class="on">Most played</button><button data-sort="answers">Most answered</button><button data-sort="name">A to Z</button></div></div>
+      <div class="decks" id="deckGrid"></div>
+      <div class="panel" style="margin-top:16px">
+        <div class="rowHead"><h2>Questions</h2><span class="count" id="qCount"></span></div>
+        <div class="toolbar"><input id="qSearch" placeholder="Search every question" autocomplete="off"><select id="qDeck"></select></div>
+        <div class="qlist" id="qList"></div>
+        <button class="quiet more hidden" id="qMore">Show more</button>
+      </div>
     </section>
 
     <section id="accounts" class="hidden">
       <div class="panel">
-        <input id="search" placeholder="Search by name or email" autocomplete="off">
-        <div class="list" id="userList" style="margin-top:8px"></div>
+        <div class="toolbar">
+          <input id="search" placeholder="Search by name or email" autocomplete="off">
+          <select id="userSort"><option value="new">Newest first</option><option value="active">Recently active</option><option value="answers">Most answers</option><option value="name">Name A to Z</option></select>
+          <button class="quiet" id="exportUsers">Export CSV</button>
+        </div>
+        <div class="toolbar"><div class="chips" id="userFilter"></div></div>
+        <div class="list" id="userList"></div>
+      </div>
+    </section>
+
+    <section id="couples" class="hidden">
+      <div class="panel">
+        <div class="toolbar">
+          <input id="coupleSearch" placeholder="Search by name or email" autocomplete="off">
+          <select id="coupleSort"><option value="active">Recently active</option><option value="answers">Most answers</option><option value="favorites">Most favorites</option></select>
+          <button class="quiet" id="exportCouples">Export list</button>
+        </div>
+        <div class="count" id="coupleCount" style="margin-bottom:4px"></div>
+        <div class="list" id="coupleList"></div>
       </div>
     </section>
 
     <section id="rooms" class="hidden">
       <div class="panel">
-        <div class="roomsHead"><span class="meta" style="margin:0" id="roomsSummary"></span><button class="danger" id="clearGuests">Close all guest rooms</button></div>
-        <div class="list" id="roomList" style="margin-top:8px"></div>
+        <div class="toolbar"><div class="chips" id="roomFilter"></div><button class="danger" id="clearGuests" style="margin-left:auto">Close all guest rooms</button></div>
+        <div class="list" id="roomList"></div>
       </div>
-    </section>
-
-    <section id="couples" class="hidden">
-      <div class="panel"><div class="list" id="coupleList"></div></div>
     </section>
   </div>
 </div>
@@ -151,7 +250,10 @@ async function api(path, body) {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = n => Number(n || 0).toLocaleString();
 const plural = (n, one, many) => `${num(n)} ${Number(n) === 1 ? one : many}`;
+const pct = (a, b) => b ? `${Math.round((a / b) * 100)}%` : '0%';
+const sum = a => a.reduce((x, y) => x + y, 0);
 const day = d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const time = t => t ? new Date(t).getTime() : 0;
 function ago(t) {
   if (!t) return 'never';
   const s = (Date.now() - new Date(t)) / 1000;
@@ -162,17 +264,42 @@ function ago(t) {
   return new Date(t).toLocaleDateString();
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('hidden'), 2500); }
+// Same colors as the deck cards in the app.
+const DECK_COLORS = { 'Getting Closer': '#f08a7e', 'Who You Are': '#9a7ff0', 'Us & The Future': '#eeaa52', 'Honest & Vulnerable': '#c2567a',
+  'Light & Playful': '#45bfae', 'Desire & Intimacy': '#e8735a', 'Conflict & Repair': '#6f9cf0', 'Life & Meaning': '#8fb86a',
+  'Guess My Answer': '#e2b33c', 'Would You Rather': '#d673c4', 'Weekly Check-in': '#8a96b8', 'Dilemmas': '#c79a6b', 'Long Distance': '#4fb0d6',
+  'Midnight Questions': '#6c6fd8', 'Money & Work': '#4fa36b', 'Alien Interview': '#8bc34a', 'Genie Wishes': '#a15ee0', 'Amnesia': '#e0a47a',
+  'Act It Out': '#f0617d', 'Job Interview': '#3f8f9e', 'Unsent': '#8fb4d9', 'Bad Advice': '#f4823c', 'How Much Would You Pay': '#c9b458',
+  'The Worst': '#a1887f', 'Tiny Vows': '#f7a0b8', 'Comfort Codes': '#c3a6e8' };
+const deckColor = name => DECK_COLORS[name] || '#e8766f';
+const chip = (value, label, n, on) => `<button data-v="${esc(value)}" class="${on ? 'on' : ''}">${esc(label)}${n === undefined ? '' : `<b>${num(n)}</b>`}</button>`;
+
+// ---- CSV downloads ----
+// Cells starting with = + - @ are prefixed so spreadsheet apps don't run them as formulas.
+function downloadCsv(name, header, rows) {
+  const cell = v => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const text = '﻿' + [header, ...rows].map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const iso = t => t ? new Date(t).toISOString().replace('T', ' ').slice(0, 16) : '';
 
 // ---- Overview ----
+let stats = null, range = 30;
 function tile(value, label, sub = '', cls = '') {
   return `<div class="tile ${cls}"><div class="v">${value}</div><div class="l">${label}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`;
 }
 
-function barChart(el, axisEl, days, values, noun) {
+function barChart(id, days, values, noun) {
+  days = days.slice(-range); values = values.slice(-range);
   const max = Math.max(1, ...values);
-  el.innerHTML = values.map((v, i) =>
+  $(id + 'Chart').innerHTML = values.map((v, i) =>
     `<div class="bar" data-tip="${esc(day(days[i]))}: ${num(v)} ${noun}"><i style="height:${(v / max) * 100}%"></i></div>`).join('');
-  axisEl.innerHTML = `<span>${day(days[0])}</span><span>peak ${num(Math.max(...values))}/day</span><span>Today</span>`;
+  $(id + 'Axis').innerHTML = `<span>${day(days[0])}</span><span>peak ${num(Math.max(0, ...values))}/day</span><span>Today</span>`;
+  $(id + 'Total').textContent = num(sum(values));
 }
 
 function topList(el, rows) {
@@ -180,51 +307,180 @@ function topList(el, rows) {
     : '<li class="empty">Nothing yet</li>';
 }
 
-async function loadOverview() {
-  const s = await api('/api/admin/stats');
-  const live = s.live || {};
+function split(title, a, b) {
+  const total = a.n + b.n;
+  if (!total) return `<div class="split"><div class="meta" style="margin:0">${esc(title)}</div><div class="note">Nothing played yet</div></div>`;
+  return `<div class="split"><div class="meta" style="margin:0">${esc(title)}</div>
+    <div class="track">${[a, b].filter(p => p.n).map(p => `<i style="flex:${p.n};background:${p.c}" data-tip="${esc(p.label)}: ${num(p.n)} (${pct(p.n, total)})"></i>`).join('')}</div>
+    <div class="legend"><span style="--c:${a.c}">${esc(a.label)} <b>${pct(a.n, total)}</b></span><span style="--c:${b.c}">${esc(b.label)} <b>${pct(b.n, total)}</b></span></div></div>`;
+}
+
+function renderOverview() {
+  const s = stats, live = s.live || {}, play = s.play || { days: s.days, cards: s.days.map(() => 0), answers: s.days.map(() => 0) };
   $('tiles').innerHTML = [
     tile(num(live.people), 'People in a room now', `${num(live.coupleRooms)} couple · ${plural(live.guestRooms, 'guest room', 'guest rooms')}`, 'live'),
     tile(num(s.users), 'Accounts', `+${num(s.users_today)} today · +${num(s.users_7d)} this week`),
     tile(num(s.couples), 'Linked couples', `${plural(s.waiting_for_partner, 'account', 'accounts')} waiting for a partner`),
     tile(num(s.active_7d), 'Active this week', `${num(s.active_30d)} in the last 30 days`),
+    tile(num(sum(play.cards.slice(-7))), 'Cards played this week', `${num(sum(play.cards.slice(-1)))} today`),
     tile(num(s.answers), 'Answers saved', `+${num(s.answers_7d)} this week`),
     tile(num(s.favorites), 'Favorites', `${plural(s.couples_answering, 'couple has', 'couples have')} answered`),
     tile(num(live.guestRoomsToday), 'Guest rooms today', `${num(live.guestRooms7d)} this week`),
   ].join('');
-  barChart($('signupChart'), $('signupAxis'), s.days, s.signups_by_day, 'sign-ups');
-  barChart($('answerChart'), $('answerAxis'), s.days, s.answers_by_day, 'answers');
-  $('signupTotal').textContent = num(s.users_30d);
-  $('answerTotal').textContent = num(s.answers_by_day.reduce((a, b) => a + b, 0));
+  barChart('play', play.days, play.cards, 'cards');
+  barChart('written', play.days, play.answers, 'answers');
+  barChart('signup', s.days, s.signups_by_day, 'sign-ups');
+  barChart('answer', s.days, s.answers_by_day, 'answers');
+  $('playNote').textContent = play.since ? `Every room, guests included. Counting since ${day(play.since)}.` : 'Every room, guests included. Counting starts with the next card played.';
+
+  $('splits').innerHTML = split('Rooms', { label: 'Couples', n: play.coupleCards || 0, c: 'var(--accent)' }, { label: 'Guests', n: play.guestCards || 0, c: 'var(--accent2)' })
+    + split('Mode', { label: 'Just talk', n: play.talk || 0, c: 'var(--accent)' }, { label: 'Answer & reveal', n: play.answer || 0, c: 'var(--accent2)' });
+
+  const inCouple = s.couples * 2;
+  const steps = [
+    ['Accounts', s.users, s.users],
+    ['Linked with a partner', inCouple, s.users],
+    ['In a couple that has saved an answer', s.couples_answering * 2, s.users],
+  ];
+  $('funnel').innerHTML = steps.map(([label, n, of], i) => `<div class="step"><div class="lab"><span>${label}</span><b>${num(n)}${i ? ` · ${pct(n, of)}` : ''}</b></div>
+    <div class="track"><i style="width:${of ? (n / of) * 100 : 0}%"></i></div></div>`).join('')
+    + `<div class="note">${plural(s.waiting_for_partner, 'account is', 'accounts are')} still waiting for a partner to link.</div>`;
   topList($('topAnswered'), s.top_answered);
   topList($('topFavorited'), s.top_favorited);
-  const maxCat = Math.max(1, ...s.by_category.map(c => c.count));
-  $('byCategory').innerHTML = s.by_category.length ? s.by_category.map(c =>
-    `<div class="hbar" data-tip="${esc(c.category)}: ${num(c.count)} answers"><span>${esc(c.category)}</span><div class="track"><i style="width:${(c.count / maxCat) * 100}%"></i></div><span class="n">${num(c.count)}</span></div>`).join('')
-    : '<div class="empty">No answers yet</div>';
 }
 
-// Hover tooltips for chart marks.
-document.addEventListener('mousemove', e => {
-  const t = e.target.closest('[data-tip]');
+async function loadOverview() {
+  stats = await api('/api/admin/stats');
+  renderOverview();
+}
+
+$('range').onclick = e => {
+  const b = e.target.closest('button[data-days]');
+  if (!b) return;
+  range = Number(b.dataset.days);
+  $('range').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  if (stats) renderOverview();
+};
+
+// Tooltips for chart marks: hover with a mouse, tap on a phone.
+function showTip(e) {
+  const t = e.target.closest?.('[data-tip]');
   const tip = $('tip');
+  document.querySelectorAll('.bar.hot').forEach(b => b !== t && b.classList.remove('hot'));
   if (!t) return tip.classList.add('hidden');
+  t.classList.add('hot');
   tip.textContent = t.dataset.tip;
   tip.classList.remove('hidden');
-  tip.style.left = Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8) + 'px';
-  tip.style.top = (e.clientY - 36) + 'px';
-});
+  tip.style.left = Math.max(8, Math.min(e.clientX + 12, innerWidth - tip.offsetWidth - 8)) + 'px';
+  tip.style.top = Math.max(8, e.clientY - 40) + 'px';
+}
+document.addEventListener('mousemove', showTip);
+document.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') showTip(e); });
+addEventListener('scroll', () => $('tip').classList.add('hidden'), { passive: true });
+
+// ---- Decks ----
+// Questions come from the server (the same questions.json the rooms play); numbers
+// are cards played in the last 30 days, saved answers, and rooms on that deck now.
+let decks = null, deckSort = 'played', deckPick = '', qShown = 60;
+async function loadDecks() {
+  const [list, s, rooms] = await Promise.all([decks ? decks : api('/api/admin/decks'), api('/api/admin/stats'), api('/api/admin/rooms')]);
+  decks = list; stats = s;
+  const answers = Object.fromEntries(s.by_category.map(c => [c.category, c.count]));
+  const played = s.play?.byDeck || {};
+  const now = {};
+  for (const r of rooms) if (r.players && r.deck) now[r.deck] = (now[r.deck] || 0) + 1;
+  for (const d of decks) Object.assign(d, { answers: answers[d.name] || 0, played: played[d.name] || 0, now: now[d.name] || 0 });
+  if (!$('qDeck').options.length) $('qDeck').innerHTML = '<option value="">All decks</option>' + decks.map(d => `<option>${esc(d.name)}</option>`).join('');
+  renderDecks();
+  renderQuestions();
+}
+
+function renderDecks() {
+  const total = sum(decks.map(d => d.questions.length)), retired = sum(decks.map(d => d.retired));
+  $('deckSummary').textContent = `${plural(decks.length, 'deck', 'decks')} · ${num(total)} live questions · ${num(retired)} retired`;
+  const sorted = decks.slice().sort(deckSort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[deckSort] - a[deckSort] || a.name.localeCompare(b.name));
+  const max = Math.max(1, ...decks.map(d => d[deckSort === 'name' ? 'played' : deckSort]));
+  const metric = deckSort === 'answers' ? 'answers' : 'played';
+  $('deckGrid').innerHTML = sorted.map(d => `
+    <button class="deck ${d.name === deckPick ? 'on' : ''}" data-deck="${esc(d.name)}" style="--c:${deckColor(d.name)}">
+      <div class="name">${esc(d.name)}<small>${num(d.questions.length)} cards</small></div>
+      <dl><dt>Played, 30 days</dt><dd>${num(d.played)}</dd><dt>Answers saved</dt><dd>${num(d.answers)}</dd>
+        <dt>Rooms on it now</dt><dd>${d.now ? `<span class="nowDot">●</span> ${num(d.now)}` : '0'}</dd></dl>
+      <div class="meter" data-tip="${esc(d.name)}: ${num(d[metric])} ${metric === 'answers' ? 'answers saved' : 'cards played'}"><i style="width:${(d[metric] / max) * 100}%"></i></div>
+    </button>`).join('');
+}
+
+$('deckSort').onclick = e => {
+  const b = e.target.closest('button[data-sort]');
+  if (!b) return;
+  deckSort = b.dataset.sort;
+  $('deckSort').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderDecks();
+};
+$('deckGrid').onclick = e => {
+  const b = e.target.closest('[data-deck]');
+  if (!b) return;
+  deckPick = deckPick === b.dataset.deck ? '' : b.dataset.deck;
+  $('qDeck').value = deckPick;
+  qShown = 60;
+  renderDecks(); renderQuestions();
+  if (deckPick) $('qSearch').closest('.panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+$('qDeck').onchange = () => { deckPick = $('qDeck').value; qShown = 60; renderDecks(); renderQuestions(); };
+$('qSearch').oninput = () => { qShown = 60; renderQuestions(); };
+$('qMore').onclick = () => { qShown += 200; renderQuestions(); };
+
+function renderQuestions() {
+  const words = $('qSearch').value.trim().toLowerCase();
+  const answeredRank = new Map((stats?.top_answered || []).map((r, i) => [r.question, [i + 1, r.count]]));
+  const favRank = new Map((stats?.top_favorited || []).map((r, i) => [r.question, [i + 1, r.count]]));
+  const rows = [];
+  for (const d of decks) {
+    if (deckPick && d.name !== deckPick) continue;
+    for (const q of d.questions) if (!words || q.text.toLowerCase().includes(words)) rows.push({ deck: d.name, ...q });
+  }
+  const mark = t => {
+    if (!words) return esc(t);
+    const i = t.toLowerCase().indexOf(words);
+    return esc(t.slice(0, i)) + `<mark>${esc(t.slice(i, i + words.length))}</mark>` + esc(t.slice(i + words.length));
+  };
+  $('qCount').textContent = plural(rows.length, 'question', 'questions');
+  $('qList').innerHTML = rows.length ? rows.slice(0, qShown).map(q => {
+    const a = answeredRank.get(q.text), f = favRank.get(q.text);
+    return `<div style="--c:${deckColor(q.deck)}"><span class="dot"></span><div class="t">${mark(q.text)}<small>${esc(q.deck)} · card ${Number(q.key.split(':').pop()) + 1}</small></div>
+      <div class="tags">${a ? `<span class="badge" data-tip="${plural(a[1], 'answer', 'answers')}">#${a[0]} answered</span>` : ''}${f ? `<span class="badge" data-tip="${plural(f[1], 'favorite', 'favorites')}">♡ #${f[0]}</span>` : ''}</div></div>`;
+  }).join('') : '<div class="empty">No questions match</div>';
+  $('qMore').classList.toggle('hidden', rows.length <= qShown);
+  $('qMore').textContent = `Show more (${num(rows.length - qShown)} left)`;
+}
 
 // ---- Accounts ----
-let users = [];
+let users = [], userFilter = 'all';
+const USER_FILTERS = [
+  ['all', 'All', () => true],
+  ['linked', 'Linked', u => u.partner],
+  ['waiting', 'Waiting for partner', u => !u.partner],
+  ['silent', 'No answers yet', u => !Number(u.answers)],
+  ['recent', 'Active this week', u => Math.max(time(u.last_login), time(u.last_answer)) > Date.now() - 7 * 86400e3],
+  ['admins', 'Admins', u => u.is_admin],
+];
+const USER_SORTS = {
+  new: (a, b) => time(b.created_at) - time(a.created_at),
+  active: (a, b) => Math.max(time(b.last_login), time(b.last_answer)) - Math.max(time(a.last_login), time(a.last_answer)),
+  answers: (a, b) => b.answers - a.answers,
+  name: (a, b) => a.name.localeCompare(b.name),
+};
+const shownUsers = () => users.filter(USER_FILTERS.find(f => f[0] === userFilter)[2]).sort(USER_SORTS[$('userSort').value]);
+
 function renderUsers() {
-  $('userList').innerHTML = users.length ? users.map(u => `
+  $('userFilter').innerHTML = USER_FILTERS.map(([v, label, fn]) => chip(v, label, users.filter(fn).length, v === userFilter)).join('');
+  const list = shownUsers();
+  $('userList').innerHTML = list.length ? list.map(u => `
     <div data-user="${u.id}">
       <div class="who"><b>${esc(u.name)}</b><span>${esc(u.email)}</span>${u.is_admin ? '<span class="badge">Admin</span>' : ''}</div>
-      <div class="meta">Joined ${ago(u.created_at)} · ${u.partner ? `Linked with ${esc(u.partner.name)} (${esc(u.partner.email)})` : `Not linked · code ${esc(u.invite_code)}`}
-        · ${plural(u.answers, 'answer', 'answers')} · last login ${ago(u.last_login)}</div>
+      <div class="meta">Joined ${ago(u.created_at)} · ${u.partner ? `Linked with ${esc(u.partner.name)} (${esc(u.partner.email)})` : 'Not linked'}
+        · ${plural(u.answers, 'answer', 'answers')} · last login ${ago(u.last_login)}${u.last_answer ? ` · last answer ${ago(u.last_answer)}` : ''}</div>
       <div class="actions">
-        <button data-act="password">Set new password</button>
         <button data-act="signout">Sign out everywhere</button>
         ${u.partner ? '<button data-act="unlink">Unlink partner</button>' : ''}
         ${u.id === me.id ? '' : `<button data-act="admin">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>`}
@@ -233,12 +489,21 @@ function renderUsers() {
     </div>`).join('') : '<div class="empty">No accounts found</div>';
 }
 
-let searchTimer;
+let searchTimer, searchRevision = 0;
 async function loadUsers() {
-  users = await api(`/api/admin/users?q=${encodeURIComponent($('search').value)}`);
+  const revision = ++searchRevision, query = $('search').value;
+  let result;
+  try { result = await api(`/api/admin/users?q=${encodeURIComponent(query)}`); }
+  catch (err) { if (revision === searchRevision && query === $('search').value) throw err; return; }
+  if (revision !== searchRevision || query !== $('search').value) return;
+  users = result;
   renderUsers();
 }
-$('search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
+$('search').oninput = () => { ++searchRevision; clearTimeout(searchTimer); searchTimer = setTimeout(() => loadUsers().catch(e => toast(e.message)), 250); };
+$('userSort').onchange = renderUsers;
+$('userFilter').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) { userFilter = b.dataset.v; renderUsers(); } };
+$('exportUsers').onclick = () => downloadCsv('closer-accounts', ['Name', 'Email', 'Joined', 'Partner', 'Partner email', 'Answers', 'Last login', 'Last answer', 'Admin'],
+  shownUsers().map(u => [u.name, u.email, iso(u.created_at), u.partner?.name, u.partner?.email, u.answers, iso(u.last_login), iso(u.last_answer), u.is_admin ? 'yes' : '']));
 
 $('userList').onclick = async e => {
   const btn = e.target.closest('button[data-act]');
@@ -246,11 +511,7 @@ $('userList').onclick = async e => {
   const u = users.find(x => x.id === btn.closest('[data-user]').dataset.user);
   const act = btn.dataset.act;
   const body = { action: act, user: u.id, couple: u.partner ? [u.id, u.partner.id].sort().join(':') : null };
-  if (act === 'password') {
-    const pw = prompt(`New password for ${u.name} (at least 6 characters). They'll be signed out and can log in with it.`);
-    if (!pw) return;
-    body.password = pw;
-  } else if (act === 'delete') {
+  if (act === 'delete') {
     if (prompt(`This deletes ${u.name}'s account and all their answers. It can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
   } else if (act === 'unlink') {
     if (!confirm(`Unlink ${u.name} from ${u.partner.name}? Their saved answers stay.`)) return;
@@ -261,23 +522,44 @@ $('userList').onclick = async e => {
   btn.disabled = true;
   try {
     await api('/api/admin/action', body);
-    toast({ password: 'Password changed', signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
+    toast({ signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
     await loadUsers();
   } catch (err) { toast(err.message); btn.disabled = false; }
 };
 
 // ---- Couples ----
 let couples = [];
+const COUPLE_SORTS = {
+  active: (a, b) => time(b.last_activity) - time(a.last_activity),
+  answers: (a, b) => b.answers - a.answers,
+  favorites: (a, b) => b.favorites - a.favorites,
+};
+const coupleName = c => `${c.partners[0].name} & ${c.partners[1].name}`;
+function shownCouples() {
+  const q = $('coupleSearch').value.trim().toLowerCase();
+  return couples.filter(c => !q || c.partners.some(p => `${p.name} ${p.email}`.toLowerCase().includes(q))).sort(COUPLE_SORTS[$('coupleSort').value]);
+}
+
+function renderCouples() {
+  const list = shownCouples();
+  $('coupleCount').textContent = list.length === couples.length ? plural(couples.length, 'couple', 'couples') : `${num(list.length)} of ${plural(couples.length, 'couple', 'couples')}`;
+  $('coupleList').innerHTML = list.length ? list.map(c => `
+    <div data-couple="${esc(c.id)}">
+      <div class="who"><b>${esc(coupleName(c))}</b><span class="meta" style="margin:0">${esc(c.partners[0].email)} · ${esc(c.partners[1].email)}</span></div>
+      <div class="meta">${plural(c.answers, 'answer', 'answers')} · ${plural(c.favorites, 'favorite', 'favorites')} · last answer ${ago(c.last_activity)}</div>
+      <div class="actions"><button class="danger" data-wipe>Delete saved answers and favorites</button></div>
+    </div>`).join('') : `<div class="empty">${couples.length ? 'No couples match' : 'No linked couples yet'}</div>`;
+}
+
 async function loadCouples() {
   couples = await api('/api/admin/couples');
-  $('coupleList').innerHTML = couples.length ? couples.map(c => `
-    <div data-couple="${esc(c.id)}">
-      <div class="who"><b>${esc(c.partners[0].name)} &amp; ${esc(c.partners[1].name)}</b><span class="meta" style="margin:0">${esc(c.partners[0].email)} · ${esc(c.partners[1].email)}</span></div>
-      <div class="meta">${plural(c.answers, 'answer', 'answers')} · ${plural(c.favorites, 'favorite', 'favorites')} · last answer ${ago(c.last_activity)}</div>
-      <div class="actions"><button data-view>View answers</button><button class="danger" data-wipe>Delete all answers</button></div>
-      <div class="answers hidden"></div>
-    </div>`).join('') : '<div class="empty">No linked couples yet</div>';
+  renderCouples();
 }
+$('coupleSearch').oninput = renderCouples;
+$('coupleSort').onchange = renderCouples;
+
+$('exportCouples').onclick = () => downloadCsv('closer-couples', ['Partner 1', 'Email 1', 'Partner 2', 'Email 2', 'Answers', 'Favorites', 'Last answer'],
+  shownCouples().map(c => [c.partners[0].name, c.partners[0].email, c.partners[1].name, c.partners[1].email, c.answers, c.favorites, iso(c.last_activity)]));
 
 async function deleteData(body, done) {
   try { await api('/api/admin/delete-data', body); toast(done); await loadCouples(); }
@@ -286,70 +568,58 @@ async function deleteData(body, done) {
 
 $('coupleList').onclick = async e => {
   const row = e.target.closest('[data-couple]');
-  const wipe = e.target.closest('button[data-wipe]');
-  if (wipe) {
-    const c = couples.find(x => x.id === row.dataset.couple);
-    if (prompt(`Delete all of ${c.partners[0].name} & ${c.partners[1].name}'s saved answers and favorites? Their accounts stay. This can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
+  if (!row) return;
+  const c = couples.find(x => x.id === row.dataset.couple);
+  if (e.target.closest('button[data-wipe]')) {
+    if (prompt(`Delete all of ${coupleName(c)}'s saved answers and favorites? Their accounts stay. This can't be undone.\nType DELETE to confirm.`) !== 'DELETE') return;
     return deleteData({ couple: c.id }, 'Answers deleted');
   }
-  const one = e.target.closest('button[data-del-answer]');
-  if (one) {
-    if (!confirm('Delete this answer? This can\'t be undone.')) return;
-    return deleteData({ couple: row.dataset.couple, card: one.dataset.card, user: one.dataset.user }, 'Answer deleted');
-  }
-  const btn = e.target.closest('button[data-view]');
-  if (!btn) return;
-  const box = row.querySelector('.answers');
-  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); btn.textContent = 'View answers'; return; }
-  const d = await api(`/api/admin/couple?id=${encodeURIComponent(row.dataset.couple)}`).catch(err => (toast(err.message), null));
-  if (!d) return;
-  const byQuestion = new Map();
-  for (const a of d.answers) {
-    if (!byQuestion.has(a.question)) byQuestion.set(a.question, []);
-    byQuestion.get(a.question).push(a);
-  }
-  box.innerHTML = (byQuestion.size ? [...byQuestion].map(([q, as]) =>
-    `<div class="q">${esc(q)}</div>${as.map(a => `<div class="a"><b>${esc(a.name)}:</b> ${esc(a.text)}<button data-del-answer data-card="${esc(a.card_key)}" data-user="${esc(a.user_id)}">Delete</button></div>`).join('')}`).join('')
-    : '<div class="empty">No answers yet</div>')
-    + (d.favorites.length ? `<div class="q">♡ Favorites</div>${d.favorites.map(f => `<div class="a">${esc(f)}</div>`).join('')}` : '');
-  box.classList.remove('hidden');
-  btn.textContent = 'Hide answers';
 };
 
 // ---- Rooms ----
 // Every room that exists right now: guest rooms (4-letter codes) and couples'
 // private rooms. Rooms are forgotten after a while without use.
-let rooms = [];
-async function loadRooms() {
-  rooms = await api('/api/admin/rooms');
-  const guests = rooms.filter(r => !r.couple);
-  $('roomsSummary').textContent = `${plural(guests.length, 'guest room', 'guest rooms')} · ${plural(rooms.length - guests.length, 'couple room', 'couple rooms')} · ${plural(rooms.reduce((n, r) => n + r.players, 0), 'person', 'people')} in a room now`;
-  $('clearGuests').disabled = !guests.length;
-  $('roomList').innerHTML = rooms.length ? rooms.map(r => `
-    <div data-room="${esc(r.room)}">
-      <div class="who"><b>${r.couple ? '♡ Couple room' : `Guest room ${esc(r.room)}`}</b>
-        <span class="meta" style="margin:0">${r.players ? `${r.players} in the room` : 'empty'} · ${r.mode === 'answer' ? 'Answer & reveal' : 'Just talk'} · ${esc(r.category)} · card ${r.card} of ${r.total}</span></div>
-      <div class="meta">Started ${ago(r.createdAt)} · last used ${ago(r.at)}${r.couple ? '' : ` · ${plural(r.answered, 'card', 'cards')} answered`}</div>
+let rooms = [], roomFilter = 'all';
+const ROOM_FILTERS = [
+  ['all', 'All', () => true],
+  ['now', 'People in it now', r => r.players > 0],
+  ['guest', 'Guest rooms', r => !r.couple],
+  ['couple', 'Couple rooms', r => r.couple],
+];
+function renderRooms() {
+  $('roomFilter').innerHTML = ROOM_FILTERS.map(([v, label, fn]) => chip(v, label, rooms.filter(fn).length, v === roomFilter)).join('');
+  $('clearGuests').disabled = !rooms.some(r => !r.couple);
+  const list = rooms.filter(ROOM_FILTERS.find(f => f[0] === roomFilter)[2]);
+  $('roomList').innerHTML = list.length ? list.map(r => `
+    <div data-handle="${esc(r.handle)}">
+      <div class="who"><b>${r.couple ? '♡ Couple room' : 'Guest room'}</b>
+        <span class="meta" style="margin:0">${r.players ? `<span class="nowDot">●</span> ${r.players} in the room` : 'empty'} · ${r.mode === 'answer' ? 'Answer & reveal' : 'Just talk'} · ${esc(r.category)} · card ${r.card} of ${r.total}</span></div>
+      <div class="meta">Started ${ago(r.createdAt)} · last used ${ago(r.at)}${r.deck ? ` · on ${esc(r.deck)}` : ''}${r.couple ? '' : ` · ${plural(r.answered, 'card', 'cards')} answered`}</div>
       <div class="people">${(r.people || []).map(p => `<span class="person">${esc(p.name)}<button data-kick="${esc(p.id)}">Remove</button></span>`).join('') || '<span class="meta" style="margin:0">Nobody connected</span>'}</div>
       <div class="actions"><button class="danger" data-close>${r.couple ? 'Close room' : 'Close and delete room'}</button></div>
-    </div>`).join('') : '<div class="empty">No rooms right now</div>';
+    </div>`).join('') : '<div class="empty">No rooms here right now</div>';
 }
+async function loadRooms() {
+  rooms = await api('/api/admin/rooms');
+  renderRooms();
+}
+$('roomFilter').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) { roomFilter = b.dataset.v; renderRooms(); } };
 
 $('roomList').onclick = async e => {
-  const row = e.target.closest('[data-room]');
+  const row = e.target.closest('[data-handle]');
   if (!row) return;
-  const r = rooms.find(x => x.room === row.dataset.room);
+  const r = rooms.find(x => x.handle === row.dataset.handle);
   const kick = e.target.closest('button[data-kick]');
   const close = e.target.closest('button[data-close]');
   let body;
   if (kick) {
     const who = r.people.find(p => p.id === kick.dataset.kick);
     if (!confirm(`Remove ${who ? who.name : 'this person'} from the room? They can rejoin with the code.`)) return;
-    body = { action: 'kick', room: r.room, player: kick.dataset.kick };
+    body = { action: 'kick', handle: r.handle, player: kick.dataset.kick };
   } else if (close) {
     if (!confirm(r.couple ? 'Close this couple\'s room? Anyone in it is sent back to the start. Their saved answers stay.'
-      : `Close guest room ${r.room}? Anyone in it is sent back to the start, and the room and its answers are deleted.`)) return;
-    body = { action: 'close', room: r.room };
+      : 'Close this guest room? Anyone in it is sent back to the start, and the room and its answers are deleted.')) return;
+    body = { action: 'close', handle: r.handle };
   } else return;
   try { await api('/api/admin/room', body); toast(kick ? 'Removed' : 'Room closed'); setTimeout(() => loadRooms().catch(() => {}), 400); }
   catch (err) { toast(err.message); }
@@ -361,12 +631,29 @@ $('clearGuests').onclick = async () => {
   catch (err) { toast(err.message); }
 };
 
-// ---- Tabs ----
-const loaders = { overview: loadOverview, accounts: loadUsers, couples: loadCouples, rooms: loadRooms };
+// ---- Tabs and refreshing ----
+// The overview and rooms refresh on their own every 30 seconds while the page is open.
+const loaders = { overview: loadOverview, decks: loadDecks, accounts: loadUsers, couples: loadCouples, rooms: loadRooms };
+let tab = 'overview', loadedAt = 0;
+async function load(quiet) {
+  try { await loaders[tab](); loadedAt = Date.now(); updated(); }
+  catch (e) { if (!quiet) toast(e.message); }
+}
+function updated() { $('updated').textContent = loadedAt ? `Updated ${ago(loadedAt)}` : ''; }
+setInterval(() => {
+  updated();
+  if (document.visibilityState === 'visible' && (tab === 'overview' || tab === 'rooms') && Date.now() - loadedAt > 30e3) load(true);
+}, 5e3);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - loadedAt > 30e3) load(true); });
+$('refresh').onclick = () => load();
+
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
   document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
-  for (const id of Object.keys(loaders)) $(id).classList.toggle('hidden', id !== b.dataset.tab);
-  loaders[b.dataset.tab]().catch(e => toast(e.message));
+  for (const id of Object.keys(loaders)) $(id).classList.toggle('hidden', id !== tab);
+  try { history.replaceState(null, '', `#${tab}`); } catch {}
+  b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  load();
 });
 
 function gate(msg) { $('gateMsg').textContent = msg; $('gate').classList.remove('hidden'); }
@@ -376,7 +663,8 @@ function gate(msg) { $('gateMsg').textContent = msg; $('gate').classList.remove(
   if (me.token) { token = me.token; try { localStorage.setItem('closer:token', token); } catch {} }
   if (!me.isAdmin) return gate('This account is not an admin.');
   $('app').classList.remove('hidden');
-  await loadOverview().catch(e => toast(e.message));
+  const start = document.querySelector(`[data-tab="${location.hash.slice(1)}"]`);
+  if (start) start.click(); else load();
 })();
 </script>
 </body>

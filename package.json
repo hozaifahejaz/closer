@@ -4,14 +4,17 @@
   "private": true,
   "description": "Deep questions for couples, synced in real time",
   "scripts": {
-    "start": "node server.js",
+    "start": "wrangler dev",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "node --experimental-vm-modules --test test/*.test.mjs",
+    "test:db": "python3 test/db-regression.py"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "devDependencies": {
-    "wrangler": "^4.41.0"
+    "jsdom": "26.1.0",
+    "wrangler": "4.147.0"
   }
 }

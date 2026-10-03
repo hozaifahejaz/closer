@@ -6,8 +6,9 @@
 //   is sent over that socket and broadcast back to both.
 // - Accounts go through database functions in Supabase (see supabase/schema.sql).
 import { DurableObject } from 'cloudflare:workers';
-import { randomCode, newRoom, upgradeRoom, publicState, applyAction } from './game.js';
+import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary } from './game.js';
 import { Db, DbError } from './db.js';
+import { RoomStorage, listEntries } from './room-storage.js';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
 // A couple's room holds their place in each deck; if it's ever forgotten it is
@@ -29,8 +30,8 @@ function tokenOf(request, url) {
 // The sign-in is also kept in a first-party, HttpOnly cookie. Browsers (Safari
 // especially) may wipe a site's localStorage after a few weeks away, but keep this
 // cookie, so people stay signed in until they log out. The cookie is only honoured
-// by same-origin requests that just read (GET /api/me, the room WebSocket);
-// everything else still needs the token in the Authorization header.
+// by same-origin requests that just read (GET /api/me, the room WebSocket) and by
+// logging out; everything else still needs the token in the Authorization header.
 const COOKIE = 'closer_session';
 const cookieToken = request => (request.headers.get('Cookie') || '').split(/;\s*/)
   .find(c => c.startsWith(COOKIE + '='))?.slice(COOKIE.length + 1) || null;
@@ -42,6 +43,16 @@ function withCookie(response, url, token) {
   r.headers.append('Set-Cookie', sessionCookie(url, token));
   return r;
 }
+
+// Slows down password guessing, invite-code guessing and room spam. The limiters are
+// Cloudflare rate limiting bindings (see wrangler.jsonc); without them nothing is limited.
+async function tooMany(limiter, ...keys) {
+  if (!limiter) return false;
+  for (const key of keys) if (!(await limiter.limit({ key })).success) return true;
+  return false;
+}
+const clientIp = request => request.headers.get('CF-Connecting-IP') || 'local';
+const slowDown = () => json(429, { error: 'Too many tries. Please wait a minute and try again' });
 
 const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
 
@@ -55,6 +66,7 @@ export default {
 
       // ---- Guest rooms ----
       if (url.pathname === '/api/rooms' && request.method === 'POST') {
+        if (await tooMany(env.ROOM_LIMIT, `rooms:${clientIp(request)}`)) return slowDown();
         for (let attempt = 0; attempt < 5; attempt++) {
           const code = randomCode(4);
           const res = await roomStub(env, code).fetch('https://room/create', { method: 'POST', body: JSON.stringify({ code }) });
@@ -67,9 +79,11 @@ export default {
       }
       const m = url.pathname.match(/^\/api\/rooms\/([A-Z]{4})(\/ws)?$/);
       if (m) {
+        if (await tooMany(env.ROOM_LOOKUP_LIMIT, `room:${clientIp(request)}`)) return slowDown();
         const stub = roomStub(env, m[1]);
         if (!m[2]) return stub.fetch('https://room/exists');
-        const id = (url.searchParams.get('id') || '').slice(0, 64) || crypto.randomUUID();
+        const id = url.searchParams.get('id') || crypto.randomUUID();
+        if (!/^[A-Za-z0-9_-]{8,64}$/.test(id) || Object.hasOwn(Object.prototype, id)) return json(400, { error: 'Invalid guest identity. Refresh and try again.' });
         const name = (url.searchParams.get('name') || 'Partner').slice(0, 24);
         return stub.fetch(withPlayer(request, { id, name }));
       }
@@ -95,10 +109,11 @@ const statsStub = env => roomStub(env, STATS);
 
 // Passes who the player is to the room via headers the browser can't set on its own
 // (the Worker overwrites them on every request).
-function withPlayer(request, { id, name, token = '', couple = '' }) {
+function withPlayer(request, { id, name, token = '', couple = '', partnerName = '' }) {
   const headers = new Headers(request.headers);
   headers.set('x-player-id', id);
   headers.set('x-player-name', encodeURIComponent(name));
+  headers.set('x-partner-name', encodeURIComponent(partnerName));
   headers.set('x-player-token', token);
   headers.set('x-couple-id', couple);
   return new Request(request.url, { method: request.method, headers });
@@ -107,20 +122,28 @@ function withPlayer(request, { id, name, token = '', couple = '' }) {
 async function accountApi(request, url, db, env) {
   if (url.pathname === '/api/signup' && request.method === 'POST') {
     const { email, password, name } = await readBody(request);
+    if (await tooMany(env.AUTH_LIMIT, `signup:${clientIp(request)}`)) return slowDown();
     const token = await db.rpc('sign_up', { p_email: String(email || ''), p_password: String(password || ''), p_name: String(name || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
   if (url.pathname === '/api/login' && request.method === 'POST') {
     const { email, password } = await readBody(request);
+    if (await tooMany(env.AUTH_LIMIT, `login:${clientIp(request)}`, `login:${String(email || '').trim().toLowerCase()}`)) return slowDown();
     const token = await db.rpc('log_in', { p_email: String(email || ''), p_password: String(password || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
 
-  const readsWithCookie = request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws') && sameOrigin(request, url);
+  // Logging out may use it too, so a page that lost its saved token still ends the session.
+  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws')) ||
+    (request.method === 'POST' && url.pathname === '/api/logout')) && sameOrigin(request, url);
   const fromCookie = !tokenOf(request, url) && readsWithCookie ? cookieToken(request) : null;
   const token = tokenOf(request, url) || fromCookie;
   if (url.pathname === '/api/logout' && request.method === 'POST') {
+    const current = token ? await db.me(token) : null;
     if (token) await db.rpc('log_out', { p_token: token });
+    if (current?.couple_id) await roomStub(env, `couple:${current.couple_id}`).fetch('https://room/admin/revoke', {
+      method: 'POST', body: JSON.stringify({ token, reason: 'You signed out. Please log in again.' }),
+    });
     return withCookie(json(200, { ok: true }), url, null);
   }
 
@@ -134,18 +157,22 @@ async function accountApi(request, url, db, env) {
     return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
   }
   if (url.pathname === '/api/link' && request.method === 'POST') {
+    if (await tooMany(env.AUTH_LIMIT, `link:${state.id}`)) return slowDown();
     const partner = await db.rpc('link_partner', { p_token: token, p_code: String((await readBody(request)).code || '') });
     return json(200, { partner });
   }
   if (url.pathname === '/api/unlink' && request.method === 'POST') {
     await db.rpc('unlink_partner', { p_token: token });
+    // Their shared room stays saved (for if they link again), but nobody may stay in it.
+    if (state.couple_id) await roomStub(env, `couple:${state.couple_id}`)
+      .fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ all: true, reason: "You're no longer linked" }) });
     return json(200, { ok: true });
   }
   if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token, state);
   if (url.pathname === '/api/couple/ws') {
     if (!state.couple_id) return json(409, { error: 'Link with your partner first' });
     return roomStub(env, `couple:${state.couple_id}`)
-      .fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id }));
+      .fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id, partnerName: state.partner?.name || '' }));
   }
   return json(404, { error: 'Not found' });
 }
@@ -159,34 +186,50 @@ async function adminApi(request, url, db, env, token, state) {
   const closeRoom = (name, body = {}) => roomStub(env, name).fetch('https://room/admin/close', { method: 'POST', body: JSON.stringify(body) });
   // A couple's room holds a working copy of their answers; after changing saved
   // data, drop that copy so it's rebuilt from the database (players reconnect on their own).
-  const refreshCouple = couple => couple && closeRoom(`couple:${couple}`, { code: 1012, reason: 'Refreshing' });
+  const refreshCouple = couple => couple && closeRoom(`couple:${couple}`, { code: 1012, reason: 'Refreshing', discard: true });
   if (path === 'stats' && request.method === 'GET') {
-    const [stats, live] = await Promise.all([
+    const [stats, live, play] = await Promise.all([
       db.rpc('admin_stats', { p_token: token }),
       statsStub(env).fetch('https://stats/live').then(r => r.json()),
+      statsStub(env).fetch('https://stats/play').then(r => r.json()),
     ]);
-    return json(200, { ...stats, live });
+    return json(200, { ...stats, live, play });
   }
-  if (path === 'users' && request.method === 'GET') return json(200, await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' }));
+  if (path === 'decks' && request.method === 'GET') return json(200, deckSummary());
+  if (path === 'users' && request.method === 'GET') {
+    const users = await db.rpc('admin_users', { p_token: token, p_search: url.searchParams.get('q') || '' });
+    return json(200, users.map(({ invite_code, ...visible }) => visible));
+  }
   if (path === 'couples' && request.method === 'GET') return json(200, await db.rpc('admin_couples', { p_token: token }));
-  if (path === 'couple' && request.method === 'GET') return json(200, await db.rpc('admin_couple', { p_token: token, p_couple_id: url.searchParams.get('id') || '' }));
   if (path === 'action' && request.method === 'POST') {
     const body = await readBody(request);
-    const { action, user, password, on } = body;
-    const fn = { password: 'admin_set_password', signout: 'admin_sign_out', unlink: 'admin_unlink', delete: 'admin_delete_user', admin: 'admin_set_admin' }[action];
+    const { action, user, on } = body;
+    const fn = { signout: 'admin_sign_out', unlink: 'admin_unlink', delete: 'admin_delete_user', admin: 'admin_set_admin' }[action];
     if (!fn) return json(400, { error: 'Unknown action' });
     const args = { p_token: token, p_user: String(user || '') };
-    if (action === 'password') args.p_password = String(password || '');
     if (action === 'admin') args.p_on = Boolean(on);
+    const affected = ['signout', 'delete', 'unlink'].includes(action)
+      ? (await statsStub(env).fetch('https://stats/rooms').then(r => r.json()))
+        .filter(r => r.couple && r.room.slice(7).split(':').includes(String(user))) : [];
     await db.rpc(fn, args);
-    const { couple } = body;
-    if (action === 'delete' || action === 'unlink') await refreshCouple(couple);
+    for (const r of affected) {
+      if (action === 'delete') await closeRoom(r.room, { discard: true });
+      else await roomStub(env, r.room).fetch('https://room/admin/revoke', { method: 'POST', body: JSON.stringify({
+        ...(action === 'unlink' ? { all: true } : { user: String(user) }), reason: action === 'unlink' ? "You're no longer linked." : 'Please log in again.',
+      }) });
+    }
     return json(200, { ok: true });
   }
-  if (path === 'rooms' && request.method === 'GET') return statsStub(env).fetch('https://stats/rooms');
+  if (path === 'rooms' && request.method === 'GET') {
+    const rooms = await statsStub(env).fetch('https://stats/rooms').then(r => r.json());
+    return json(200, rooms.map(({ room, coupleId, ...visible }) => visible));
+  }
   if (path === 'room' && request.method === 'POST') {
-    const { action, room, player } = await readBody(request);
-    if (typeof room !== 'string' || !room) return json(400, { error: 'Which room?' });
+    const { action, handle, player } = await readBody(request);
+    if (typeof handle !== 'string' || !handle) return json(400, { error: 'Which room?' });
+    const rooms = await statsStub(env).fetch('https://stats/rooms').then(r => r.json());
+    const room = rooms.find(r => r.handle === handle)?.room;
+    if (!room) return json(404, { error: 'Room not found' });
     if (action === 'close') await closeRoom(room, { reason: 'This room was closed' });
     else if (action === 'kick') await roomStub(env, room).fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ player: String(player || '') }) });
     else return json(400, { error: 'Unknown action' });
@@ -200,8 +243,8 @@ async function adminApi(request, url, db, env, token, state) {
   }
   if (path === 'delete-data' && request.method === 'POST') {
     const { couple, card, user } = await readBody(request);
-    if (card) await db.rpc('admin_delete_answer', { p_token: token, p_couple_id: String(couple || ''), p_card_key: String(card), p_user: String(user || '') });
-    else await db.rpc('admin_delete_couple_data', { p_token: token, p_couple_id: String(couple || '') });
+    if (card != null || user != null) return json(400, { error: 'Only couple data deletion is available' });
+    await db.rpc('admin_delete_couple_data', { p_token: token, p_couple_id: String(couple || '') });
     await refreshCouple(String(couple || ''));
     return json(200, { ok: true });
   }
@@ -216,11 +259,33 @@ async function statsFetch(ctx, request) {
   const url = new URL(request.url);
   const today = () => new Date().toISOString().slice(0, 10);
   if (url.pathname === '/report') {
-    const r = await request.json();
+    const { played, ...r } = await request.json();
     const key = `room:${r.room}`;
     const old = (await ctx.storage.get(key)) || { createdAt: Date.now() };
-    await ctx.storage.put(key, { ...old, ...r, at: Date.now() });
+    await ctx.storage.put(key, { ...old, ...r, handle: old.handle || crypto.randomUUID(), at: Date.now() });
+    if (played) await countPlay(ctx, today(), played);
     return json(200, { ok: true });
+  }
+  if (url.pathname === '/play') {
+    // The last 30 days of play, guest rooms included (the database only sees couples).
+    const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 86400e3).toISOString().slice(0, 10));
+    const saved = await ctx.storage.list({ prefix: 'play:' });
+    const byDay = new Map([...saved].map(([k, v]) => [k.slice(5), v]));
+    const byDeck = {}, total = { guestCards: 0, coupleCards: 0, talk: 0, answer: 0 };
+    for (const d of days) {
+      const p = byDay.get(d);
+      if (!p) continue;
+      for (const [deck, n] of Object.entries(p.decks || {})) byDeck[deck] = (byDeck[deck] || 0) + n;
+      for (const k of Object.keys(total)) total[k] += p[k] || 0;
+    }
+    const old = new Date(Date.now() - 90 * 86400e3).toISOString().slice(0, 10);
+    for (const d of byDay.keys()) if (d < old) await ctx.storage.delete(`play:${d}`);
+    return json(200, {
+      since: [...byDay.keys()].sort()[0] || null, days,
+      cards: days.map(d => byDay.get(d)?.cards || 0),
+      answers: days.map(d => byDay.get(d)?.answers || 0),
+      byDeck, ...total,
+    });
   }
   if (url.pathname === '/gone') {
     await ctx.storage.delete(`room:${(await request.json()).room}`);
@@ -237,6 +302,7 @@ async function statsFetch(ctx, request) {
     const rooms = [];
     for (const [key, r] of await ctx.storage.list({ prefix: 'room:' })) {
       if (r.at < stale) { await ctx.storage.delete(key); continue; }
+      if (!r.handle) { r.handle = crypto.randomUUID(); await ctx.storage.put(key, r); }
       rooms.push(r);
     }
     if (url.pathname === '/rooms') return json(200, rooms.sort((a, b) => b.at - a.at));
@@ -258,6 +324,20 @@ async function statsFetch(ctx, request) {
   return json(404, { error: 'Not found' });
 }
 
+// Daily play counters: cards dealt (by deck, mode and room type) and answers written.
+async function countPlay(ctx, day, { deck, mode, couple, answered }) {
+  const key = `play:${day}`;
+  const p = (await ctx.storage.get(key)) || { cards: 0, answers: 0, guestCards: 0, coupleCards: 0, talk: 0, answer: 0, decks: {} };
+  if (answered) p.answers++;
+  if (deck) {
+    p.cards++;
+    p[couple ? 'coupleCards' : 'guestCards']++;
+    p[mode === 'answer' ? 'answer' : 'talk']++;
+    p.decks[deck] = (p.decks[deck] || 0) + 1;
+  }
+  await ctx.storage.put(key, p);
+}
+
 // ---- One room ----
 
 export class Room extends DurableObject {
@@ -265,13 +345,30 @@ export class Room extends DurableObject {
     super(ctx, env);
     this.db = new Db(env);
     this.room = null;
+    this.store = new RoomStorage(ctx.storage);
+    this.serial = Promise.resolve();
+    this.flushing = null;
     // Room state survives the object going to sleep between taps.
-    ctx.blockConcurrencyWhile(async () => { this.room = upgradeRoom((await ctx.storage.get('room')) || null); });
+    ctx.blockConcurrencyWhile(async () => {
+      this.room = upgradeRoom(await this.store.load());
+      if (this.room && this.room.storageVersion !== 2) await this.save();
+    });
+  }
+
+  run(task) {
+    const result = this.serial.then(task);
+    this.serial = result.catch(() => {});
+    return result;
   }
 
   async fetch(request) {
     const url = new URL(request.url);
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return statsFetch(this.ctx, request);
+    return this.run(() => this.fetchRoom(request));
+  }
+
+  async fetchRoom(request) {
+    const url = new URL(request.url);
 
     if (url.pathname === '/create') {
       if (this.room) return json(409, { error: 'Code taken' });
@@ -286,20 +383,26 @@ export class Room extends DurableObject {
     }
     // Admin actions (only the Worker's admin routes call these).
     if (url.pathname === '/admin/close') {
-      // Closes the room for everyone and forgets it. A couple's room is rebuilt
-      // from their saved answers next time, so for them this is a refresh.
-      const { reason = 'This room was closed', code = 4001 } = await request.json();
+      // Ordinary couple-room closure keeps accepted saves, including the outbox.
+      // Only explicit data/account deletion discards that durable working copy.
+      const { reason = 'This room was closed', code = 4001, discard = false } = await request.json();
       const name = this.room?.code;
       for (const ws of this.ctx.getWebSockets()) { try { ws.close(code, reason); } catch {} }
-      this.room = null;
-      await this.ctx.storage.deleteAll();
+      if (discard || !this.room?.coupleId) {
+        this.room = null;
+        await this.ctx.storage.deleteAll();
+        this.store = new RoomStorage(this.ctx.storage);
+      }
       if (name) await this.statsGone(name);
       return json(200, { ok: true });
     }
-    if (url.pathname === '/admin/kick') {
-      const { player } = await request.json();
-      for (const ws of this.ctx.getWebSockets(player)) { try { ws.close(4001, 'You were removed from this room'); } catch {} }
-      this.broadcast();
+    if (url.pathname === '/admin/kick' || url.pathname === '/admin/revoke') {
+      const { player, user, token, all, reason = 'You were removed from this room' } = await request.json();
+      for (const ws of this.ctx.getWebSockets()) {
+        const p = ws.deserializeAttachment();
+        if (all || p.id === (player || user) || (token && p.token === token)) { try { ws.close(4001, reason); } catch {} }
+      }
+      await this.broadcast();
       this.reportPresence();
       return json(200, { ok: true });
     }
@@ -312,14 +415,22 @@ export class Room extends DurableObject {
       token: request.headers.get('x-player-token') || '',
     };
     const coupleId = request.headers.get('x-couple-id') || '';
+    if (coupleId) {
+      const state = await this.db.me(player.token);
+      if (!state || state.id !== player.id || state.couple_id !== coupleId) return json(401, { error: 'Your session or partner link changed. Please sign in again.' });
+    }
 
     if (coupleId && !this.room) {
-      // A couple's room is created on first use from what they saved before.
-      this.room = newRoom(`couple:${coupleId}`, coupleId);
+      // A couple's room is created on first use from what they saved before. It is only
+      // kept once that load worked, so a database hiccup can't leave (and later save) a
+      // room that has lost their answers and favorites.
+      const room = newRoom(`couple:${coupleId}`, coupleId);
       const saved = await this.db.rpc('couple_data', { p_token: player.token });
-      for (const a of saved.answers) this.room.answers[a.card_key] = { ...this.room.answers[a.card_key], [a.user_id]: a.text };
-      this.room.favorites = saved.favorites;
-      await this.save();
+      if (saved.couple_id !== coupleId) return json(409, { error: 'Your partner link changed. Please reopen your room.' });
+      room.generation = saved.generation || 0;
+      for (const a of saved.answers) room.answers[a.card_key] = { ...room.answers[a.card_key], [a.user_id]: a.text };
+      room.favorites = saved.favorites;
+      if (!this.room) { this.room = room; await this.save(); }
     }
     if (!this.room) return json(404, { error: 'Room not found' });
 
@@ -328,45 +439,122 @@ export class Room extends DurableObject {
     if (!existing.length && this.players().size >= 2) return json(409, { error: 'Room is full' });
     for (const ws of existing) ws.close(4000, 'Opened somewhere else');
 
+    // Names are remembered so answers can still be shown with a name while someone is away.
+    // A couple's id is made of both partners' ids, so the partner's id is the other half.
+    const names = { [player.id]: player.name };
+    const partnerName = decodeURIComponent(request.headers.get('x-partner-name') || '');
+    const partnerId = coupleId && coupleId.split(':').find(id => id !== player.id);
+    if (partnerId && partnerName) names[partnerId] = partnerName;
+    if (Object.entries(names).some(([id, n]) => this.room.names?.[id] !== n)) {
+      this.room.names = { ...this.room.names, ...names };
+      await this.save();
+    }
+
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [player.id]);
     server.serializeAttachment(player);
-    this.broadcast();
+    if (this.markActivity(player)) {
+      await this.save();
+      this.recordActivity(player);
+    }
+    await this.broadcast();
+    this.ctx.waitUntil(this.flushOutbox());
     this.reportPresence();
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws, message) {
+    return this.run(() => this.handleMessage(ws, message));
+  }
+
+  async handleMessage(ws, message) {
+    if (!this.room) return; // closed a moment ago
     const player = ws.deserializeAttachment();
+    if (typeof message !== 'string' || new TextEncoder().encode(message).length > 8192) return ws.close(1009, 'Message too large');
+    const now = Date.now();
+    if (!player.rate || now - player.rate.since > 10000) player.rate = { since: now, count: 0 };
+    if (++player.rate.count > 80) return ws.close(4001, 'Too many actions. Please reopen the room.');
+    ws.serializeAttachment(player);
     let action;
     try { action = JSON.parse(message); } catch { return; }
+    if (!action || typeof action !== 'object' || Array.isArray(action)) return;
+    if (!(await this.authorized(ws))) return;
+    const changesContent = ['answer', 'favorite'].includes(action.type);
+    const ack = (ok, error) => ({ type: 'ack', id: action.id, ok, ...(error ? { error } : {}), cardKey: action.cardKey });
+    const sendAck = value => { try { ws.send(JSON.stringify(value)); } catch {} };
+    let receiptKey;
+    if (changesContent) {
+      if (typeof action.id !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(action.id) || typeof action.cardKey !== 'string' || !Number.isSafeInteger(action.generation) || action.generation < 0) {
+        return ws.close(4001, 'Please update the Closer app or refresh this page before saving answers.');
+      }
+      if (action.generation !== (this.room.generation || 0)) {
+        sendAck(ack(false, 'Saved data changed. Your draft is kept; review it before sending again.'));
+        return;
+      }
+      receiptKey = `receipt:${player.id}:${action.id}`;
+      const received = await this.ctx.storage.get(receiptKey);
+      if (received) { sendAck(received); await this.broadcast(); return; }
+      if (action.cardKey !== cardKey(this.room.order[this.room.index])) {
+        sendAck(ack(false, 'The card changed. Your draft is kept; return to that question to send it.'));
+        return;
+      }
+    }
+    const previous = structuredClone(this.room);
+    const before = cardKey(this.room.order[this.room.index]);
     const result = applyAction(this.room, player.id, true, action);
-    if (!result) return;
-    await this.save();
-    this.broadcast();
-    this.reportPresence();
-    if (this.room.coupleId) this.persist(player.token, result);
+    if (!result) { if (changesContent) sendAck(ack(false, 'That answer could not be accepted. Your draft is kept.')); return; }
+    const recordActivity = this.markActivity(player);
+    const extras = {};
+    if (changesContent) {
+      extras[receiptKey] = ack(true);
+      if (this.room.coupleId) {
+        this.room.sequence = (this.room.sequence || 0) + 1;
+        const key = `pending:${String(this.room.sequence).padStart(16, '0')}:${player.id}:${action.id}`;
+        extras[key] = { p_couple_id: this.room.coupleId, p_generation: this.room.generation || 0, p_id: action.id,
+          p_user: player.id, p_kind: result.answer ? 'answer' : 'favorite', p_card_key: action.cardKey,
+          p_question: (result.answer || result.favorite).question, p_text: result.answer?.text ?? null, p_on: result.favorite?.on ?? null };
+      }
+    }
+    try { await this.save(extras); }
+    catch (err) {
+      this.room = previous;
+      console.error('Room storage failed:', err.message);
+      if (changesContent) sendAck(ack(false, 'Could not save. Your draft is kept; please try again.'));
+      await this.broadcast();
+      return;
+    }
+    if (changesContent) sendAck(ack(true));
+    await this.broadcast();
+    // A new card dealt (going back doesn't count), or an answer written, is counted as play.
+    const card = this.room.order[this.room.index];
+    const dealt = action.type !== 'prev' && cardKey(card) !== before;
+    const answered = Boolean(result.answer);
+    this.reportPresence(dealt || answered
+      ? { deck: dealt ? card.c : null, mode: this.room.mode, couple: Boolean(this.room.coupleId), answered } : null);
+    if (this.room.coupleId) {
+      if (recordActivity) this.recordActivity(player);
+      this.ctx.waitUntil(this.flushOutbox());
+    }
   }
 
   webSocketClose(ws) {
     try { ws.close(); } catch {} // already closed
-    this.broadcast();
-    this.reportPresence();
+    return this.run(async () => { await this.broadcast(); this.reportPresence(); });
   }
 
   webSocketError() {
-    this.broadcast();
-    this.reportPresence();
+    return this.run(async () => { await this.broadcast(); this.reportPresence(); });
   }
 
   // Tells the stats object who's here and what they're doing, for the admin dashboard.
-  reportPresence() {
+  reportPresence(played = null) {
     if (!this.room) return;
     const players = [...this.players()].map(([id, name]) => ({ id, name }));
     const body = JSON.stringify({
       room: this.room.code, couple: Boolean(this.room.coupleId), coupleId: this.room.coupleId || null,
       players: players.length, people: players, mode: this.room.mode, category: this.room.category,
       card: this.room.index + 1, total: this.room.order.length, answered: Object.keys(this.room.answers).length,
+      deck: this.room.order[this.room.index]?.c || null, played,
     });
     this.ctx.waitUntil(statsStub(this.env).fetch('https://stats/report', { method: 'POST', body }).catch(() => {}));
   }
@@ -389,36 +577,96 @@ export class Room extends DurableObject {
     return players;
   }
 
-  broadcast() {
+  async authorized(ws) {
+    if (!this.room) return false;
+    if (!this.room.coupleId) return ws.readyState === WebSocket.OPEN;
+    const p = ws.deserializeAttachment();
+    try {
+      const state = await this.db.me(p.token);
+      if (state?.id === p.id && state.couple_id === this.room.coupleId) return ws.readyState === WebSocket.OPEN;
+      ws.close(4001, 'Your session or partner link changed. Please sign in again.');
+    } catch {
+      // Reconnect retries unacknowledged commands after transient auth outages.
+      // Keeping this socket open would leave a pending answer waiting forever.
+      try { ws.close(1012, 'Connection interrupted. Reconnecting…'); } catch {}
+    }
+    return false;
+  }
+
+  async broadcast() {
     if (!this.room) return;
+    const allowed = [];
+    for (const ws of this.sockets()) if (await this.authorized(ws)) allowed.push(ws);
     const players = this.players();
-    for (const ws of this.sockets()) {
+    for (const ws of allowed) {
       const { id } = ws.deserializeAttachment();
       try { ws.send(JSON.stringify(publicState(this.room, players, id))); } catch {}
     }
   }
 
-  async save() {
-    await this.ctx.storage.put('room', this.room);
-    await this.ctx.storage.setAlarm(Date.now() + this.ttl());
+  async save(extras = {}) {
+    this.room.lastActiveAt = Date.now();
+    const pending = await this.ctx.storage.list({ prefix: 'pending:', limit: 1 });
+    const queued = pending.size || Object.keys(extras).some(key => key.startsWith('pending:'));
+    // Schedule first: once the transaction commits, accepted content must have
+    // a wake-up scheduled even if this isolate stops immediately afterwards.
+    await this.ctx.storage.setAlarm(Date.now() + (queued ? 30000 : this.ttl()));
+    await this.store.save(this.room, extras);
   }
 
   ttl() { return this.room?.coupleId ? COUPLE_ROOM_TTL : GUEST_ROOM_TTL; }
 
   async alarm() {
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return;
+    await this.flushOutbox();
+    return this.run(async () => {
+    if (!this.room) return;
+    const pending = await this.ctx.storage.list({ prefix: 'pending:', limit: 1 });
+    if (pending.size) return this.ctx.storage.setAlarm(Date.now() + 30000);
     // Idle for too long: forget the room, unless someone is still in it.
     if (this.sockets().length) return this.ctx.storage.setAlarm(Date.now() + this.ttl());
+    const expires = (this.room.lastActiveAt || Date.now()) + this.ttl();
+    if (expires > Date.now()) return this.ctx.storage.setAlarm(expires);
     const name = this.room?.code;
     this.room = null;
     await this.ctx.storage.deleteAll();
+    this.store = new RoomStorage(this.ctx.storage);
     if (name) await this.statsGone(name);
+    });
+  }
+
+  // Signed-in players count as active at most once every 5 minutes (for the admin stats).
+  markActivity(player) {
+    if (!this.room?.coupleId) return false;
+    const activityAt = this.room.activityAt ||= {};
+    const now = Date.now();
+    if (now - (activityAt[player.id] || 0) < 5 * 60_000) return false;
+    activityAt[player.id] = now;
+    return true;
   }
 
   // Saving is best effort: a database hiccup must never break the live game.
-  persist(token, { answer, favorite }) {
-    let call;
-    if (answer) call = this.db.rpc('save_answer', { p_token: token, p_card_key: answer.cardKey, p_question: answer.question, p_text: answer.text });
-    if (favorite) call = this.db.rpc('set_favorite', { p_token: token, p_question: favorite.question, p_on: favorite.on });
-    if (call) this.ctx.waitUntil(call.catch(err => console.error('Could not save:', err.message)));
+  recordActivity(player) {
+    if (!this.room?.coupleId) return;
+    const call = this.db.rpc('record_activity', { p_token: player.token });
+    this.ctx.waitUntil(call.catch(err => console.error('Could not record activity:', err.message)));
+  }
+
+  flushOutbox() {
+    if (this.flushing) return this.flushing;
+    this.flushing = (async () => {
+      for (const [key, operation] of await listEntries(this.ctx.storage, 'pending:')) {
+        try {
+          const result = await this.db.rpc('persist_room_change', operation);
+          if (!result?.applied && !['stale_generation', 'deleted_account'].includes(result?.reason)) throw new Error('Save was not accepted');
+          await this.ctx.storage.delete(key);
+        } catch (err) {
+          console.error('Room save pending:', err.message);
+          await this.ctx.storage.setAlarm(Date.now() + 30000);
+          break; // Preserve order: later writes cannot overtake this one.
+        }
+      }
+    })().finally(() => { this.flushing = null; });
+    return this.flushing;
   }
 }
