@@ -37,11 +37,14 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [partnerCode, setPartnerCode] = useState('');
   const [err, setErr] = useState(notice);
   const [busy, setBusy] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   const pw = useRef<TextInput>(null);
   const mail = useRef<TextInput>(null);
 
   useEffect(() => { setErr(notice); }, [notice]);
   useEffect(() => { if (!accounts) setGuest(true); }, [accounts]);
+  useEffect(() => { if (!account) { setDeleting(false); setDeletePassword(''); } }, [account]);
 
   const fail = (e: unknown) => {
     if (e instanceof ApiError && e.status === 401 && token) onSession(null, null, token);
@@ -137,6 +140,19 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       }) },
     ]);
   };
+  const confirmDeletion = () => {
+    if (!deletePassword) { setErr('Enter your password to delete your account.'); return; }
+    Alert.alert('Delete your Closer account?', 'This permanently deletes your account, sessions, and saved couple answers and favorites. Your partner’s answers in those old rooms are also removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete account', style: 'destructive', onPress: () => run('delete', async () => {
+        await api('/api/account/delete', token, { password: deletePassword });
+        setDeletePassword('');
+        setDeleting(false);
+        onSession(null, null, token);
+        Alert.alert('Account deleted', 'Your Closer account and saved couple data have been deleted.');
+      }) },
+    ]);
+  };
 
   const wide = width >= 820;
   // Short screens drop field labels (the placeholders say the same) and tighten spacing, so every view fits without scrolling.
@@ -146,6 +162,17 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
 
   const panel = (
     <View style={[st.panel, compact && { padding: 16 }]}>
+      {deleting && account && (
+        <View style={[st.stack, compact && { gap: 10 }]}>
+          <Text style={st.hello}>Delete your account</Text>
+          <Text style={st.hint}>This permanently removes your account and saved couple data, including your partner&apos;s answers in your old shared rooms. Your partner will be unlinked.</Text>
+          <Field label="Confirm your password" value={deletePassword} onChangeText={setDeletePassword} secureTextEntry autoComplete="current-password" textContentType="password" />
+          <Button title="Delete my account" onPress={confirmDeletion} busy={busy === 'delete'} />
+          <Button kind="link" title="Cancel" onPress={() => { setDeleting(false); setDeletePassword(''); setErr(''); }} />
+          <Text style={st.hint}>Can&apos;t sign in later? Request deletion at{' '}
+            <Text style={st.a} accessibilityRole="link" onPress={() => Linking.openURL(`${WEBSITE}/delete-account`)}>our account deletion page</Text>.</Text>
+        </View>
+      )}
       {view === 'auth' && (
         <View style={[st.stack, compact && { gap: 10 }]}>
           <Segmented value={signup ? 'signup' : 'login'} onChange={v => { setSignup(v === 'signup'); setErr(''); }}
@@ -190,7 +217,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
         </View>
       )}
 
-      {view === 'link' && account && (
+      {view === 'link' && account && !deleting && (
         <View style={[st.stack, compact && { gap: 10 }]}>
           <Text style={st.hello}>Hi {account.name}! Link with your partner</Text>
           <View>
@@ -209,10 +236,12 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           </View>
           <Text style={st.hint}>You only do this once. After that you&apos;ll always land in your shared room.</Text>
           <Button kind="link" title="Log out" onPress={logout} />
+          <Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
+          <Button kind="link" title="Delete account" onPress={() => { setDeleting(true); setErr(''); }} />
         </View>
       )}
 
-      {view === 'home' && account?.partner && (
+      {view === 'home' && account?.partner && !deleting && (
         <View style={[st.stack, compact && { gap: 10 }]}>
           <View style={st.couple}>
             <View style={st.avatars}>
@@ -226,6 +255,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           <View style={st.links}>
             <Button kind="link" title="Unlink partner" onPress={unlink} />
             <Button kind="link" title="Log out" onPress={logout} />
+            <Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
+            <Button kind="link" title="Delete account" onPress={() => { setDeleting(true); setErr(''); }} />
           </View>
         </View>
       )}
