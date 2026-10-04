@@ -41,6 +41,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [err, setErr] = useState(notice);
   const [busy, setBusy] = useState('');
   const presence = useRef<{ open: () => boolean; reclaim: () => void } | null>(null);
+  const [progress, setProgress] = useState<{ used: number; started: boolean } | null>(null);
+  useEffect(() => { setProgress(null); }, [account?.id, account?.partner?.id]);
   const [roomLink, setRoomLink] = useState<Link>('connecting');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -272,11 +274,13 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   );
 
   if (account && !deleting) return <>
-    {account.partner && token ? <AccountPresence key={`${account.id}:${account.partner.id}:${token}`} token={token} id={account.id} name={account.name} controlsRef={presence} onOpen={onPlay} onLink={setRoomLink} onError={setErr}
+    {account.partner && token ? <AccountPresence key={`${account.id}:${account.partner.id}:${token}`} token={token} id={account.id} name={account.name} controlsRef={presence} onOpen={onPlay} onLink={setRoomLink} onError={setErr} onProgress={setProgress}
       onLeave={message => { setErr(message); api<Account>('/api/me', token).then(me => onSession(token, me, token)).catch(fail); }} /> : null}
     <History visible={historyOpen} token={token} onClose={() => setHistoryOpen(false)} /><Dashboard
+    played={account.partner ? progress?.used : 0} started={!!account.partner && progress?.started}
+    onAdmin={account.isAdmin ? () => { Linking.openURL(`${WEBSITE}/admin`); } : undefined}
     title={account.partner ? 'A little time for two.' : `Welcome, ${account.name}.`}
-    subtitle={account.partner ? 'Choose a deck. Start a conversation.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.'}
+    subtitle={account.partner ? (progress?.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.'}
     disabled={!account.partner || roomLink !== 'live'} error={err || (account.partner && roomLink !== 'live' ? (roomLink === 'replaced' ? 'Your room is open on another device.' : 'Connecting to your shared room…') : '')}
     onOpen={() => { if (!presence.current?.open()) setErr('Reconnecting…'); }}
     invite={!account.partner ? <>

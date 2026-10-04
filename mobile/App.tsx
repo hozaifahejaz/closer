@@ -106,7 +106,7 @@ export default function App() {
       ) : bootError || !state ? (
         <View style={st.boot}><Text style={{ color: colors.text, marginBottom: 16 }}>{bootError}</Text><Button title="Try again" onPress={start} /></View>
       ) : conn ? (
-        <Game conn={conn} onLeave={onLeave} accounts={state.accounts} signedIn={!!state.account} />
+        <Game conn={conn} onLeave={onLeave} accounts={state.accounts} signedIn={!!state.account} isAdmin={!!state.account?.isAdmin} />
       ) : (
         <Lobby accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
           notice={state.notice} onSession={onSession} onPlay={onPlay} resume={state.resume} onForgetResume={forgetResume} />

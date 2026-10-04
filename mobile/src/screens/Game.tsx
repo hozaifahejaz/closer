@@ -16,14 +16,13 @@ import { Button, HeartBadge, Segmented, tap, Toggle } from '../components/ui';
 
 const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 
-export function Game({ conn, onLeave, accounts, signedIn }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean }) {
+export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean; isAdmin: boolean }) {
   const { room, link, send, reclaim, draft, setDraft, answerPending, error } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [toast, setToast] = useState('');
   const [toastOpacity] = useState(() => new Animated.Value(0));
   const keyboard = useKeyboardVisible();
-  const first = useRef(true);
   const openVersion = useRef<number | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [dashboard, setDashboard] = useState(conn.kind === 'guest');
@@ -59,13 +58,6 @@ export function Game({ conn, onLeave, accounts, signedIn }: { conn: Connection; 
     openVersion.current = version;
   }, [room]);
 
-  // Back in a room you've played before, before your partner arrives: open the picker with "Continue" ready.
-  useEffect(() => {
-    if (!room || dashboard || !first.current) return;
-    first.current = false;
-    if (room.started && !room.choosing && room.partners.length < 2) act({ type: 'choose', on: true });
-  }, [room, act, dashboard]);
-
   if (!room) {
     return (
       <View style={[st.fill, st.center]}>
@@ -92,8 +84,10 @@ export function Game({ conn, onLeave, accounts, signedIn }: { conn: Connection; 
   };
 
   if (dashboard) return <><History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
+    played={room.deckList.reduce((total, deck) => total + deck.used, 0)} started={room.started}
+    onAdmin={isAdmin ? () => { Linking.openURL(`${WEBSITE}/admin`); } : undefined}
     title={together || room.couple ? 'A little time for two.' : `Welcome, ${conn.name}.`}
-    subtitle={together || room.couple ? 'Choose a deck. Start a conversation.' : 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.'}
+    subtitle={together || room.couple ? (room.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.'}
     onOpen={() => act({ type: 'openCards' })} disabled={link !== 'live'} error={error || (link === 'live' ? undefined : link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…')}
     invite={!room.couple && !together ? <>
       <Text style={st.pillText}>Your room code</Text>

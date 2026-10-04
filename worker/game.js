@@ -175,7 +175,11 @@ export function applyAction(room, actorId, isPlayer, action) {
 }
 
 function act(room, actorId, isPlayer, { type, category, decks, fresh, mode, text, on }) {
-  if (type === 'openCards') { room.cardsOpenVersion = (room.cardsOpenVersion || 0) + 1; }
+  if (type === 'openCards') {
+    // Opening a previously played room resumes its saved card, even if its picker was left open.
+    if (room.started) room.choosing = false;
+    room.cardsOpenVersion = (room.cardsOpenVersion || 0) + 1;
+  }
   else if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
   else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; freshCard(room); }
   else if (type === 'flip') { if (tapToReveal(room)) room.flipped = !room.flipped; }

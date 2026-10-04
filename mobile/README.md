@@ -12,7 +12,10 @@ shared: one partner can be on the website and the other in the app, in the same 
 - Sign up / log in; the sign-in is kept in the phone's keychain until you log out
 - Link with your partner by their 6-letter code (the screen notices when they link)
 - Guest rooms by 4-letter code, with a share sheet invite
-- Minimalist guest and account dashboards with invites while waiting, a menu, and a guest signup prompt
+- Minimalist guest and account dashboards with the Closer logo, invites while waiting, a menu, and a guest signup prompt
+- Cards played totals on the dashboard; Continue cards resumes the saved card without automatically reopening the deck picker
+- Admin dashboard button for admins; opens the website on the same server (browser sign-in may be required)
+- Question position is visible on unrevealed and revealed cards
 - Menu → History for linked accounts: used and remaining cards, exploration percentage, and deck counts
 - Opening cards on either connected partner’s dashboard opens cards for both; returning is individual
 - The card: face up by default in new rooms, optional tap to reveal together, swipe left/right for next/previous, favorite with the heart

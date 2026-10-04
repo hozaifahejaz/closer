@@ -93,7 +93,7 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
       }]}
     >
       <Pressable style={StyleSheet.absoluteFill} onPress={tapToReveal ? onFlip : undefined} disabled={!tapToReveal}
-        accessibilityRole={tapToReveal ? 'button' : undefined} accessibilityLabel={tapToReveal ? (flipped ? 'Turn the card over' : 'Reveal the question') : undefined}>
+        accessibilityRole={tapToReveal ? 'button' : undefined} accessibilityLabel={`Question ${position.replace(' / ', ' of ')}${tapToReveal ? (flipped ? '. Turn the card over' : '. Reveal the question') : ''}`}>
         <Animated.View style={[st.face, backStyle]} pointerEvents={flipped ? 'none' : 'auto'} accessibilityElementsHidden={flipped}>
           <View style={st.clip}>
             <LinearGradient colors={cardGradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 1 }} style={StyleSheet.absoluteFill} />
@@ -101,6 +101,7 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
             <View style={st.inset} />
             <View><Icon name="heart" size={Math.min(64, size.w * 0.16, size.h * 0.3)} color="#fff" strokeWidth={1.4} /></View>
             {size.h > 120 ? <Text style={st.tap}>Tap to reveal together</Text> : null}
+            <Text style={st.backNum} accessibilityLiveRegion="polite">{position}</Text>
           </View>
         </Animated.View>
 
@@ -134,6 +135,7 @@ const st = StyleSheet.create({
   clip: { flex: 1, borderRadius: radius.card, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   inset: { ...StyleSheet.absoluteFill, margin: 12, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
   tap: { marginTop: 14, fontFamily: fonts.sansMedium, fontSize: 13, letterSpacing: 0.3, color: '#ffe6e6', opacity: 0.92 },
+  backNum: { position: 'absolute', bottom: 22, fontFamily: fonts.sans, fontSize: 12, color: '#fff', letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   front: { justifyContent: 'flex-start', paddingTop: 24, paddingBottom: 20, paddingHorizontal: 26, backgroundColor: colors.card },
   cat: { marginHorizontal: 34, fontFamily: fonts.sansBold, fontSize: 12, letterSpacing: 1.9, textTransform: 'uppercase', color: colors.rose, textAlign: 'center' },
   qWrap: { flex: 1, minHeight: 0, justifyContent: 'center', paddingVertical: 8, maxWidth: 520 },

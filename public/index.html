@@ -158,6 +158,7 @@
   .back .mark { font-size:clamp(44px, 12vw, 60px); opacity:.95; }
   .back .mark .ico { stroke-width:1.4; }
   .back .tap { margin-top:14px; font-size:13px; font-weight:500; letter-spacing:.02em; color:#ffe6e6; opacity:.9; }
+  .back .num { position:absolute; bottom:22px; font-size:12px; color:#fff; font-variant-numeric:tabular-nums; letter-spacing:.04em; }
   .t-mouse { display:none; }
   .front { background:var(--card); color:var(--ink); transform:rotateY(180deg); background-image:radial-gradient(600px 300px at 50% 0%, #fff9f2 0%, transparent 70%); }
   /* Front: category, question and count stack in normal flow so a long question on a small card never runs into them. */
@@ -418,6 +419,12 @@
   #dashboardCards { border-radius:12px; box-shadow:none; font-size:14px; min-height:48px; }
   #dashboardShare { font-size:13px; min-height:44px; border-radius:10px; }
   .dash-head .brand { font-size:26px; }
+  .dash-head .brand > span:last-child { display:inline; }
+  .dashboard-admin { display:inline-flex; align-items:center; gap:12px; margin-bottom:24px; text-decoration:none; }
+  .dashboard-stat { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; padding:20px 0 28px; }
+  .dashboard-stat b { font-size:36px; font-weight:500; letter-spacing:-1px; }
+  .dashboard-stat span { font-size:14px; color:var(--muted); }
+  .dashboard-stat small { flex-basis:100%; font-size:12px; color:var(--muted); }
   .dash-content { padding:64px 0 48px; max-width:540px; }
   .dash-content h1 { font-family:var(--serif); font-size:clamp(30px,5vw,42px); font-weight:500; letter-spacing:-.8px; margin:0 0 16px; }
   .dash-content p { color:var(--muted); font-size:15px; max-width:360px; line-height:1.7; margin:0 0 28px; }
@@ -534,7 +541,7 @@
   <p class="foot"><a href="/privacy">Privacy policy</a></p>
 
   <main id="dashboard" class="dashboard hidden">
-    <header class="dash-head"><span class="brand">Closer</span>
+    <header class="dash-head"><span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
       <button id="menuToggle" class="ghost" aria-label="Open menu" aria-expanded="false" aria-controls="dashboardMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <nav id="dashboardMenu" class="dash-menu hidden" aria-label="Dashboard menu">
         <a class="link" href="/privacy">Privacy policy</a>
@@ -546,7 +553,7 @@
     <section id="inviteArea" class="dash-invite" aria-label="Invite your partner">
       <div id="guestInvite"><label>Your room code</label><div class="row"><span id="dashboardCode" class="dash-code"></span><button id="dashboardShare" class="ghost">Share invite</button></div></div>
     </section>
-    <section class="dash-content"><h1 id="dashboardTitle"></h1><p id="dashboardSubtitle"></p><button id="dashboardCards" class="primary">Open cards</button><p id="dashboardError" class="err" role="alert"></p></section>
+    <section class="dash-content"><a id="dashboardAdmin" class="ghost dashboard-admin hidden" href="/admin">Admin dashboard<svg class="ico"><use href="#i-right"/></svg></a><h1 id="dashboardTitle"></h1><p id="dashboardSubtitle"></p><div class="dashboard-stat" aria-live="polite"><b id="dashboardPlayed">0</b><span>Cards played</span><small id="dashboardStatNote">Distinct cards revealed or answered together.</small></div><button id="dashboardCards" class="primary">Open cards</button><p id="dashboardError" class="err" role="alert"></p></section>
     <aside id="guestSignup" class="signup-prompt hidden" aria-labelledby="signupPromptTitle">
       <h2 id="signupPromptTitle">Make your moments last.</h2>
       <p>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</p>
@@ -566,7 +573,8 @@
     </div>
     <div class="scene" id="scene" title="Flip the card" role="button" tabindex="0" aria-label="Flip the card">
       <div class="card" id="card">
-        <div class="face back"><div class="mark"><svg class="ico"><use href="#i-heart"/></svg></div><div class="tap"><span class="t-touch">Tap to reveal together</span><span class="t-mouse">Click or press Space to reveal</span></div></div>
+        <div class="face back"><div class="mark"><svg class="ico"><use href="#i-heart"/></svg></div><div class="tap"><span class="t-touch">Tap to reveal together</span><span class="t-mouse">Click or press Space to reveal</span></div><div class="num" id="backNum" aria-live="polite"></div>
+        </div>
         <div class="face front">
           <div class="cat" id="cat"></div>
           <button class="fav" id="fav" title="Save to favorites" aria-label="Save to favorites"><svg class="ico"><use href="#i-heart"/></svg></button>
@@ -688,8 +696,12 @@ function dashboard() {
   $('accountMenu').classList.toggle('hidden', guest || !account);
   $('unlink').classList.toggle('hidden', !account?.partner);
   $('leaveGuest').classList.toggle('hidden', !guest);
+  $('dashboardAdmin').classList.toggle('hidden', !account?.isAdmin);
+  $('dashboardCards').textContent = room?.started ? 'Continue cards' : 'Open cards';
+  $('dashboardPlayed').textContent = room ? room.deckList.reduce((total, deck) => total + deck.used, 0) : account?.partner ? '…' : '0';
+  $('dashboardStatNote').textContent = guest ? 'Distinct cards revealed or answered in this guest room.' : 'Distinct cards revealed or answered in your shared account room.';
   $('dashboardTitle').textContent = connected ? 'A little time for two.' : `Welcome, ${guest ? me : account?.name || ''}.`;
-  $('dashboardSubtitle').textContent = connected ? 'Choose a deck. Start a conversation.' : guest ? 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.';
+  $('dashboardSubtitle').textContent = connected ? (room?.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : guest ? 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.';
   $('dashboardCards').disabled = (!guest && !connected) || !room || link !== 'live';
   $('dashboardReclaim').classList.toggle('hidden', link !== 'replaced');
   $('dashboardError').textContent = room && link !== 'live' ? (link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…') : '';
@@ -956,7 +968,7 @@ function render(s) {
   $('decksLabel').textContent = deckName(s.decks) + (s.fresh ? ' · new only' : '');
   renderPicker(s, first);
   $('cat').textContent = s.card.category;
-  $('num').textContent = `${s.index + 1} / ${s.total}`;
+  $('num').textContent = $('backNum').textContent = `${s.index + 1} / ${s.total}`;
   $('fav').classList.toggle('on', s.favorites.includes(s.card.text));
   const key = draftKey(s);
   clearTimeout(cardTextTimer);
@@ -969,7 +981,7 @@ function render(s) {
   }
   $('revealSwitch').setAttribute('aria-checked', String(s.tapToReveal));
   document.body.classList.toggle('auto-reveal', !s.tapToReveal);
-  $('scene').setAttribute('role', s.tapToReveal ? 'button' : 'group'); $('scene').title = s.tapToReveal ? 'Flip the card' : ''; $('scene').setAttribute('aria-label', s.tapToReveal ? 'Flip the card' : 'Question card'); $('scene').tabIndex = s.tapToReveal ? 0 : -1;
+  $('scene').setAttribute('role', s.tapToReveal ? 'button' : 'group'); $('scene').title = s.tapToReveal ? 'Flip the card' : ''; $('scene').setAttribute('aria-label', `Question ${s.index + 1} of ${s.total}${s.tapToReveal ? (s.flipped ? '. Turn the card over' : '. Reveal the question') : ''}`); $('scene').tabIndex = s.tapToReveal ? 0 : -1;
   if (key !== lastKey) $('answerText').value = drafts.get(key) || '';
   lastKey = key;
   renderMode(s, partner[0]);
@@ -1101,9 +1113,6 @@ const deckName = decks => !decks.length ? 'All decks' : decks.length === 1 ? dec
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 let pickSel = new Set(), pickFresh = false, picking = false;
 function renderPicker(s, first) {
-  // Coming back to a room you've played before (and your partner isn't here yet):
-  // offer the picker first, with "Continue" ready.
-  if (roomView === 'cards' && first && s.started && !s.choosing && s.partners.length < 2) act({ type: 'choose', on: true });
   document.body.classList.toggle('choosing', s.choosing && roomView === 'cards');
   $('picker').classList.toggle('hidden', !s.choosing || roomView !== 'cards');
   if (!s.choosing) { picking = false; return; }
