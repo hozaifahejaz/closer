@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, Linking, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Action } from '../api';
 import { WEBSITE } from '../config';
@@ -7,6 +7,8 @@ import { colors, fonts, radius } from '../theme';
 import { Connection, useRoom } from '../useRoom';
 import { useKeyboardVisible } from '../useKeyboard';
 import { AnswerPanel } from '../components/AnswerPanel';
+import { History } from '../components/History';
+import { Dashboard } from '../components/Dashboard';
 import { Card } from '../components/Card';
 import { DeckPicker } from '../components/DeckPicker';
 import { Icon } from '../components/Icon';
@@ -14,7 +16,7 @@ import { Button, HeartBadge, Segmented, tap, Toggle } from '../components/ui';
 
 const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 
-export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: string) => void }) {
+export function Game({ conn, onLeave, accounts, signedIn }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean }) {
   const { room, link, send, reclaim, draft, setDraft, answerPending, error } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -22,6 +24,9 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
   const [toastOpacity] = useState(() => new Animated.Value(0));
   const keyboard = useKeyboardVisible();
   const first = useRef(true);
+  const openVersion = useRef<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [dashboard, setDashboard] = useState(conn.kind === 'guest');
 
   const say = useCallback((msg: string) => {
     setToast(msg);
@@ -35,9 +40,9 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
 
   useEffect(() => { if (error) say(error); }, [error, say]);
   useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { onLeave(); return true; });
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { if (dashboard) onLeave(); else setDashboard(true); return true; });
     return () => subscription.remove();
-  }, [onLeave]);
+  }, [onLeave, dashboard]);
 
   const act = useCallback((a: Action) => {
     const ok = send(a);
@@ -45,12 +50,21 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
     return ok;
   }, [send, say]);
 
+  useEffect(() => {
+    if (!room) return;
+    const version = room.cardsOpenVersion || 0;
+    if (openVersion.current !== null && version > openVersion.current) {
+      setHistoryOpen(false); setDashboard(false);
+    }
+    openVersion.current = version;
+  }, [room]);
+
   // Back in a room you've played before, before your partner arrives: open the picker with "Continue" ready.
   useEffect(() => {
-    if (!room || !first.current) return;
+    if (!room || dashboard || !first.current) return;
     first.current = false;
     if (room.started && !room.choosing && room.partners.length < 2) act({ type: 'choose', on: true });
-  }, [room, act]);
+  }, [room, act, dashboard]);
 
   if (!room) {
     return (
@@ -77,20 +91,42 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
     } catch { say(`Code: ${room.code}`); }
   };
 
+  if (dashboard) return <><History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
+    title={together || room.couple ? 'A little time for two.' : `Welcome, ${conn.name}.`}
+    subtitle={together || room.couple ? 'Choose a deck. Start a conversation.' : 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.'}
+    onOpen={() => act({ type: 'openCards' })} disabled={link !== 'live'} error={error || (link === 'live' ? undefined : link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…')}
+    invite={!room.couple && !together ? <>
+      <Text style={st.pillText}>Your room code</Text>
+      <View style={st.row}><Text selectable style={[st.pillCode, { fontSize: 26, letterSpacing: 6, flex: 1 }]}>{room.code}</Text><Button kind="ghost" title="Share invite" onPress={invite} /></View>
+    </> : undefined}
+    promotion={!room.couple && !signedIn ? <>
+      <Text style={{ fontFamily: fonts.serif, fontSize: 22, color: colors.text }}>Make your moments last.</Text>
+      <Text style={{ fontFamily: fonts.sans, fontSize: 14, lineHeight: 23, color: colors.muted }}>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</Text>
+      <Button kind="ghost" title="Create an account" disabled={!accounts} onPress={() => { if (accounts) Linking.openURL(WEBSITE); }} style={{ alignSelf: 'flex-start' }} />
+      <Text style={{ fontFamily: fonts.sans, fontSize: 12, lineHeight: 19, color: colors.muted }}>{accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.'}</Text>
+    </> : undefined}
+    menu={[
+      ...(room.couple ? [{ title: 'History', onPress: () => setHistoryOpen(true) }] : []),
+      ...(link === 'replaced' ? [{ title: 'Use room here', onPress: reclaim }] : []),
+      { title: 'Privacy policy', onPress: () => { Linking.openURL(`${WEBSITE}/privacy`); } },
+      { title: room.couple ? 'Back to account' : 'Leave room', onPress: () => onLeave() },
+    ]}
+  /></>;
+
   const top = (
     <View style={st.top}>
-      <Pressable onPress={() => { tap(); onLeave(); }} hitSlop={10} style={st.back} accessibilityRole="button" accessibilityLabel="Leave the room">
+      <Pressable onPress={() => { tap(); setDashboard(true); }} hitSlop={10} style={st.back} accessibilityRole="button" accessibilityLabel="Back to dashboard">
         <Icon name="left" size={20} color={colors.text} />
       </Pressable>
       <View style={st.brand}><HeartBadge size={26} />{width >= 360 ? <Text style={st.brandText}>Closer</Text> : null}</View>
       <View style={{ flex: 1 }} />
       {room.couple ? (
         <View style={st.pill}><Icon name="heart" size={13} color={colors.accent} fill strokeWidth={0} /><Text style={st.pillName}>Just us</Text></View>
-      ) : (
+      ) : !together ? (
         <Pressable onPress={invite} style={({ pressed }) => [st.pill, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityLabel={`Room ${room.code}. Invite your partner`}>
           <Text style={st.pillText}>Room</Text><Text style={st.pillCode}>{room.code}</Text>
         </Pressable>
-      )}
+      ) : null}
       <View style={[st.pill, { maxWidth: wide ? 220 : 140 }]}>
         <View style={[st.dot, together && st.dotOn]} />
         <Text numberOfLines={1} style={together ? st.pillName : st.pillText}>{together ? partner : 'Waiting…'}</Text>
@@ -125,7 +161,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={() => act({ type: 'prev' })} style={[{ width: compact ? 48 : 56, paddingHorizontal: 0 }, btnH]} />
       <Button title={compact ? 'Next' : 'Next question'} accessibilityLabel="Next question" iconRight="right" onPress={() => act({ type: 'next' })} style={[{ flex: 1 }, btnH]} />
       {compact ? decksButton : null}
-      {compact && !room.couple ? <Button kind="ghost" title="" icon="share" accessibilityLabel="Invite your partner" onPress={invite} style={[st.iconBtn, btnH]} /> : null}
+      {compact && !room.couple && !together ? <Button kind="ghost" title="" icon="share" accessibilityLabel="Invite your partner" onPress={invite} style={[st.iconBtn, btnH]} /> : null}
     </View>
   );
 
@@ -154,7 +190,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       {typing || compact ? null : (
         <View style={st.row}>
           {decksButton}
-          {!room.couple ? <Button kind="ghost" title="Invite" icon="share" onPress={invite} /> : null}
+          {!room.couple && !together ? <Button kind="ghost" title="Invite" icon="share" onPress={invite} /> : null}
         </View>
       )}
     </View>
@@ -195,7 +231,7 @@ export function Game({ conn, onLeave }: { conn: Connection; onLeave: (message?: 
       <Animated.View pointerEvents="none" style={[st.toast, { opacity: toastOpacity, bottom: insets.bottom + 90 }]}>
         <Text style={st.toastText}>{toast}</Text>
       </Animated.View>
-      <DeckPicker room={room} send={act} onLeave={() => onLeave()} banner={banner} />
+      <DeckPicker room={room} send={act} onLeave={() => setDashboard(true)} banner={banner} />
     </View>
   );
 }

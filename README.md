@@ -7,8 +7,10 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 - **Guest room:** Create or join a room with a four-letter code. No account is needed. The room holds its cards and answers for up to six hours after it becomes idle; guest answers are not saved to an account.
 - **Couple account:** Sign up with an email and password, then link once using your partner's six-letter invite code. The linked pair gets a private room. Answers and favorites are saved in Supabase.
 - **Account deletion:** Signed-in users can delete their account after confirming their password. The website and mobile app link to the same deletion API; the public [deletion page](https://closer.hozaiphaa.workers.dev/delete-account) also works outside the app. Deletion revokes sessions, unlinks the partner, and removes saved data and durable room copies for the account's former couples.
+- **Dashboard:** Guest and account users start on a minimalist dashboard. Invite codes appear while waiting for a partner. The menu holds account and room actions. Opening cards brings both connected partners into cards; returning to the dashboard is individual. Guest users are offered signup to save future progress; existing guest progress does not transfer.
+- **History:** Account users can view unique used cards, remaining cards, and per-deck progress from Menu → History. Cards count when revealed or answered. History covers the current shared room; after one year of inactivity, rebuilding it restores answered-card history only.
 - **Cards:** Choose any mix of the 26 decks (1,378 questions), move forward or back, and switch decks without losing your place in that selection. A couple can also choose **Only new cards**. The shared room remembers deck progress while it exists; idle couple rooms expire after one year and rebuild from saved answers and favorites.
-- **Modes:** Use **Just talk** or **Answer & reveal**. In Answer & reveal, each answer is hidden from the other partner until both have answered. Either partner can toggle **Tap to reveal**, flip a card, change decks or modes, and mark a shared favorite.
+- **Modes:** Use **Just talk** or **Answer & reveal**. In Answer & reveal, each answer is hidden from the other partner until both have answered. **Tap to reveal** is off for new rooms; existing rooms keep their saved preference. Either partner can toggle **Tap to reveal**, flip a card, change decks or modes, and mark a shared favorite.
 
 Web and native clients keep unfinished answer drafts while moving between cards or reconnecting. Draft text lives in memory and is lost after a page reload or app process restart. The native app can offer to resume a recent guest room after restarting.
 
@@ -31,7 +33,7 @@ npm start                 # http://localhost:8787
 
 Guest rooms work without local secrets. To try the site on another device on the same Wi-Fi, run `npm start -- --ip 0.0.0.0` and open the computer's local IP address.
 
-For local account testing, use a **separate Supabase development project**. Put its `SUPABASE_URL` and `SUPABASE_ANON_KEY`, plus its matching `CLOSER_DB_KEY`, in `.dev.vars`. The public defaults in `wrangler.jsonc` point to the production Supabase project; do not use the production database for development accounts or tests.
+Future changes are reviewed in the separate `Closer-experiments` worktree on `experiments/staging`. Hosted experiments use guest rooms; account testing uses its private local PostgreSQL database and local demo login buttons. Production is updated only after approval. The public defaults in `wrangler.jsonc` point to production Supabase; do not use production credentials or data for local testing.
 
 ## Database setup
 
@@ -48,7 +50,7 @@ The app uses its own account and session functions, protected by the Worker secr
 | `worker/room-storage.js`, `worker/db.js` | Durable room data and Supabase calls |
 | `questions.json` | 26 decks; card positions are stable IDs |
 | `supabase/migrations/` | Database schema and account functions |
-| [`mobile-apps` branch](https://github.com/hozaifahejaz/closer/tree/mobile-apps/mobile) | React Native / Expo Android and iOS app |
+| [`mobile/`](mobile/) | React Native / Expo Android and iOS app |
 
 Always append questions to a deck. If a question must be retired, replace it with `null`: changing earlier positions would change saved card IDs and progress.
 
@@ -58,12 +60,14 @@ npm run test:db                # isolated temporary PostgreSQL database
 npx wrangler deploy --dry-run  # Cloudflare build and binding check
 ```
 
-The database checks need PostgreSQL with `pgcrypto` and `initdb`, `pg_ctl`, and `psql` on `PATH`. They create a temporary local cluster and never connect to production. The mobile branch has its own setup and checks in [its README](https://github.com/hozaifahejaz/closer/blob/mobile-apps/mobile/README.md).
+The database checks need PostgreSQL with `pgcrypto` and `initdb`, `pg_ctl`, and `psql` on `PATH`. They create a temporary local cluster and never connect to production. The mobile app has its own setup and checks in [its README](mobile/README.md).
 
 ## Release
 
 Cloudflare hosts the website, API, and WebSocket Durable Objects as the `closer` Worker. `npm run deploy` publishes the current checkout; the connected GitHub deployment also redeploys pushes to `main`. Set `CLOSER_DB_KEY` as a Cloudflare Worker secret and apply database migrations before deploying Worker code that needs them.
 
-The native app source is on `mobile-apps`. Android and iOS production over-the-air updates for runtime `1.0.0` have been published through Expo. Store builds and their distribution are managed separately from the website; see the [mobile README](https://github.com/hozaifahejaz/closer/blob/mobile-apps/mobile/README.md).
+The website and native app source are together on `main`; `mobile-apps` mirrors the release. Android and iOS production over-the-air updates for runtime `1.0.0` have been published through Expo. Store builds and their distribution are managed separately from the website; see the [mobile README](mobile/README.md).
+
+The dashboard, History, shared card opening, and reveal defaults reuse the existing database schema; all 14 production Supabase migrations are current. Local demo accounts and preview configuration are not included in production.
 
 A one-time deck purchase/unlock, a saved-answer library, account recovery, and end-to-end encryption are future features; they are not in the current release.

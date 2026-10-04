@@ -39,13 +39,14 @@ export function randomCode(length) {
 }
 
 export function newRoom(code, coupleId = null) {
-  return { code, coupleId, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false,
-    flipped: false, tapToReveal: true, favorites: [], mode: 'talk', answers: {} };
+  return { code, coupleId, cardsOpenVersion: 0, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false,
+    flipped: true, tapToReveal: false, favorites: [], mode: 'talk', answers: {} };
 }
 
 // Rooms saved before decks existed only had one category.
 export function upgradeRoom(room) {
   if (!room) return room;
+  if (room.tapToReveal === undefined) { room.tapToReveal = false; room.flipped = true; }
   if (!room.decks) {
     room.decks = !room.category || room.category === 'All' ? [] : [room.category];
     room.progress = {};
@@ -88,7 +89,7 @@ function refresh(order, index, decks, keep = () => true) {
 // partner has answered it.
 const isUsed = (room, card) => Boolean(room.seen?.[cardKey(card)]) || cardKey(card) in room.answers;
 function markSeen(room) {
-  if (!room.flipped) return;
+  if (!room.flipped || room.started === false || room.choosing) return;
   room.seen ||= {};
   room.seen[cardKey(room.order[room.index])] = true;
 }
@@ -110,8 +111,8 @@ function useDecks(room, decks, fresh) {
 const unusedCount = (room, decks) => (decks.length ? decks : CATEGORIES)
   .reduce((n, c) => n + cards(c).filter(card => !isUsed(room, card)).length, 0);
 
-// Rooms saved before the setting existed have no field: treat them as "tap to reveal" on.
-const tapToReveal = room => room.tapToReveal !== false;
+// Cards are visible unless the room explicitly enables tap to reveal.
+const tapToReveal = room => room.tapToReveal === true;
 // With tap to reveal off, every card lands face up.
 function freshCard(room) {
   room.flipped = !tapToReveal(room);
@@ -119,6 +120,8 @@ function freshCard(room) {
 
 export const cardKey = card => `${card.c}:${card.i}`;
 export const questionText = card => DECK[card.c]?.[card.i];
+
+export const cardUsage = room => CATEGORIES.map(name => ({ name, count: cards(name).length, used: cards(name).filter(card => isUsed(room, card)).length }));
 
 // State is tailored per viewer: a partner's answer stays hidden until both have answered.
 // `players` is a Map of player id -> name for everyone currently connected.
@@ -137,10 +140,11 @@ export function publicState(room, players, viewerId) {
     generation: room.generation || 0,
     code: room.coupleId ? null : room.code,
     couple: Boolean(room.coupleId),
-    deckList: CATEGORIES.map(name => ({ name, count: cards(name).length, used: cards(name).filter(card => isUsed(room, card)).length })),
+    deckList: cardUsage(room),
     fresh: Boolean(room.fresh),
     decks: room.decks,
     choosing: Boolean(room.choosing),
+    cardsOpenVersion: room.cardsOpenVersion || 0,
     started: room.started !== false,
     // Where the room is in every set of decks it has played, so the picker can offer "Continue".
     saved: Object.fromEntries([...Object.entries(room.progress).map(([k, p]) => [k, { index: p.index, total: p.order.length }]),
@@ -171,7 +175,8 @@ export function applyAction(room, actorId, isPlayer, action) {
 }
 
 function act(room, actorId, isPlayer, { type, category, decks, fresh, mode, text, on }) {
-  if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
+  if (type === 'openCards') { room.cardsOpenVersion = (room.cardsOpenVersion || 0) + 1; }
+  else if (type === 'next') { room.index = (room.index + 1) % room.order.length; freshCard(room); }
   else if (type === 'prev') { room.index = (room.index - 1 + room.order.length) % room.order.length; freshCard(room); }
   else if (type === 'flip') { if (tapToReveal(room)) room.flipped = !room.flipped; }
   else if (type === 'tapToReveal' && typeof on === 'boolean') { room.tapToReveal = on; if (!on) room.flipped = true; }

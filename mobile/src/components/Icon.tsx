@@ -2,6 +2,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 // The website's icon set, drawn natively.
 const shapes = {
+  menu: <Path d="M4 6h16M4 12h16M4 18h16" />,
   heart: <Path d="M12 20.3c-.3 0-.6-.1-.8-.3C6.4 15.8 3 12.8 3 8.9 3 6.2 5.1 4 7.7 4c1.8 0 3.3 1 4.3 2.4C13 5 14.5 4 16.3 4 18.9 4 21 6.2 21 8.9c0 3.9-3.4 6.9-8.2 11.1-.2.2-.5.3-.8.3z" />,
   left: <Path d="M19 12H5m6-6-6 6 6 6" />,
   right: <Path d="M5 12h14m-6-6 6 6-6 6" />,

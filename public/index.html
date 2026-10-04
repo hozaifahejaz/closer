@@ -402,6 +402,48 @@
   @media (min-width:1400px) and (min-height:521px) { :root { --sw:380px; } }
 
   @media (prefers-reduced-motion:reduce) { .card, button, .panel, .switch i { transition:none; } .reveal .a, .q.swap { animation:none; } }
+
+  body.on-dashboard { background:var(--bg); padding:0; }
+  body.on-dashboard .lobbyView, body.on-dashboard > .foot { display:none; }
+  .dashboard { width:min(100%,900px); padding:28px 24px; min-height:100dvh; }
+  .dash-head { display:flex; align-items:center; justify-content:space-between; position:relative; padding-bottom:24px; border-bottom:1px solid var(--line); }
+  .dash-menu { position:absolute; right:0; top:64px; z-index:20; width:220px; padding:10px; border:1px solid var(--line); border-radius:14px; background:var(--bg2); box-shadow:0 12px 36px #0004; }
+  .dash-menu button,.dash-menu a { display:block; width:100%; text-align:left; padding:12px; }
+  .dash-invite { margin-top:32px; padding:24px; background:linear-gradient(135deg,#2a1c2e88,#24182744); border:1px solid var(--line); border-radius:16px; max-width:540px; }
+  .dash-invite .hello,.dash-invite .hint,.dash-invite #linkBox > div:last-child { display:none; }
+  .dash-code { flex:1; font-size:28px; letter-spacing:6px; font-weight:600; line-height:1.5; }
+  .dash-invite label { display:block; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; margin-bottom:12px; color:var(--muted); }
+  #menuToggle { display:grid; place-items:center; width:44px; min-height:44px; padding:0; border-radius:50%; background:transparent; border-color:transparent; }
+  #menuToggle:hover, #menuToggle[aria-expanded="true"] { background:var(--bg2); border-color:var(--line); }
+  #dashboardCards { border-radius:12px; box-shadow:none; font-size:14px; min-height:48px; }
+  #dashboardShare { font-size:13px; min-height:44px; border-radius:10px; }
+  .dash-head .brand { font-size:26px; }
+  .dash-content { padding:64px 0 48px; max-width:540px; }
+  .dash-content h1 { font-family:var(--serif); font-size:clamp(30px,5vw,42px); font-weight:500; letter-spacing:-.8px; margin:0 0 16px; }
+  .dash-content p { color:var(--muted); font-size:15px; max-width:360px; line-height:1.7; margin:0 0 28px; }
+  .dash-content button { min-width:180px; }
+  .dash-link { display:block; color:var(--muted); overflow-wrap:anywhere; margin:12px 0 0; font-size:13px; }
+  #historyDialog { color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:28px; width:min(520px,calc(100% - 32px)); max-height:85dvh; }
+  #historyDialog::backdrop { background:#0009; }
+  .history-head { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .history-head h2 { font-family:var(--serif); margin:0; font-weight:500; font-size:28px; }
+  .history-head button { min-height:40px; padding:8px 12px; }
+  .history-note { font-size:13px; line-height:1.6; color:var(--muted); }
+  .history-stats { display:flex; gap:24px; margin:24px 0; }
+  .history-stats b { display:block; font-size:28px; font-weight:500; }
+  .history-stats small { color:var(--muted); }
+  .history-deck { margin-top:20px; font-size:14px; }
+  .history-deck div { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .history-deck span { color:var(--muted); }
+  .history-deck progress { width:100%; height:6px; accent-color:var(--accent); }
+  .signup-prompt { max-width:540px; padding:24px 0; border-top:1px solid var(--line); }
+  .signup-prompt h2 { font-family:var(--serif); font-size:22px; font-weight:500; margin:0 0 10px; }
+  .signup-prompt p { font-size:14px; color:var(--muted); line-height:1.7; max-width:400px; margin:0 0 18px; }
+  .signup-prompt button { font-size:13px; min-height:44px; border-radius:10px; }
+  .signup-prompt small { display:block; color:var(--muted); font-size:12px; line-height:1.6; margin-top:12px; max-width:400px; }
+  #backDashboard { min-height:34px; padding:6px 10px; }
+  @media(max-width:360px) { #game .brand > span:last-child { display:none; } }
+  @media(max-width:520px) { .dashboard {padding:20px;} .dash-content {padding-top:48px;} }
 </style>
 </head>
 <body>
@@ -491,9 +533,32 @@
   </main>
   <p class="foot"><a href="/privacy">Privacy policy</a></p>
 
+  <main id="dashboard" class="dashboard hidden">
+    <header class="dash-head"><span class="brand">Closer</span>
+      <button id="menuToggle" class="ghost" aria-label="Open menu" aria-expanded="false" aria-controls="dashboardMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <nav id="dashboardMenu" class="dash-menu hidden" aria-label="Dashboard menu">
+        <a class="link" href="/privacy">Privacy policy</a>
+        <div id="accountMenu" class="hidden"><button id="historyOpen" class="link">History</button></div>
+        <button id="dashboardReclaim" class="link hidden">Use room here</button>
+        <button id="leaveGuest" class="link">Leave room</button>
+      </nav>
+    </header>
+    <section id="inviteArea" class="dash-invite" aria-label="Invite your partner">
+      <div id="guestInvite"><label>Your room code</label><div class="row"><span id="dashboardCode" class="dash-code"></span><button id="dashboardShare" class="ghost">Share invite</button></div></div>
+    </section>
+    <section class="dash-content"><h1 id="dashboardTitle"></h1><p id="dashboardSubtitle"></p><button id="dashboardCards" class="primary">Open cards</button><p id="dashboardError" class="err" role="alert"></p></section>
+    <aside id="guestSignup" class="signup-prompt hidden" aria-labelledby="signupPromptTitle">
+      <h2 id="signupPromptTitle">Make your moments last.</h2>
+      <p>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</p>
+      <button id="dashboardSignup" class="ghost">Create an account</button>
+      <small id="signupPromptNote">Your current guest progress won’t transfer to your account.</small>
+    </aside>
+  </main>
+  <dialog id="historyDialog" aria-labelledby="historyTitle"><div class="history-head"><h2 id="historyTitle">History</h2><button id="historyClose" class="ghost" aria-label="Close history">✕</button></div><p class="history-note">Cards revealed or answered in your shared account room.</p><div id="historyContent" aria-live="polite"></div></dialog>
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
+      <button id="backDashboard" class="ghost" aria-label="Back to dashboard">←</button>
       <span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
       <span class="pill" id="roomPill">Room <b id="code"></b></span>
       <button class="pill pill-btn hidden" id="shareTop" title="Invite your partner"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
@@ -576,12 +641,13 @@ if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
 function show(box) {
   for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
   $('err').textContent = '';
+  $('dashboardError').textContent = '';
   $('lobby').classList.add('ready');
   clearInterval(linkPoll);
 }
 function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
 function clearSession(why = '') {
-  setToken(null); account = null;
+  setToken(null); account = null; historyRequest++; if ($('historyDialog').open) $('historyDialog').close(); $('historyContent').textContent = '';
   leaveRoom(why); drafts.clear(); pendingCommands.clear(); $('answerText').value = '';
   show('authBox'); $('err').textContent = why;
 }
@@ -598,20 +664,67 @@ async function api(path, body) {
   return data;
 }
 
-function showAccount(a) {
-  account = a;
-  document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
-  if (a.partner) {
-    $('partnerName').textContent = a.partner.name;
-    show('homeBox');
-  } else {
-    $('helloName').textContent = a.name;
-    $('myCode').textContent = a.inviteCode;
-    show('linkBox');
-    // Notice when the partner types in our code on their phone.
-    linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
-  }
+let roomView = 'dashboard';
+// Reuse the account controls and their existing handlers in the dashboard.
+$('inviteArea').append($('linkBox'));
+$('accountMenu').append($('homeBox').lastElementChild);
+function closeMenu() { $('dashboardMenu').classList.add('hidden'); $('menuToggle').setAttribute('aria-expanded', 'false'); }
+$('menuToggle').onclick = () => { const open = $('dashboardMenu').classList.toggle('hidden') === false; $('menuToggle').setAttribute('aria-expanded', String(open)); };
+document.addEventListener('click', e => { if (!e.target.closest('.dash-head')) closeMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); $('menuToggle').focus(); } });
+function dashboard() {
+  const guest = !!room && !room.couple;
+  const connected = guest ? room.partners.length === 2 : !!account?.partner;
+  roomView = 'dashboard';
+  document.body.classList.remove('in-game', 'choosing', 'answer-mode', 'auto-reveal');
+  document.body.classList.add('on-dashboard');
+  $('dashboard').classList.remove('hidden'); $('game').classList.add('hidden'); $('picker').classList.add('hidden');
+  $('inviteArea').classList.toggle('hidden', connected);
+  $('guestInvite').classList.toggle('hidden', !guest);
+  $('guestSignup').classList.toggle('hidden', !guest || !!account);
+  $('dashboardSignup').disabled = !accounts;
+  $('signupPromptNote').textContent = accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.';
+  $('linkBox').classList.toggle('hidden', guest || connected);
+  $('accountMenu').classList.toggle('hidden', guest || !account);
+  $('unlink').classList.toggle('hidden', !account?.partner);
+  $('leaveGuest').classList.toggle('hidden', !guest);
+  $('dashboardTitle').textContent = connected ? 'A little time for two.' : `Welcome, ${guest ? me : account?.name || ''}.`;
+  $('dashboardSubtitle').textContent = connected ? 'Choose a deck. Start a conversation.' : guest ? 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.';
+  $('dashboardCards').disabled = (!guest && !connected) || !room || link !== 'live';
+  $('dashboardReclaim').classList.toggle('hidden', link !== 'replaced');
+  $('dashboardError').textContent = room && link !== 'live' ? (link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…') : '';
+  if (guest) { $('dashboardCode').textContent = room.code; }
+  if (account) { $('helloName').textContent = account.name; $('myCode').textContent = account.inviteCode; }
 }
+function showAccount(a) {
+  account = a; show(a.partner ? 'homeBox' : 'linkBox');
+  document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
+  dashboard();
+  if (a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
+    couple = true; me = a.name;
+    openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not connect to your shared room.');
+  }
+  if (!a.partner) linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
+}
+$('dashboardCards').onclick = () => {
+  closeMenu(); if (room) act({ type: 'openCards' });
+};
+let historyRequest = 0;
+$('historyClose').onclick = () => { historyRequest++; $('historyDialog').close(); };
+$('historyDialog').addEventListener('close', () => { historyRequest++; $('historyOpen').focus(); });
+$('historyOpen').onclick = async () => {
+  closeMenu(); const request = ++historyRequest; $('historyContent').textContent = 'Loading your history…'; $('historyDialog').showModal();
+  try {
+    const data = await api('/api/history');
+    if (request !== historyRequest || !$('historyDialog').open || !account) return;
+    if (!data.linked) { $('historyContent').textContent = 'Link with your partner to start your shared card history.'; return; }
+    $('historyContent').innerHTML = `<div class="history-stats"><div><b>${data.used}</b><small>Used</small></div><div><b>${data.remaining}</b><small>Remaining</small></div><div><b>${Math.round(data.used / (data.total || 1) * 100)}%</b><small>Explored</small></div></div>` + (data.used ? '' : '<p class="history-note">Your story starts with the first card. Reveal a card to begin.</p>') + data.decks.map(d => `<div class="history-deck"><div><strong>${escapeHtml(d.name)}</strong><span>${d.used} / ${d.count}</span></div><progress value="${d.used}" max="${d.count}" aria-label="${escapeHtml(d.name)} cards used"></progress></div>`).join('');
+  } catch (error) { if (request === historyRequest && $('historyDialog').open) $('historyContent').textContent = error.message; }
+};
+$('dashboardSignup').onclick = () => { if (accounts) window.open(location.origin + '/', '_blank', 'noopener,noreferrer'); };
+$('backDashboard').onclick = () => { saveDraft(); dashboard(); };
+$('dashboardReclaim').onclick = () => { closeMenu(); $('partners').click(); };
+$('leaveGuest').onclick = () => { closeMenu(); leaveRoom(''); };
 
 let signingUp = true;
 function setAuthTab(signup) {
@@ -634,7 +747,7 @@ $('authBox').onsubmit = async e => {
     const r = await api(signingUp ? '/api/signup' : '/api/login', body);
     setToken(r.token); $('password').value = '';
     showAccount(r.me);
-  } catch (err) { $('err').textContent = err.message; }
+  } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
   finally { $('authGo').disabled = false; }
 };
 $('showGuest').onclick = () => { show('guestBox'); $('showAuth').classList.remove('hidden'); };
@@ -649,12 +762,12 @@ document.querySelectorAll('[data-logout]').forEach(b => b.onclick = async () => 
 });
 $('unlink').onclick = async () => {
   if (!confirm(`Unlink from ${account.partner.name}? Your saved answers stay saved.`)) return;
-  try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+  try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
 };
 $('linkGo').onclick = async () => {
   const code = $('partnerCode').value.trim().toUpperCase();
-  if (code.length !== 6) { $('err').textContent = 'Partner codes are 6 letters.'; return; }
-  try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; }
+  if (code.length !== 6) { $('dashboardError').textContent = 'Partner codes are 6 letters.'; return; }
+  try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
 };
 $('shareMyCode').onclick = async () => {
   const text = `Join me on Closer! Sign up at ${location.origin} and enter my code: ${account.inviteCode}`;
@@ -671,7 +784,7 @@ $('startCouple').onclick = () => {
   if (!accounts || params.get('room')) return show('guestBox');
   // Even without a saved token, the sign-in cookie may still be there.
   try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
-  catch (err) { show('authBox'); if (token) $('err').textContent = err.message; }
+  catch (err) { show('authBox'); if (token) $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
 })();
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
@@ -700,7 +813,7 @@ $('join').onclick = () => {
 // live: in sync. reconnecting: dropped and trying again. replaced: the same person
 // opened the room on another device, which took over their seat.
 let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false;
-function setLink(l) { link = l; if (room) renderPartners(room); }
+function setLink(l) { link = l; if (room) { renderPartners(room); if (roomView === 'dashboard') dashboard(); } }
 function openSocket(path, failMessage) {
   const url = new URL(path, location.origin);
   url.searchParams.set('protocol', '2');
@@ -757,6 +870,7 @@ async function roomGone() {
 // Back to the start screen, e.g. when the room was closed by Closer's team or has ended.
 function leaveRoom(why) {
   const wasCouple = room && room.couple;
+  roomView = 'dashboard'; closeMenu(); $('dashboard').classList.add('hidden'); document.body.classList.remove('on-dashboard');
   saveDraft();
   clearTimeout(cardTextTimer); lastKey = '';
   const previous = ws;
@@ -777,6 +891,7 @@ document.addEventListener('visibilitychange', () => {
 $('partners').onclick = () => { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } };
 
 async function connect(code) {
+  roomView = 'dashboard'; couple = false;
   $('err').textContent = '';
   let check;
   try { check = await fetch(`/api/rooms/${code}`, { method: 'GET' }); }
@@ -824,10 +939,18 @@ function cardAction(type, text) {
 let lastKey = '', cardTextTimer = null;
 function render(s) {
   saveDraft();
-  const first = !room; room = s;
+  const first = !room;
+  const openTogether = !first && room.roomId === s.roomId && (s.cardsOpenVersion || 0) > (room.cardsOpenVersion || 0);
+  if (openTogether) {
+    roomView = 'cards'; closeMenu();
+    if ($('historyDialog').open) $('historyDialog').close();
+    document.body.classList.remove('on-dashboard'); $('dashboard').classList.add('hidden');
+  }
+  room = s;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
   $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
-  $('share').classList.toggle('hidden', !!s.couple); $('shareTop').classList.toggle('hidden', !!s.couple);
+  $('roomPill').classList.toggle('hidden', !s.couple && s.partners.length === 2);
+  $('share').classList.toggle('hidden', !!s.couple || s.partners.length === 2); $('shareTop').classList.toggle('hidden', !!s.couple || s.partners.length === 2);
   const partner = s.partners.filter(p => p !== me);
   renderPartners(s);
   $('decksLabel').textContent = deckName(s.decks) + (s.fresh ? ' · new only' : '');
@@ -850,6 +973,7 @@ function render(s) {
   if (key !== lastKey) $('answerText').value = drafts.get(key) || '';
   lastKey = key;
   renderMode(s, partner[0]);
+  if (roomView === 'dashboard') dashboard();
 }
 
 function renderPartners(s) {
@@ -870,7 +994,7 @@ function renderMode(s, partnerName = 'your partner') {
   $('modeTalk').classList.toggle('on', s.mode === 'talk');
   $('modeAnswer').classList.toggle('on', s.mode === 'answer');
   $('answer').classList.toggle('hidden', s.mode !== 'answer');
-  document.body.classList.toggle('answer-mode', s.mode === 'answer');
+  document.body.classList.toggle('answer-mode', s.mode === 'answer' && roomView === 'cards');
   if (s.mode !== 'answer') return;
   const answered = s.myAnswer !== null;
   $('answerForm').classList.toggle('hidden', answered);
@@ -979,14 +1103,14 @@ let pickSel = new Set(), pickFresh = false, picking = false;
 function renderPicker(s, first) {
   // Coming back to a room you've played before (and your partner isn't here yet):
   // offer the picker first, with "Continue" ready.
-  if (first && s.started && !s.choosing && s.partners.length < 2) act({ type: 'choose', on: true });
-  document.body.classList.toggle('choosing', s.choosing);
-  $('picker').classList.toggle('hidden', !s.choosing);
+  if (roomView === 'cards' && first && s.started && !s.choosing && s.partners.length < 2) act({ type: 'choose', on: true });
+  document.body.classList.toggle('choosing', s.choosing && roomView === 'cards');
+  $('picker').classList.toggle('hidden', !s.choosing || roomView !== 'cards');
   if (!s.choosing) { picking = false; return; }
   if (!picking) { picking = true; pickSel = new Set(s.decks.length ? s.decks : s.deckList.map(d => d.name)); pickFresh = s.fresh; }
   // "Only cards we haven't seen" needs an account: guest rooms don't keep history.
   const fresh = s.couple && pickFresh;
-  $('pickCancel').classList.toggle('hidden', !s.started);
+  $('pickCancel').classList.remove('hidden');
   const all = s.deckList.length;
   const left = d => d.count - d.used;
   const countLine = (count, unused) => !fresh ? plural(count, 'card', 'cards') : unused ? `${unused} new` : 'All seen';
@@ -1066,9 +1190,9 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
 });
 $('decksBtn').onclick = () => act({ type: 'choose', on: true });
-$('pickCancel').onclick = () => act({ type: 'choose', on: false });
+$('pickCancel').onclick = () => { if (room.started) act({ type: 'choose', on: false }); dashboard(); };
 $('pickGo').onclick = () => { if (pickSel.size) act({ type: 'decks', decks: [...pickSel], fresh: Boolean(room.couple && pickFresh) }); };
-$('share').onclick = $('shareTop').onclick = async () => {
+$('dashboardShare').onclick = $('share').onclick = $('shareTop').onclick = async () => {
   const link = `${location.origin}/?room=${room.code}`;
   try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
   catch { toast(`Code: ${room.code}`); }

@@ -1,0 +1,28 @@
+import { useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useRoom, type Connection, type Link } from '../useRoom';
+
+type Controls = { open: () => boolean; reclaim: () => void };
+// Keep the shared account room connected while its dashboard is visible.
+export function AccountPresence({ token, id, name, controlsRef, onOpen, onLeave, onLink, onError }: {
+  token: string; id: string; name: string;
+  controlsRef: RefObject<Controls | null>;
+  onOpen: (conn: Connection) => void; onLeave: (message: string) => void;
+  onLink: (link: Link) => void; onError: (message: string) => void;
+}) {
+  const conn = useMemo<Connection>(() => ({ kind: 'couple', token, id, name }), [token, id, name]);
+  const { room, link, send, reclaim, error } = useRoom(conn, onLeave);
+  const version = useRef<number | null>(null);
+  useEffect(() => {
+    controlsRef.current = { open: () => link === 'live' && send({ type: 'openCards' }), reclaim };
+    return () => { controlsRef.current = null; };
+  }, [controlsRef, link, send, reclaim]);
+  useEffect(() => { onLink(link); }, [link, onLink]);
+  useEffect(() => { if (error) onError(error); }, [error, onError]);
+  useEffect(() => {
+    if (!room) return;
+    const next = room.cardsOpenVersion || 0;
+    if (version.current !== null && next > version.current) onOpen(conn);
+    version.current = next;
+  }, [room, conn, onOpen]);
+  return null;
+}

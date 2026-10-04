@@ -12,7 +12,10 @@ shared: one partner can be on the website and the other in the app, in the same 
 - Sign up / log in; the sign-in is kept in the phone's keychain until you log out
 - Link with your partner by their 6-letter code (the screen notices when they link)
 - Guest rooms by 4-letter code, with a share sheet invite
-- The card: tap to reveal together, swipe left/right for next/previous, favorite with the heart
+- Minimalist guest and account dashboards with invites while waiting, a menu, and a guest signup prompt
+- Menu → History for linked accounts: used and remaining cards, exploration percentage, and deck counts
+- Opening cards on either connected partner’s dashboard opens cards for both; returning is individual
+- The card: face up by default in new rooms, optional tap to reveal together, swipe left/right for next/previous, favorite with the heart
 - Just talk / Answer & reveal, and the tap-to-reveal switch
 - The deck picker (any mix of decks, saved place in each, "only cards we haven't seen" for couples)
 - Reconnects on its own after the phone sleeps or changes network
@@ -51,14 +54,14 @@ keep their original storage key.
 The app is linked to the Expo project `@hozaifahs-team/closer`. Expo Go only
 loads updates whose runtime version is `exposdk:<SDK>`, while `app.json` keeps
 the `appVersion` policy for real builds, so publish an Expo Go preview with a
-temporary override:
+publishing override provided by `app.config.js` (no edit to `app.json`):
 
 ```bash
 cd mobile
-node -e 'const f="app.json",j=require("./"+f);j.expo.runtimeVersion="exposdk:57.0.0";require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")'
-EXPO_TOKEN=... npx eas-cli@latest update --channel expo-go --environment preview --message "..." --non-interactive
-git checkout app.json
+CLOSER_EXPO_GO=1 EXPO_PUBLIC_CLOSER_ENVIRONMENT=production EXPO_PUBLIC_CLOSER_SERVER=https://closer.hozaiphaa.workers.dev npx eas-cli@latest update --channel expo-go --environment production --message "Describe the release" --non-interactive
 ```
+
+Publish compatible installed apps separately using `npx eas-cli@latest update --channel production --environment production --message "Describe the release" --non-interactive`, without `CLOSER_EXPO_GO`. Native runtime remains `1.0.0`.
 
 Expo Go always loads the newest update on that channel from this link:
 `exp://u.expo.dev/f9f9c491-5905-4341-ad96-c1d9b85d48bf?runtime-version=exposdk%3A57.0.0&channel-name=expo-go`
@@ -87,7 +90,7 @@ Guest room connection details are saved securely so a restarted app can offer
 Draft text itself is not persisted across force quit or OS process termination.
 
 This repair keeps SDK/native dependencies and `runtimeVersion` unchanged for the
-existing 1.0.0 Android runtime. Android Back now returns to the lobby. A migration
+existing 1.0.0 Android runtime. Android Back returns from cards to the dashboard while keeping the room connected. Leaving a guest room is an explicit menu action. A migration
 to Expo Router is deferred to a future native build because it adds native
 navigation dependencies. Whenever native dependencies change, bump the app/runtime
 version and build a new binary before publishing matching updates.

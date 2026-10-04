@@ -6,7 +6,7 @@
 //   is sent over that socket and broadcast back to both.
 // - Accounts go through database functions in Supabase (see supabase/schema.sql).
 import { DurableObject } from 'cloudflare:workers';
-import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary } from './game.js';
+import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary, cardUsage } from './game.js';
 import { Db, DbError } from './db.js';
 import { RoomStorage, listEntries } from './room-storage.js';
 
@@ -134,7 +134,7 @@ async function accountApi(request, url, db, env) {
   }
 
   // Logging out may use it too, so a page that lost its saved token still ends the session.
-  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/couple/ws')) ||
+  const readsWithCookie = ((request.method === 'GET' && (url.pathname === '/api/me' || url.pathname === '/api/history' || url.pathname === '/api/couple/ws')) ||
     (request.method === 'POST' && url.pathname === '/api/logout')) && sameOrigin(request, url);
   const fromCookie = !tokenOf(request, url) && readsWithCookie ? cookieToken(request) : null;
   const token = tokenOf(request, url) || fromCookie;
@@ -202,6 +202,12 @@ async function accountApi(request, url, db, env) {
     return withCookie(json(200, { ok: true }), url, null);
   }
   if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token, state);
+  if (url.pathname === '/api/history' && request.method === 'GET') {
+    if (!state.couple_id) return json(200, { linked: false, decks: [], used: 0, total: 0, remaining: 0 });
+    const response = await roomStub(env, `couple:${state.couple_id}`).fetch(withPlayer(request, { id: state.id, name: state.name, token, couple: state.couple_id }));
+    const headers = new Headers(response.headers); headers.set('Cache-Control', 'no-store');
+    return new Response(response.body, { status: response.status, headers });
+  }
   if (url.pathname === '/api/couple/ws') {
     if (!state.couple_id) return json(409, { error: 'Link with your partner first' });
     return roomStub(env, `couple:${state.couple_id}`)
@@ -441,7 +447,8 @@ export class Room extends DurableObject {
     }
 
     // Anything else is a player connecting.
-    if (request.headers.get('Upgrade') !== 'websocket') return json(426, { error: 'Expected a WebSocket' });
+    const history = url.pathname === '/api/history' && request.method === 'GET';
+    if (!history && request.headers.get('Upgrade') !== 'websocket') return json(426, { error: 'Expected a WebSocket' });
     const player = {
       id: request.headers.get('x-player-id'),
       name: decodeURIComponent(request.headers.get('x-player-name') || 'Partner'),
@@ -466,6 +473,13 @@ export class Room extends DurableObject {
       if (!this.room) { this.room = room; await this.save(); }
     }
     if (!this.room) return json(404, { error: 'Room not found' });
+    if (history) {
+      if (!coupleId || this.room.coupleId !== coupleId) return json(403, { error: 'Account history only' });
+      const decks = cardUsage(this.room);
+      const total = decks.reduce((sum, deck) => sum + deck.count, 0);
+      const used = decks.reduce((sum, deck) => sum + deck.used, 0);
+      return json(200, { linked: true, decks, total, used, remaining: total - used });
+    }
 
     // The same person reconnecting (a reload or a second device) takes over their seat.
     const existing = this.ctx.getWebSockets(player.id);

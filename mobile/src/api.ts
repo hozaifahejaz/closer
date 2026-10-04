@@ -24,6 +24,7 @@ export type RoomState = {
   decks: string[];
   choosing: boolean;
   started: boolean;
+  cardsOpenVersion?: number;
   saved: Record<string, { index: number; total: number }>;
   index: number;
   total: number;
@@ -39,7 +40,7 @@ export type RoomState = {
 };
 
 export type Action =
-  | { type: 'next' | 'prev' | 'flip' }
+  | { type: 'next' | 'prev' | 'flip' | 'openCards' }
   | { type: 'favorite'; cardKey: string; generation: number }
   | { type: 'tapToReveal' | 'choose'; on: boolean }
   | { type: 'decks'; decks: string[]; fresh: boolean }

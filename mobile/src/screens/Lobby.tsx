@@ -6,8 +6,11 @@ import { Account, api, ApiError } from '../api';
 import { WEBSITE } from '../config';
 import { setItem } from '../storage';
 import { cardGradient, colors, fonts, radius } from '../theme';
-import type { Connection } from '../useRoom';
+import type { Link, Connection } from '../useRoom';
+import { AccountPresence } from '../components/AccountPresence';
 import type { GuestResume } from '../sessionRecovery';
+import { History } from '../components/History';
+import { Dashboard } from '../components/Dashboard';
 import { Icon, IconName } from '../components/Icon';
 import { Button, Field, HeartBadge, Or, Segmented } from '../components/ui';
 
@@ -37,6 +40,9 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [partnerCode, setPartnerCode] = useState('');
   const [err, setErr] = useState(notice);
   const [busy, setBusy] = useState('');
+  const presence = useRef<{ open: () => boolean; reclaim: () => void } | null>(null);
+  const [roomLink, setRoomLink] = useState<Link>('connecting');
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const pw = useRef<TextInput>(null);
@@ -264,6 +270,30 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       {err ? <Text style={st.err} accessibilityRole="alert">{err}</Text> : null}
     </View>
   );
+
+  if (account && !deleting) return <>
+    {account.partner && token ? <AccountPresence key={`${account.id}:${account.partner.id}:${token}`} token={token} id={account.id} name={account.name} controlsRef={presence} onOpen={onPlay} onLink={setRoomLink} onError={setErr}
+      onLeave={message => { setErr(message); api<Account>('/api/me', token).then(me => onSession(token, me, token)).catch(fail); }} /> : null}
+    <History visible={historyOpen} token={token} onClose={() => setHistoryOpen(false)} /><Dashboard
+    title={account.partner ? 'A little time for two.' : `Welcome, ${account.name}.`}
+    subtitle={account.partner ? 'Choose a deck. Start a conversation.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.'}
+    disabled={!account.partner || roomLink !== 'live'} error={err || (account.partner && roomLink !== 'live' ? (roomLink === 'replaced' ? 'Your room is open on another device.' : 'Connecting to your shared room…') : '')}
+    onOpen={() => { if (!presence.current?.open()) setErr('Reconnecting…'); }}
+    invite={!account.partner ? <>
+      <Text style={st.label}>Your partner code</Text>
+      <View style={st.row}><View style={st.bigcode}><Text style={st.bigcodeText} selectable>{account.inviteCode}</Text></View><Button kind="ghost" title="Share" onPress={shareCode} /></View>
+      <Text style={st.label}>Or enter your partner’s code</Text>
+      <View style={st.row}><TextInput value={partnerCode} onChangeText={t => setPartnerCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={6} placeholder="CODE" autoCapitalize="characters" autoCorrect={false} returnKeyType="done" onSubmitEditing={linkPartner} accessibilityLabel="Partner's code" placeholderTextColor={colors.faint} style={[st.input, st.code]} /><Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} /></View>
+    </> : undefined}
+    menu={[
+      ...(roomLink === 'replaced' ? [{ title: 'Use room here', onPress: () => presence.current?.reclaim() }] : []),
+      { title: 'History', onPress: () => setHistoryOpen(true) },
+      { title: 'Privacy policy', onPress: () => { Linking.openURL(`${WEBSITE}/privacy`); } },
+      ...(account.partner ? [{ title: 'Unlink partner', onPress: unlink }] : []),
+      { title: 'Log out', onPress: logout },
+      { title: 'Delete account', onPress: () => { setDeleting(true); setErr(''); } },
+    ]}
+  /></>;
 
   const pad = { paddingLeft: Math.max(insets.left, 16), paddingRight: Math.max(insets.right, 16) };
   return (
