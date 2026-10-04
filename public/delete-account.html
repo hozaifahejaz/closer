@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1d1420">
+<title>Delete your account · Closer</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; padding:32px 16px; background:#1d1420; color:#f4e9ef; font:16px/1.6 system-ui,sans-serif; }
+  main { max-width:520px; margin:0 auto; }
+  h1 { font-size:32px; line-height:1.2; margin:28px 0 16px; }
+  a { color:#e8766f; }
+  p, li { color:#ddccd9; }
+  form { margin:28px 0; padding:24px; background:#2a1c2e; border:1px solid #3d2b41; border-radius:16px; }
+  label { display:block; margin:14px 0 6px; }
+  input[type=email], input[type=password] { display:block; width:100%; padding:12px; border:1px solid #765a73; border-radius:8px; background:#1d1420; color:white; font:inherit; }
+  .check { display:flex; gap:10px; align-items:start; margin:18px 0; }
+  .check input { margin-top:6px; }
+  .check label { margin:0; }
+  button { padding:12px 18px; border:0; border-radius:8px; background:#e8766f; color:#1d1420; font:600 16px system-ui,sans-serif; cursor:pointer; }
+  button:disabled { opacity:.55; cursor:wait; }
+  #message { min-height:24px; }
+</style>
+</head>
+<body>
+<main>
+  <a href="/">← Back to Closer</a>
+  <h1>Delete your Closer account</h1>
+  <p>You can request deletion here even if you no longer have the mobile app. Enter your account email and password to confirm it is yours.</p>
+  <p>Deletion is permanent. It removes your profile, sign-in sessions, and the answers and favorites saved in any couple rooms you joined. Your partner's answers in those old rooms are also removed, and your partner will need to link with someone again. Guest rooms are separate and expire automatically.</p>
+  <form id="deleteForm">
+    <label for="email">Account email</label>
+    <input id="email" type="email" autocomplete="email" required>
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div class="check"><input id="confirm" type="checkbox" required><label for="confirm">I understand that this deletes my account and saved couple data permanently.</label></div>
+    <button id="submit" type="submit">Delete my account</button>
+  </form>
+  <p id="message" role="status" aria-live="polite"></p>
+  <p>If you cannot sign in, email <a href="mailto:hozaiphaa@gmail.com?subject=Closer%20account%20deletion">hozaiphaa@gmail.com</a> from your account address to request deletion. We may ask you to verify ownership.</p>
+  <p><a href="/privacy">Privacy policy</a></p>
+</main>
+<script>
+const form = document.getElementById('deleteForm');
+const message = document.getElementById('message');
+const button = document.getElementById('submit');
+async function post(path, body, token) {
+  const response = await fetch(path, { method:'POST', headers:{ 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }, body:JSON.stringify(body) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Could not complete your request. Please try again.');
+  return data;
+}
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  button.disabled = true;
+  message.textContent = 'Deleting your account…';
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    const { token } = await post('/api/login', { email, password });
+    await post('/api/account/delete', { password }, token);
+    try { localStorage.removeItem('closer:token'); } catch {}
+    form.remove();
+    message.textContent = 'Your Closer account and saved couple data have been deleted.';
+  } catch (error) {
+    message.textContent = error.message;
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

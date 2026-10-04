@@ -6,6 +6,7 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 
 - **Guest room:** Create or join a room with a four-letter code. No account is needed. The room holds its cards and answers for up to six hours after it becomes idle; guest answers are not saved to an account.
 - **Couple account:** Sign up with an email and password, then link once using your partner's six-letter invite code. The linked pair gets a private room. Answers and favorites are saved in Supabase.
+- **Account deletion:** Signed-in users can delete their account after confirming their password. The website and mobile app link to the same deletion API; the public [deletion page](https://closer.hozaiphaa.workers.dev/delete-account) also works outside the app. Deletion revokes sessions, unlinks the partner, and removes saved data and durable room copies for the account's former couples.
 - **Cards:** Choose any mix of the 26 decks (1,378 questions), move forward or back, and switch decks without losing your place in that selection. A couple can also choose **Only new cards**. The shared room remembers deck progress while it exists; idle couple rooms expire after one year and rebuild from saved answers and favorites.
 - **Modes:** Use **Just talk** or **Answer & reveal**. In Answer & reveal, each answer is hidden from the other partner until both have answered. Either partner can toggle **Tap to reveal**, flip a card, change decks or modes, and mark a shared favorite.
 

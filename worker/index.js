@@ -168,6 +168,39 @@ async function accountApi(request, url, db, env) {
       .fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ all: true, reason: "You're no longer linked" }) });
     return json(200, { ok: true });
   }
+  if (url.pathname === '/api/account/delete' && request.method === 'POST') {
+    // Require an explicit bearer token and password. Cookies alone cannot
+    // authorize a destructive request from another site.
+    if (!request.headers.get('Authorization')?.startsWith('Bearer '))
+      return json(401, { error: 'Please log in again' });
+    if (await tooMany(env.AUTH_LIMIT, `delete:${state.id}`)) return slowDown();
+    const { password } = await readBody(request);
+    if (typeof password !== 'string' || !password) return json(400, { error: 'Enter your password to delete your account' });
+    // A room with no saved answers might only exist in Durable Objects. Include
+    // currently active rooms as well as the historical IDs returned by the DB.
+    let active = [];
+    try {
+      active = (await statsStub(env).fetch('https://stats/rooms').then(r => r.json()))
+        .filter(r => r.couple && r.room?.slice(7).split(':').includes(state.id))
+        .map(r => r.room.slice(7));
+    } catch (error) { console.error('Could not list active rooms during account deletion', error); }
+    const saved = await db.rpc('delete_own_account', { p_token: token, p_password: password });
+    for (const couple of new Set([...saved, ...active])) {
+      const room = `couple:${couple}`;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await roomStub(env, room).fetch('https://room/admin/close', {
+            method: 'POST', body: JSON.stringify({ reason: 'This account was deleted', discard: true }),
+          });
+          if (response.ok) break;
+          if (attempt === 2) console.error('Could not clear deleted account room', room, response.status);
+        } catch (error) {
+          if (attempt === 2) console.error('Could not clear deleted account room', room, error);
+        }
+      }
+    }
+    return withCookie(json(200, { ok: true }), url, null);
+  }
   if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token, state);
   if (url.pathname === '/api/couple/ws') {
     if (!state.couple_id) return json(409, { error: 'Link with your partner first' });
