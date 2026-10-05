@@ -451,6 +451,12 @@
   #backDashboard { min-height:34px; padding:6px 10px; }
   @media(max-width:360px) { #game .brand > span:last-child { display:none; } }
   @media(max-width:520px) { .dashboard {padding:20px;} .dash-content {padding-top:48px;} }
+  input[type="checkbox"] { appearance:auto; -webkit-appearance:checkbox; width:20px; min-height:20px; height:20px; padding:0; margin:0 8px 0 0; vertical-align:middle; accent-color:var(--accent); }
+  #termsDialog, #safetyDialog { background:var(--bg2); color:var(--text); border:1px solid var(--line); border-radius:18px; width:min(540px, calc(100vw - 32px)); max-height:85dvh; overflow:auto; padding:24px; font-family:var(--sans); }
+  #termsDialog::backdrop, #safetyDialog::backdrop { background:#0009; }
+  #termsDialog p, #safetyDialog p { font-size:14px; line-height:1.6; }
+  #reportDetails { min-height:100px; resize:vertical; }
+  #reportPreview { margin:12px 0; padding:12px; background:var(--bg3); border-radius:10px; }
 </style>
 </head>
 <body>
@@ -491,7 +497,7 @@
       <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
       <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
       <button class="primary" id="authGo" type="submit">Create account</button>
-      <p class="hint" id="agree">By signing up you agree to our <a href="/privacy">privacy policy</a>.</p>
+      <p class="hint" id="agree">Read our <a href="/privacy">privacy policy</a> and <a href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a>. These rules apply to your display name and answers.<br><label><input type="checkbox" id="signupTerms"> I have read and agree to the Terms of Use &amp; Community Rules.</label></p>
       <div class="or">or</div>
       <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
     </form>
@@ -506,6 +512,7 @@
         <button class="ghost" id="join">Join</button>
       </div>
       <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
+    <label class="hint"><input type="checkbox" id="guestTerms"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a>.</label>
     </div>
 
     <!-- Signed in, not linked yet -->
@@ -544,7 +551,7 @@
     <header class="dash-head"><span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
       <button id="menuToggle" class="ghost" aria-label="Open menu" aria-expanded="false" aria-controls="dashboardMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <nav id="dashboardMenu" class="dash-menu hidden" aria-label="Dashboard menu">
-        <a class="link" href="/privacy">Privacy policy</a>
+        <button class="link" id="dashboardSafety">Safety &amp; support</button><a class="link" href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a><a class="link" href="/privacy">Privacy policy</a>
         <div id="accountMenu" class="hidden"><button id="historyOpen" class="link">History</button></div>
         <button id="dashboardReclaim" class="link hidden">Use room here</button>
         <button id="leaveGuest" class="link">Leave room</button>
@@ -624,7 +631,7 @@
       </div>
       <div class="bar">
         <button class="ghost deck-btn" id="decksBtn" aria-label="Choose decks"><svg class="ico"><use href="#i-cards"/></svg><span id="decksLabel">All decks</span><span class="chev" aria-hidden="true"></span></button>
-        <button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
+        <button class="ghost" type="button" id="cardsSafety" aria-label="Safety and support">Safety</button><button class="ghost" id="share"><svg class="ico"><use href="#i-share"/></svg>Invite</button>
       </div>
       <div class="keys"><span class="k-flip"><kbd>Space</kbd> flip</span><span><kbd>←</kbd> <kbd>→</kbd> move</span><span><kbd>F</kbd> favorite</span></div>
     </div>
@@ -632,6 +639,9 @@
 
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
+
+<dialog id="termsDialog" aria-labelledby="termsTitle"><h2 id="termsTitle">Before sharing an answer</h2><p>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</p><p><a href="/terms" target="_blank" rel="noopener">Read Terms of Use &amp; Community Rules</a> · <a href="/privacy" target="_blank" rel="noopener">Privacy policy</a></p><label><input type="checkbox" id="termsCheck"> I have read and agree to the Terms of Use &amp; Community Rules.</label><p id="termsError" class="err" role="alert"></p><div class="row"><button id="termsCancel" class="ghost">Cancel</button><button id="termsAccept" class="primary" disabled>Accept terms</button></div></dialog>
+<dialog id="safetyDialog" aria-labelledby="safetyTitle"><h2 id="safetyTitle">Safety &amp; support</h2><p>You choose what to share. Other private answers are not included. If you are in immediate danger, contact local emergency services.</p><form id="reportForm" class="stack"><label for="reportReason">Report reason</label><select id="reportReason"><option>Harassment or threats</option><option>Sexual or inappropriate content</option><option>Hate or discrimination</option><option>Child safety</option><option>Spam or impersonation</option><option>Other</option></select><label for="reportDetails">Details (optional)</label><textarea id="reportDetails" maxlength="1000" placeholder="Explain what happened. Include only what you want reviewers to see."></textarea><div id="reportAttachment" class="hidden"><blockquote id="reportPreview" style="white-space:pre-wrap;overflow-wrap:anywhere"></blockquote><label><input id="reportInclude" type="checkbox"> Share the revealed partner answer with reviewers</label></div><button id="reportSubmit" class="primary">Submit report</button></form><p id="safetyStatus" role="status" aria-live="polite"></p><p id="safetyError" class="err" role="alert"></p><button id="blockPartner" class="ghost">Block partner</button><p class="hint" id="blockExplanation"></p><p><a href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a> · <a href="mailto:hozaiphaa@gmail.com">Contact support / appeal</a></p><button id="safetyClose" class="ghost">Close</button></dialog>
 <script>
 const $ = id => document.getElementById(id);
 let room = null, me = '';
@@ -679,7 +689,7 @@ $('accountMenu').append($('homeBox').lastElementChild);
 function closeMenu() { $('dashboardMenu').classList.add('hidden'); $('menuToggle').setAttribute('aria-expanded', 'false'); }
 $('menuToggle').onclick = () => { const open = $('dashboardMenu').classList.toggle('hidden') === false; $('menuToggle').setAttribute('aria-expanded', String(open)); };
 document.addEventListener('click', e => { if (!e.target.closest('.dash-head')) closeMenu(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); $('menuToggle').focus(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { closeMenu(); $('menuToggle').focus(); } });
 function dashboard() {
   const guest = !!room && !room.couple;
   const connected = guest ? room.partners.length === 2 : !!account?.partner;
@@ -712,6 +722,7 @@ function showAccount(a) {
   account = a; show(a.partner ? 'homeBox' : 'linkBox');
   document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   dashboard();
+  if (!a.termsAccepted) { openTerms(); return; }
   if (a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
     couple = true; me = a.name;
     openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not connect to your shared room.');
@@ -752,7 +763,8 @@ $('tabSignup').onclick = () => setAuthTab(true);
 $('tabLogin').onclick = () => setAuthTab(false);
 $('authBox').onsubmit = async e => {
   e.preventDefault();
-  const body = { email: $('email').value, password: $('password').value, name: $('authName').value };
+  const body = { email: $('email').value, password: $('password').value, name: $('authName').value, termsVersion: $('signupTerms').checked ? '2026-10-04' : null };
+  if (signingUp && !body.termsVersion) { $('err').textContent = 'Accept the Terms of Use before signing up.'; return; }
   if (signingUp && !body.name.trim()) { $('err').textContent = 'Add your name first.'; return; }
   $('authGo').disabled = true;
   try {
@@ -777,6 +789,7 @@ $('unlink').onclick = async () => {
   try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
 };
 $('linkGo').onclick = async () => {
+  if (!account.termsAccepted) { openTerms(); return; }
   const code = $('partnerCode').value.trim().toUpperCase();
   if (code.length !== 6) { $('dashboardError').textContent = 'Partner codes are 6 letters.'; return; }
   try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
@@ -792,7 +805,9 @@ $('startCouple').onclick = () => {
 };
 
 (async function init() {
-  try { accounts = (await fetch('/api/config').then(r => r.json())).accounts; } catch {}
+  try {
+    accounts = (await fetch('/api/config').then(r => r.json())).accounts;
+  } catch {}
   if (!accounts || params.get('room')) return show('guestBox');
   // Even without a saved token, the sign-in cookie may still be there.
   try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
@@ -806,6 +821,7 @@ $('create').onclick = async () => {
   me = getName(); if (!me) return;
   $('create').disabled = true;
   try {
+    await ensureGuestTerms();
     const res = await fetch('/api/rooms', { method: 'POST' });
     const r = await res.json().catch(() => ({}));
     if (!res.ok || !r.code) throw new Error(r.error || 'Could not create a room, please try again');
@@ -842,6 +858,7 @@ function openSocket(path, failMessage) {
     let message;
     try { message = JSON.parse(e.data); } catch { return; }
     if (!message || typeof message !== 'object') return;
+    if (message.type === 'safetyResult') return finishSafety(message);
     if (message.type === 'ack') return acknowledge(message);
     if (!message.card || !Array.isArray(message.partners)) return;
     link = 'live'; socketReady = true;
@@ -903,6 +920,7 @@ document.addEventListener('visibilitychange', () => {
 $('partners').onclick = () => { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } };
 
 async function connect(code) {
+  try { await ensureGuestTerms(); } catch (error) { $('err').textContent = error.message; return; }
   roomView = 'dashboard'; couple = false;
   $('err').textContent = '';
   let check;
@@ -1180,13 +1198,14 @@ document.querySelectorAll('.modes button').forEach(b => b.onclick = () => act({ 
 $('lockIn').onclick = () => {
   const text = $('answerText').value.trim();
   if (!text) return toast('Write something first');
+  if (!room.termsAccepted) { openTerms(); return; }
   cardAction('answer', text);
 };
 $('revealSwitch').onclick = () => act({ type: 'tapToReveal', on: !room.tapToReveal });
 $('next').onclick = () => act({ type: 'next' });
 $('prev').onclick = () => act({ type: 'prev' });
 document.addEventListener('keydown', e => {
-  if ($('game').classList.contains('hidden') || document.body.classList.contains('choosing') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (document.querySelector('dialog[open]') || $('game').classList.contains('hidden') || document.body.classList.contains('choosing') || e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
   if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
   if (t.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -1206,6 +1225,73 @@ $('dashboardShare').onclick = $('share').onclick = $('shareTop').onclick = async
   try { if (navigator.share) await navigator.share({ title: 'Join me on Closer', text: `Room code ${room.code}`, url: link }); else { await navigator.clipboard.writeText(link); toast('Invite link copied'); } }
   catch { toast(`Code: ${room.code}`); }
 };
+
+const safetyPending = new Map();
+let reportCard = null, reportPartner = null, reportAnswer = null;
+async function ensureGuestTerms() {
+  const res = await fetch('/api/guest/terms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: clientId, version: $('guestTerms').checked ? '2026-10-04' : null }) });
+  const result = await res.json();
+  if (!res.ok || !result.accepted) throw new Error(result.error || 'Accept the Terms of Use before joining a room.');
+}
+function openTerms() { $('termsCheck').checked = false; $('termsAccept').disabled = true; $('termsError').textContent = ''; if (!$('termsDialog').open) $('termsDialog').showModal(); }
+function requestSafety(body) {
+  return new Promise((resolve, reject) => {
+    if (!socketReady || !ws || ws.readyState !== WebSocket.OPEN) return reject(new Error('Reconnect before using this action.'));
+    const id = crypto.randomUUID();
+    const timer = setTimeout(() => { safetyPending.delete(id); reject(new Error('No confirmation received. Please reconnect and try again.')); }, 12000);
+    safetyPending.set(id, { resolve, reject, timer });
+    try { ws.send(JSON.stringify({ ...body, id })); } catch { clearTimeout(timer); safetyPending.delete(id); reject(new Error('Connection interrupted. Please try again.')); }
+  });
+}
+function finishSafety(message) {
+  const pending = safetyPending.get(message.id); if (!pending) return;
+  clearTimeout(pending.timer); safetyPending.delete(message.id);
+  if (message.ok) pending.resolve(message); else pending.reject(new Error(message.error || 'Could not save.'));
+}
+$('termsCheck').onchange = () => { $('termsAccept').disabled = !$('termsCheck').checked; };
+$('termsCancel').onclick = () => $('termsDialog').close();
+$('termsAccept').onclick = async () => {
+  if (!$('termsCheck').checked) return;
+  $('termsAccept').disabled = true;
+  try {
+    if (account && !account.termsAccepted) { await api('/api/terms', { version: '2026-10-04' }); $('termsDialog').close(); showAccount(await api('/api/me')); }
+    else { await requestSafety({ type: 'acceptTerms', version: room.termsVersion }); $('termsDialog').close(); toast('Terms accepted. You can now submit your answer.'); }
+  }
+  catch (error) { $('termsError').textContent = error.message; }
+  finally { $('termsAccept').disabled = !$('termsCheck').checked; }
+};
+function openSafety() {
+  closeMenu(); if (!room) { if (account && !account.termsAccepted) openTerms(); else window.location.href = 'mailto:hozaiphaa@gmail.com'; return; }
+  reportPartner = room.partnerSafetyHandle;
+  $('reportInclude').checked = false; $('reportDetails').value = ''; $('safetyStatus').textContent = ''; $('safetyError').textContent = '';
+  const excerpt = room.reportablePartnerAnswer ?? undefined;
+  reportAnswer = excerpt ?? null;
+  reportCard = excerpt === undefined ? null : room.card.id;
+  $('reportPreview').textContent = excerpt || '';
+  $('reportAttachment').classList.toggle('hidden', excerpt === undefined);
+  $('reportSubmit').disabled = !room.canReportPartner; $('blockPartner').disabled = !room.canReportPartner;
+  $('blockExplanation').textContent = room.couple ? 'Blocking unlinks you and prevents these accounts from linking again.' : 'Blocking ends this room and prevents these saved guest identities from sharing rooms for up to one year. A new device or cleared storage creates a different identity.';
+  $('safetyDialog').showModal();
+}
+$('dashboardSafety').onclick = $('cardsSafety').onclick = openSafety;
+$('safetyClose').onclick = () => $('safetyDialog').close();
+$('reportForm').onsubmit = async event => {
+  event.preventDefault(); $('reportSubmit').disabled = true; $('safetyError').textContent = '';
+  try {
+    const result = await requestSafety({ type: 'reportUser', partnerHandle: reportPartner, reason: $('reportReason').value, details: $('reportDetails').value, includeAnswer: $('reportInclude').checked, answerText: reportAnswer, cardKey: reportCard });
+    $('safetyStatus').textContent = 'Report received. Reference: ' + result.reportId + '. You can also block your partner below.';
+    $('reportInclude').checked = false; $('reportDetails').value = '';
+  } catch (error) { $('safetyError').textContent = error.message; }
+  finally { $('reportSubmit').disabled = !room?.canReportPartner; }
+};
+$('blockPartner').onclick = async () => {
+  if (!confirm('Block this partner and end your connection? ' + $('blockExplanation').textContent)) return;
+  $('blockPartner').disabled = true; $('safetyError').textContent = '';
+  try { await requestSafety({ type: 'blockUser', partnerHandle: reportPartner }); $('safetyDialog').close(); }
+  catch (error) { $('safetyError').textContent = error.message; }
+  finally { $('blockPartner').disabled = !room?.canReportPartner; }
+};
+
 </script>
 </body>
 </html>

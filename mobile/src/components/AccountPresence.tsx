@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { Safety } from './Safety';
 import { useRoom, type Connection, type Link } from '../useRoom';
 
-type Controls = { open: () => boolean; reclaim: () => void };
+type Controls = { open: () => boolean; reclaim: () => void; safety: () => void };
 // Keep the shared account room connected while its dashboard is visible.
 export function AccountPresence({ token, id, name, controlsRef, onOpen, onLeave, onLink, onError, onProgress }: {
   token: string; id: string; name: string;
@@ -10,10 +11,11 @@ export function AccountPresence({ token, id, name, controlsRef, onOpen, onLeave,
   onLink: (link: Link) => void; onError: (message: string) => void; onProgress: (progress: { used: number; started: boolean }) => void;
 }) {
   const conn = useMemo<Connection>(() => ({ kind: 'couple', token, id, name }), [token, id, name]);
-  const { room, link, send, reclaim, error } = useRoom(conn, onLeave);
+  const { room, link, send, reclaim, error, requestSafety } = useRoom(conn, onLeave);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const version = useRef<number | null>(null);
   useEffect(() => {
-    controlsRef.current = { open: () => link === 'live' && send({ type: 'openCards' }), reclaim };
+    controlsRef.current = { safety: () => setSafetyOpen(true), open: () => link === 'live' && send({ type: 'openCards' }), reclaim };
     return () => { controlsRef.current = null; };
   }, [controlsRef, link, send, reclaim]);
   useEffect(() => { onLink(link); }, [link, onLink]);
@@ -25,5 +27,5 @@ export function AccountPresence({ token, id, name, controlsRef, onOpen, onLeave,
     if (version.current !== null && next > version.current) onOpen(conn);
     version.current = next;
   }, [room, conn, onOpen]);
-  return null;
+  return room ? <Safety mode={safetyOpen ? 'report' : null} room={room} request={requestSafety} onClose={() => setSafetyOpen(false)} /> : null;
 }

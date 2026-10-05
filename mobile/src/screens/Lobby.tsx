@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, AppState, KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Account, api, ApiError } from '../api';
@@ -32,6 +32,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [guest, setGuest] = useState(!accounts || !!startAsGuest);
+  const [termsChecked, setTermsChecked] = useState(false);
   const [signup, setSignup] = useState(true);
   const [name, setName] = useState(savedName);
   const [email, setEmail] = useState('');
@@ -40,7 +41,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [partnerCode, setPartnerCode] = useState('');
   const [err, setErr] = useState(notice);
   const [busy, setBusy] = useState('');
-  const presence = useRef<{ open: () => boolean; reclaim: () => void } | null>(null);
+  const presence = useRef<{ open: () => boolean; reclaim: () => void; safety: () => void } | null>(null);
   const [progress, setProgress] = useState<{ used: number; started: boolean } | null>(null);
   useEffect(() => { setProgress(null); }, [account?.id, account?.partner?.id]);
   const [roomLink, setRoomLink] = useState<Link>('connecting');
@@ -89,14 +90,20 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   }, [offline, token, onSession]);
 
   const auth = () => run('auth', async () => {
+    if (signup && !termsChecked) throw new Error('Accept the Terms of Use before signing up.');
     if (signup && !name.trim()) throw new Error('Add your name first.');
     if (!email.trim()) throw new Error('Add your email.');
-    const r = await api<{ token: string; me: Account }>(signup ? '/api/signup' : '/api/login', null, { email: email.trim(), password, name: name.trim() });
+    const r = await api<{ token: string; me: Account }>(signup ? '/api/signup' : '/api/login', null, { email: email.trim(), password, name: name.trim(), termsVersion: termsChecked ? '2026-10-04' : null });
     setPassword('');
     onSession(r.token, r.me);
   });
 
+  const ensureGuestTerms = async () => {
+    const result = await api<{ accepted: boolean }>('/api/guest/terms', null, { id: clientId, version: termsChecked ? '2026-10-04' : null });
+    if (!result.accepted) throw new Error('Accept the Terms of Use before joining a room.');
+  };
   const guestName = async () => {
+    await ensureGuestTerms();
     const n = name.trim();
     if (!n) throw new Error('Add your name first.');
     await setItem('closer:name', n);
@@ -116,6 +123,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   });
   const resumeRoom = () => run('resume', async () => {
     if (!resume) return;
+    await ensureGuestTerms();
     try { await api(`/api/rooms/${resume.code}`, null); }
     catch (e) {
       if (e instanceof ApiError && e.status === 404) { onForgetResume(); throw new Error('Your previous room has ended. Start a new one.'); }
@@ -168,6 +176,10 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [heroH, setHeroH] = useState(0);
   const view = account ? (account.partner ? 'home' : 'link') : guest ? 'guest' : 'auth';
 
+  const consent = <View style={{ gap: 8 }}><Button kind="link" title="Read Terms & community rules" onPress={() => { Linking.openURL(`${WEBSITE}/terms`); }} /><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: termsChecked }} onPress={() => setTermsChecked(!termsChecked)} style={{ paddingVertical: 10 }}><Text style={st.hint}>{termsChecked ? '☑' : '☐'} I have read and agree to the Terms of Use & Community Rules.</Text></Pressable></View>;
+
+  if (account && !account.termsAccepted && !deleting) return <ScrollView contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 16 }}><Text style={st.hello}>Review the terms before playing</Text><Text style={st.hint}>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</Text>{consent}<Button title="Accept terms" disabled={!termsChecked} busy={busy === 'terms'} onPress={() => { void run('terms', async () => { await api('/api/terms', token, { version: '2026-10-04' }); onSession(token, await api<Account>('/api/me', token), token); }); }} /><Button kind="link" title="Log out" onPress={logout} /><Button kind="link" title="Delete account" onPress={() => setDeleting(true)} />{err ? <Text style={st.err}>{err}</Text> : null}</ScrollView>;
+
   const panel = (
     <View style={[st.panel, compact && { padding: 16 }]}>
       {deleting && account && (
@@ -201,11 +213,12 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           </View>
           <Button title={signup ? 'Create account' : 'Log in'} onPress={auth} busy={busy === 'auth'} style={compact && st.btnCompact} />
           {signup ? (
-            <Text style={st.hint}>By signing up you agree to our{' '}
+            <Text style={st.hint}>Read our{' '}
               <Text style={st.a} onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} accessibilityRole="link">privacy policy</Text>.</Text>
           ) : null}
           <Or>or</Or>
           <Button kind="ghost" title="Play as a guest" onPress={() => { setGuest(true); setErr(''); }} style={compact && st.btnCompact} />
+          {signup ? consent : null}
         </View>
       )}
 
@@ -222,6 +235,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
             <Button kind="ghost" title="Join" onPress={join} busy={busy === 'join'} style={{ minWidth: 92 }} />
           </View>
           {accounts ? <Button kind="link" title="Sign up or log in instead" onPress={() => { setGuest(false); setErr(''); }} /> : null}
+          {consent}
         </View>
       )}
 
@@ -244,7 +258,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           </View>
           <Text style={st.hint}>You only do this once. After that you&apos;ll always land in your shared room.</Text>
           <Button kind="link" title="Log out" onPress={logout} />
-          <Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
+          <Button kind="link" title="Terms & community rules" onPress={() => { Linking.openURL(`${WEBSITE}/terms`); }} /><Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
           <Button kind="link" title="Delete account" onPress={() => { setDeleting(true); setErr(''); }} />
         </View>
       )}
@@ -263,7 +277,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
           <View style={st.links}>
             <Button kind="link" title="Unlink partner" onPress={unlink} />
             <Button kind="link" title="Log out" onPress={logout} />
-            <Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
+            <Button kind="link" title="Terms & community rules" onPress={() => { Linking.openURL(`${WEBSITE}/terms`); }} /><Button kind="link" title="Privacy policy" onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} />
             <Button kind="link" title="Delete account" onPress={() => { setDeleting(true); setErr(''); }} />
           </View>
         </View>
@@ -291,6 +305,8 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
     </> : undefined}
     menu={[
       ...(roomLink === 'replaced' ? [{ title: 'Use room here', onPress: () => presence.current?.reclaim() }] : []),
+      { title: 'Safety & support', onPress: () => { if (account.partner) presence.current?.safety(); else Linking.openURL('mailto:hozaiphaa@gmail.com'); } },
+      { title: 'Terms & community rules', onPress: () => { Linking.openURL(`${WEBSITE}/terms`); } },
       { title: 'History', onPress: () => setHistoryOpen(true) },
       { title: 'Privacy policy', onPress: () => { Linking.openURL(`${WEBSITE}/privacy`); } },
       ...(account.partner ? [{ title: 'Unlink partner', onPress: unlink }] : []),

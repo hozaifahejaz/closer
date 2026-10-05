@@ -15,9 +15,17 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 
 Web and native clients keep unfinished answer drafts while moving between cards or reconnecting. Draft text lives in memory and is lost after a page reload or app process restart. The native app can offer to resume a recent guest room after restarting.
 
+## Terms and safety
+
+Users explicitly accept [Terms of Use and Community Rules](https://closer.hozaiphaa.workers.dev/terms) before signup, guest entry, or existing-account partner interactions. Acceptance is recorded by version, and the server gates new answer submissions. Consent checkboxes appear below the form content.
+
+**Safety & support** is available from the dashboard and cards. Users can report a partner with a reason, optional details, and an optional explicitly selected revealed answer. Account blocking unlinks both users and prevents relinking in either direction. Guest blocking ends the room and blocks the saved guest identities for up to one year; clearing storage or changing devices creates a new identity.
+
+Admins review reports under **Safety reports**, with review notes, resolution/dismissal, guest-room closure, and account interaction restriction/restoration. Restriction keeps login and self-deletion available. Reports are retained for one year, including after account deletion for abuse review, as disclosed in the privacy policy. See [the safety runbook](docs/safety-review.md).
+
 ## Privacy and administration
 
-The [admin dashboard](https://closer.hozaiphaa.workers.dev/admin) shows activity, account and couple details, answer and favorite counts, and open rooms. Its API does not return written answers, passwords, or invite codes. Admins can sign accounts out, unlink partners, delete accounts or a couple's saved data, manage admins, and remove people or close rooms.
+The [admin dashboard](https://closer.hozaiphaa.workers.dev/admin) shows activity, account and couple details, answer and favorite counts, and open rooms. Its ordinary API does not return private answer history, passwords, or invite codes. Safety reviewers can see report details and a revealed partner answer only when the reporting user explicitly attaches it. Admins can sign accounts out, unlink partners, delete accounts or a couple's saved data, manage admins, and remove people or close rooms.
 
 Stored answers are **not end-to-end encrypted**. The service processes answer text to sync and save it, and someone with direct database or infrastructure access can read it. The dashboard restriction does not prevent that access.
 
@@ -69,6 +77,6 @@ Cloudflare hosts the website, API, and WebSocket Durable Objects as the `closer`
 
 The website and native app source are together on `main`; `mobile-apps` mirrors the release. Android and iOS production over-the-air updates for runtime `1.0.0` have been published through Expo. Store builds and their distribution are managed separately from the website; see the [mobile README](mobile/README.md).
 
-The dashboard, card statistics and continuation, question numbering, History, shared card opening, and reveal defaults reuse the existing database schema; all 14 production Supabase migrations are current. Local demo accounts and preview configuration are not included in production.
+The dashboard, card statistics and continuation, question numbering, History, shared card opening, and reveal defaults reuse the existing database schema; their original 14 Supabase migrations remain in the history. The safety release adds versioned migrations for consent, blocking, account restrictions, and safe persistence of previously accepted outbox operations. Local demo accounts and preview configuration are not included in production.
 
 A one-time deck purchase/unlock, a saved-answer library, account recovery, and end-to-end encryption are future features; they are not in the current release.

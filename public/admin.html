@@ -160,7 +160,7 @@
         <button data-tab="decks">Decks</button>
         <button data-tab="accounts">Accounts</button>
         <button data-tab="couples">Couples</button>
-        <button data-tab="rooms">Rooms</button>
+        <button data-tab="rooms">Rooms</button><button data-tab="reports">Safety reports</button>
       </div>
     </header>
 
@@ -219,6 +219,7 @@
       </div>
     </section>
 
+    <section id="reports" class="hidden"><div class="panel"><h2>Safety reports</h2><p class="note">Only user-submitted details and explicitly attached excerpts. Prioritise child safety and threats. Record an action and review note. See the safety runbook before handling serious reports.</p><div id="reportList" class="list"></div><div class="actions"><button id="reportsPrevious">Previous</button><button id="reportsNext">Next</button></div></div></section>
     <section id="rooms" class="hidden">
       <div class="panel">
         <div class="toolbar"><div class="chips" id="roomFilter"></div><button class="danger" id="clearGuests" style="margin-left:auto">Close all guest rooms</button></div>
@@ -633,7 +634,24 @@ $('clearGuests').onclick = async () => {
 
 // ---- Tabs and refreshing ----
 // The overview and rooms refresh on their own every 30 seconds while the page is open.
-const loaders = { overview: loadOverview, decks: loadDecks, accounts: loadUsers, couples: loadCouples, rooms: loadRooms };
+let reportOffset = 0, nextReportOffset = null;
+async function loadReports() {
+  const page = await api('/api/admin/reports?offset=' + reportOffset);
+  const reports = page.reports; nextReportOffset = page.nextOffset;
+  $('reportsPrevious').disabled = reportOffset === 0; $('reportsNext').disabled = nextReportOffset === null;
+  $('reportList').innerHTML = reports.length ? reports.map(r => `<div><div class="who"><b>${esc(r.reason)}</b><span class="badge">${esc(r.status)}</span></div><div class="meta">${esc(r.reporterName)} reported ${esc(r.targetName)} · ${ago(r.createdAt)} · ${r.couple ? 'Account' : 'Guest'} · ${esc(r.id)}</div><p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.details || 'No additional details')}</p>${r.excerpt !== null ? `<blockquote style="white-space:pre-wrap;overflow-wrap:anywhere">Explicitly attached answer: ${esc(r.excerpt)}</blockquote>` : ''}<div class="meta">${r.events.map(e => `${esc(e.action)}: ${esc(e.note)} (${ago(e.at)})`).join('<br>')}</div><div class="actions"><button data-report="${esc(r.id)}" data-action="resolve">Resolve</button><button data-report="${esc(r.id)}" data-action="dismiss">Dismiss</button>${r.couple ? `<button class="danger" data-report="${esc(r.id)}" data-action="restrict-user">Restrict reported account</button><button data-report="${esc(r.id)}" data-action="restore-user">Restore reported account</button>` : `<button class="danger" data-report="${esc(r.id)}" data-action="close-room">Close guest room</button>`}</div></div>`).join('') : '<p class="empty">No reports yet.</p>';
+  for (const button of $('reportList').querySelectorAll('[data-report]')) button.onclick = async () => {
+    const note = prompt('Review note: explain your decision (required, up to 1000 characters).');
+    if (!note?.trim()) return;
+    if (!confirm('Apply ' + button.dataset.action + ' to this report?')) return;
+    button.disabled = true;
+    try { await api('/api/admin/review-report', { id: button.dataset.report, action: button.dataset.action, note }); reportOffset = 0; await loadReports(); toast('Review recorded'); }
+    catch (error) { toast(error.message); button.disabled = false; }
+  };
+}
+$('reportsPrevious').onclick = () => { reportOffset = Math.max(0, reportOffset - 50); loadReports().catch(e => toast(e.message)); };
+$('reportsNext').onclick = () => { if (nextReportOffset !== null) { reportOffset = nextReportOffset; loadReports().catch(e => toast(e.message)); } };
+const loaders = { reports: loadReports, overview: loadOverview, decks: loadDecks, accounts: loadUsers, couples: loadCouples, rooms: loadRooms };
 let tab = 'overview', loadedAt = 0;
 async function load(quiet) {
   try { await loaders[tab](); loadedAt = Date.now(); updated(); }
@@ -642,7 +660,7 @@ async function load(quiet) {
 function updated() { $('updated').textContent = loadedAt ? `Updated ${ago(loadedAt)}` : ''; }
 setInterval(() => {
   updated();
-  if (document.visibilityState === 'visible' && (tab === 'overview' || tab === 'rooms') && Date.now() - loadedAt > 30e3) load(true);
+  if (document.visibilityState === 'visible' && (tab === 'overview' || tab === 'rooms' || tab === 'reports') && Date.now() - loadedAt > 30e3) load(true);
 }, 5e3);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - loadedAt > 30e3) load(true); });
 $('refresh').onclick = () => load();

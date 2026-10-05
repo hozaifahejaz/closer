@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
-import { Account, Action, api, ApiError, RoomState } from './api';
+import { Account, Action, api, ApiError, RoomState, SafetyAction } from './api';
 import { SERVER, socketUrl } from './config';
 import { decodeRoomMessage, roomSession, RoomSession } from './roomSession';
 
@@ -43,6 +43,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
   const current = useRef<RoomState | null>(null);
   const session = useRef<RoomSession | null>(null);
   const ws = useRef<WebSocket | null>(null);
+  const safetyPending = useRef(new Map<string, { resolve: (result: { reportId?: string }) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>());
   const retry = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const handshake = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -71,6 +72,13 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
     sock.onopen = () => { opened = true; retry.current = 0; };
     sock.onmessage = e => {
       if (sock !== ws.current) return; // a late message from a replaced socket
+      let control;
+      try { control = JSON.parse(String(e.data)); } catch { return; }
+      if (control?.type === 'safetyResult') {
+        const pending = safetyPending.current.get(control.id);
+        if (pending) { clearTimeout(pending.timer); safetyPending.current.delete(control.id); if (control.ok === true) pending.resolve(control); else pending.reject(new Error(control.error || 'Could not save.')); }
+        return;
+      }
       const frame = decodeRoomMessage(String(e.data));
       if (!frame) return;
       // Acknowledgements are control messages, never room state.
@@ -119,6 +127,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
 
   useEffect(() => {
     alive.current = true;
+    const pendingSafety = safetyPending.current;
     open();
     // Phones drop sockets while asleep: reconnect as soon as the app is back.
     const sub = AppState.addEventListener('change', s => {
@@ -128,6 +137,8 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
     });
     return () => {
       alive.current = false;
+      for (const pending of pendingSafety.values()) { clearTimeout(pending.timer); pending.reject(new Error('You left the room before confirmation.')); }
+      pendingSafety.clear();
       sub.remove();
       clearTimeout(timer.current);
       clearTimeout(handshake.current);
@@ -159,6 +170,15 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
     return false;
   }, []);
 
+  const requestSafety = useCallback((action: SafetyAction) => new Promise<{ reportId?: string }>((resolve, reject) => {
+    const sock = ws.current;
+    if (sock?.readyState !== WebSocket.OPEN) { reject(new Error('Reconnect before using this action.')); return; }
+    const id = Crypto.randomUUID();
+    const timer = setTimeout(() => { safetyPending.current.delete(id); reject(new Error('No confirmation received. Please reconnect and try again.')); }, 12000);
+    safetyPending.current.set(id, { resolve, reject, timer });
+    try { sock.send(JSON.stringify({ ...action, id })); } catch { clearTimeout(timer); safetyPending.current.delete(id); reject(new Error('Connection interrupted. Please try again.')); }
+  }), []);
+
   const setDraft = useCallback((text: string) => {
     if (!room || !session.current) return;
     session.current.setDraft(room.card.id, text);
@@ -169,5 +189,5 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
 
   const draft = room ? activeSession?.getDraft(room.card.id) || '' : '';
   const answerPending = !!room && !!activeSession?.pendingActions().some(a => a.type === 'answer' && a.cardKey === room.card.id);
-  return { room, link, send, reclaim, draft, setDraft, answerPending, error };
+  return { room, link, send, reclaim, draft, setDraft, answerPending, error, requestSafety };
 }

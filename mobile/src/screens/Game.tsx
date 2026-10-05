@@ -7,6 +7,7 @@ import { colors, fonts, radius } from '../theme';
 import { Connection, useRoom } from '../useRoom';
 import { useKeyboardVisible } from '../useKeyboard';
 import { AnswerPanel } from '../components/AnswerPanel';
+import { Safety } from '../components/Safety';
 import { History } from '../components/History';
 import { Dashboard } from '../components/Dashboard';
 import { Card } from '../components/Card';
@@ -17,13 +18,14 @@ import { Button, HeartBadge, Segmented, tap, Toggle } from '../components/ui';
 const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
 
 export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean; isAdmin: boolean }) {
-  const { room, link, send, reclaim, draft, setDraft, answerPending, error } = useRoom(conn, onLeave);
+  const { room, link, send, reclaim, draft, setDraft, answerPending, error, requestSafety } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [toast, setToast] = useState('');
   const [toastOpacity] = useState(() => new Animated.Value(0));
   const keyboard = useKeyboardVisible();
   const openVersion = useRef<number | null>(null);
+  const [safetyOpen, setSafetyOpen] = useState<'terms' | 'report' | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [dashboard, setDashboard] = useState(conn.kind === 'guest');
 
@@ -83,7 +85,9 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
     } catch { say(`Code: ${room.code}`); }
   };
 
-  if (dashboard) return <><History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
+  const safety = <Safety mode={safetyOpen} room={room} request={requestSafety} onClose={() => setSafetyOpen(null)} />;
+
+  if (dashboard) return <>{safety}<History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
     played={room.deckList.reduce((total, deck) => total + deck.used, 0)} started={room.started}
     onAdmin={isAdmin ? () => { Linking.openURL(`${WEBSITE}/admin`); } : undefined}
     title={together || room.couple ? 'A little time for two.' : `Welcome, ${conn.name}.`}
@@ -102,6 +106,8 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
     menu={[
       ...(room.couple ? [{ title: 'History', onPress: () => setHistoryOpen(true) }] : []),
       ...(link === 'replaced' ? [{ title: 'Use room here', onPress: reclaim }] : []),
+      { title: 'Safety & support', onPress: () => setSafetyOpen('report') },
+      { title: 'Terms & community rules', onPress: () => { Linking.openURL(`${WEBSITE}/terms`); } },
       { title: 'Privacy policy', onPress: () => { Linking.openURL(`${WEBSITE}/privacy`); } },
       { title: room.couple ? 'Back to account' : 'Leave room', onPress: () => onLeave() },
     ]}
@@ -113,7 +119,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
         <Icon name="left" size={20} color={colors.text} />
       </Pressable>
       <View style={st.brand}><HeartBadge size={26} />{width >= 360 ? <Text style={st.brandText}>Closer</Text> : null}</View>
-      <View style={{ flex: 1 }} />
+      <View style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel="Safety and support" onPress={() => setSafetyOpen('report')} style={st.back}><Icon name="menu" size={20} color={colors.text} /></Pressable>
       {room.couple ? (
         <View style={st.pill}><Icon name="heart" size={13} color={colors.accent} fill strokeWidth={0} /><Text style={st.pillName}>Just us</Text></View>
       ) : !together ? (
@@ -178,7 +184,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
       {answerMode ? (
         <AnswerPanel room={room} partnerName={partner || 'your partner'} compact={compact || typing}
           text={draft} onChangeText={setDraft} pending={answerPending}
-          onLockIn={text => act({ type: 'answer', cardKey, generation: room.generation, text })} />
+          onLockIn={text => { if (!room.termsAccepted) { setSafetyOpen('terms'); return false; } return act({ type: 'answer', cardKey, generation: room.generation, text }); }} />
       ) : null}
       {typing ? null : nav}
       {typing || compact ? null : (
@@ -205,6 +211,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
 
   return (
     <View style={[st.fill, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
+      {safety}
       {top}
       {banner}
       {wide ? (

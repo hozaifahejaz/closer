@@ -24,7 +24,9 @@ shared: one partner can be on the website and the other in the app, in the same 
 - Reconnects on its own after the phone sleeps or changes network
 - Phone, small phone, and tablet/landscape layouts; haptics; dark theme matching the site
 
-The admin dashboard stays on the website.
+The admin dashboard stays on the website, including Safety reports.
+
+Users accept the versioned Terms of Use before signup, guest entry, or returning to account gameplay. Consent checkboxes sit below form content. Dashboard and card screens expose Safety & support for reporting and blocking. A report can attach only an explicitly selected, currently revealed partner answer; other answer history stays private. Account blocks prevent relinking; guest blocks depend on saved guest identities. Apply the safety database migrations before deploying the matching Worker and mobile update. Older clients need the current update to accept terms and enter rooms.
 
 ## Try it on your phone
 

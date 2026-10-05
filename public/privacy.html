@@ -38,7 +38,7 @@
 <main>
   <a class="back" href="/">← Back to Closer</a>
   <h1>Privacy Policy</h1>
-  <p class="updated">Effective date: September 26, 2026 · Last updated: October 4, 2026</p>
+  <p class="updated">Effective date: September 26, 2026 · Last updated: October 5, 2026</p>
 
   <p>This Privacy Policy (the "<strong>Policy</strong>") describes how Closer ("<strong>Closer</strong>," "<strong>we</strong>," "<strong>us</strong>," or "<strong>our</strong>") collects, uses, discloses, retains and otherwise processes personal information in connection with the Closer website located at closer.hozaiphaa.workers.dev, the Closer mobile applications, and any related features and communications (collectively, the "<strong>Services</strong>").</p>
   <p>By accessing or using the Services, or by creating an account, you acknowledge that you have read and understood this Policy. If you do not agree with the practices described herein, you should not access or use the Services.</p>
@@ -89,6 +89,7 @@
   </ul>
   <p>When you use the Services as a guest, we collect the display name you enter and any answers you submit within a Guest Room. Guest information is not associated with an Account.</p>
 
+  <p><strong>Safety information:</strong> we record the version and time of terms acceptance, blocks, and reports you submit. Reports contain participant identifiers and display names, the reason and your details, and a revealed partner answer only if you explicitly choose to include it.</p>
   <h3>2.2 Information generated through your use of the Services</h3>
   <ul>
     <li><strong>Session information:</strong> when you sign in, we create an authentication session and record the date and time at which it was created. Only a hashed form of the session token is stored on our servers.</li>
@@ -128,9 +129,9 @@
   <h3>5.1 Your partner</h3>
   <p>In "Answer &amp; reveal" mode, your answer to a card is disclosed to the other participant once both participants have submitted an answer to that card. Answers and favorites saved to a Couple are visible to both linked Accounts.</p>
   <h3>5.2 Administrators</h3>
-  <p>Administrators have access to administrative tools through which they can view Account information (name, email address, registration date and partner link), Couple records, and counts of saved answers and favorites. These tools do not display written answers or partner invite codes. Administrators can also view information about open rooms, including Guest Rooms and the display names of participants, but not Guest Room join codes. Administrators may use these tools to close rooms, unlink or delete Accounts, sign Accounts out, and delete a Couple's saved answers and favorites.</p>
+  <p>Administrators have access to administrative tools through which they can view Account information (name, email address, registration date and partner link), Couple records, and counts of saved answers and favorites. These tools do not display private written answer history or partner invite codes. Authorised reviewers can view report details and an answer explicitly attached by the reporting user, and record actions to close guest rooms or restrict account interactions. Administrators can also view information about open rooms, including Guest Rooms and the display names of participants, but not Guest Room join codes. Administrators may use these tools to close rooms, unlink or delete Accounts, sign Accounts out, and delete a Couple's saved answers and favorites.</p>
   <p>Administrator access is used solely to operate, maintain and improve the Services, to provide support, to investigate and address abuse or violations of law, and to comply with legal obligations. Administrator privileges are granted only on an individual, account-by-account basis and are not assigned automatically.</p>
-  <div class="notice"><strong>Important:</strong> written answers are not end-to-end encrypted. App Administrators cannot view them through the administrative tools, but people with direct access to the underlying Cloudflare or Supabase infrastructure may be able to access stored answers. If there is anything you would prefer that only your partner know, we recommend discussing it together rather than submitting it in writing.</div>
+  <div class="notice"><strong>Important:</strong> written answers are not end-to-end encrypted. App Administrators cannot view private answer history through the administrative tools (except an excerpt explicitly included in a safety report), but people with direct access to the underlying Cloudflare or Supabase infrastructure may be able to access stored answers. If there is anything you would prefer that only your partner know, we recommend discussing it together rather than submitting it in writing.</div>
 
   <h2 id="disclosure">6. Disclosure of Information</h2>
   <p>We disclose personal information only in the following circumstances:</p>
@@ -166,6 +167,8 @@
       <thead><tr><th>Category</th><th>Retention period</th></tr></thead>
       <tbody>
         <tr><td>Account information, answers and favorites</td><td>For the life of the Account, until you request deletion or the Account is otherwise deleted. Deleting an Account also removes the saved answers and favorites in its former Couple rooms.</td></tr>
+        <tr><td>Terms acceptance and account blocks</td><td>Until the associated Account is deleted. Guest acceptance and guest blocks: up to one year.</td></tr>
+        <tr><td>Safety reports and review decisions</td><td>Up to one year from submission, including after account deletion, for abuse prevention and review. Only reported details and explicitly selected excerpts are retained; ordinary answer history is not included. Contact support for a privacy request.</td></tr>
         <tr><td>Sign-in sessions</td><td>Until you sign out, at which point the session is deleted; or until the Account is deleted</td></tr>
         <tr><td>Guest Rooms, including guest answers</td><td>Deleted automatically after 6 hours without activity</td></tr>
         <tr><td>Couple room state (selected decks, progress and questions already viewed)</td><td>Deleted automatically after one year without activity; saved answers and favorites are unaffected</td></tr>

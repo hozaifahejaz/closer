@@ -8,6 +8,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary, cardUsage } from './game.js';
 import { Db, DbError } from './db.js';
+import { TERMS_VERSION, SAFETY, REASONS, safetyHandle, safetyFetch, safetyAlarm } from './safety.js';
 import { RoomStorage, listEntries } from './room-storage.js';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
@@ -54,7 +55,7 @@ async function tooMany(limiter, ...keys) {
 const clientIp = request => request.headers.get('CF-Connecting-IP') || 'local';
 const slowDown = () => json(429, { error: 'Too many tries. Please wait a minute and try again' });
 
-const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin) });
+const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin), termsAccepted: Boolean(s.terms_accepted) });
 
 export default {
   async fetch(request, env, ctx) {
@@ -64,6 +65,14 @@ export default {
     try {
       if (url.pathname === '/api/config') return json(200, { accounts: db.enabled });
 
+      if (url.pathname === '/api/guest/terms' && request.method === 'POST') {
+        if (!sameOrigin(request, url)) return json(403, { error: 'Not allowed' });
+        if (await tooMany(env.ROOM_LOOKUP_LIMIT, `terms:${clientIp(request)}`)) return slowDown();
+        const { id, version } = await readBody(request);
+        if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(id)) return json(400, { error: 'Invalid guest identity' });
+        if (version != null && version !== TERMS_VERSION) return json(400, { error: 'Please review the current terms.' });
+        return json(200, await safetyCall(env, 'terms', { id, accept: version }));
+      }
       // ---- Guest rooms ----
       if (url.pathname === '/api/rooms' && request.method === 'POST') {
         if (await tooMany(env.ROOM_LIMIT, `rooms:${clientIp(request)}`)) return slowDown();
@@ -106,6 +115,13 @@ const roomStub = (env, name) => env.ROOMS.get(env.ROOMS.idFromName(name));
 // Live numbers live in one extra object of the same class, under a name no room can have.
 const STATS = '__stats';
 const statsStub = env => roomStub(env, STATS);
+const safetyStub = env => roomStub(env, SAFETY);
+async function safetyCall(env, path, body = {}) {
+  const res = await safetyStub(env).fetch('https://safety/' + path, { method: 'POST', body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new DbError(data.error || 'Could not save. Please try again.', res.status);
+  return data;
+}
 
 // Passes who the player is to the room via headers the browser can't set on its own
 // (the Worker overwrites them on every request).
@@ -121,9 +137,9 @@ function withPlayer(request, { id, name, token = '', couple = '', partnerName = 
 
 async function accountApi(request, url, db, env) {
   if (url.pathname === '/api/signup' && request.method === 'POST') {
-    const { email, password, name } = await readBody(request);
+    const { email, password, name, termsVersion } = await readBody(request);
     if (await tooMany(env.AUTH_LIMIT, `signup:${clientIp(request)}`)) return slowDown();
-    const token = await db.rpc('sign_up', { p_email: String(email || ''), p_password: String(password || ''), p_name: String(name || '') });
+    const token = await db.rpc('sign_up_with_terms', { p_email: String(email || ''), p_password: String(password || ''), p_name: String(name || ''), p_version: String(termsVersion || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
   }
   if (url.pathname === '/api/login' && request.method === 'POST') {
@@ -150,6 +166,10 @@ async function accountApi(request, url, db, env) {
   const state = await db.me(token);
   if (!state) return fromCookie ? withCookie(json(401, { error: 'Please log in again' }), url, null) : json(401, { error: 'Please log in again' });
 
+  if (url.pathname === '/api/terms' && request.method === 'POST') {
+    await db.rpc('accept_terms', { p_token: token, p_version: String((await readBody(request)).version || '') });
+    return json(200, { ok: true });
+  }
   if (url.pathname === '/api/me' && request.method === 'GET') {
     // Hands the token back when the page lost it, and (re)sets the cookie, including
     // for people who signed in before it existed.
@@ -157,6 +177,8 @@ async function accountApi(request, url, db, env) {
     return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
   }
   if (url.pathname === '/api/link' && request.method === 'POST') {
+    if (!state.terms_accepted) return json(403, { error: 'Accept the Terms of Use before linking.' });
+    if ((await db.rpc('safety_state', { p_token: token })).restricted) return json(403, { error: 'Partner interactions are restricted. Contact support to appeal.' });
     if (await tooMany(env.AUTH_LIMIT, `link:${state.id}`)) return slowDown();
     const partner = await db.rpc('link_partner', { p_token: token, p_code: String((await readBody(request)).code || '') });
     return json(200, { partner });
@@ -226,6 +248,27 @@ async function adminApi(request, url, db, env, token, state) {
   // A couple's room holds a working copy of their answers; after changing saved
   // data, drop that copy so it's rebuilt from the database (players reconnect on their own).
   const refreshCouple = couple => couple && closeRoom(`couple:${couple}`, { code: 1012, reason: 'Refreshing', discard: true });
+  if (path === 'reports' && request.method === 'GET') {
+    const page = await safetyCall(env, 'reports', { offset: Number(url.searchParams.get('offset') || 0) });
+    return json(200, { ...page, reports: page.reports.map(({ room, roomInstance, reporter, target, ...report }) => report) });
+  }
+  if (path === 'review-report' && request.method === 'POST') {
+    const { id, action, note } = await readBody(request);
+    if (!['resolve', 'dismiss', 'close-room', 'restrict-user', 'restore-user'].includes(action) || typeof note !== 'string' || !note.trim() || note.length > 1000) return json(400, { error: 'Choose an action and enter a review note (up to 1000 characters).' });
+    const report = await safetyCall(env, 'review', { id: String(id || '') });
+    if (action === 'close-room') {
+      if (report.couple) return json(400, { error: 'Use account restriction for an account report.' });
+      if (!report.roomInstance) return json(409, { error: 'This older report cannot safely identify its room. Record a decision instead.' });
+      const result = await closeRoom(report.room, { reason: 'This room was closed for safety.', expectedInstance: report.roomInstance });
+      if (!result.ok) return json(409, { error: 'That room has changed since the report. Record a decision instead.' });
+    }
+    if (['restrict-user', 'restore-user'].includes(action)) {
+      if (!report.couple || !report.target) return json(400, { error: 'This report has no account to restrict.' });
+      await db.rpc('admin_restrict_user', { p_token: token, p_user: report.target, p_on: action === 'restrict-user' });
+      if (action === 'restrict-user') await roomStub(env, report.room).fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ all: true, reason: 'Partner interactions were restricted. Contact support to appeal.' }) });
+    }
+    return json(200, await safetyCall(env, 'review', { id: report.id, status: action === 'dismiss' ? 'dismissed' : 'resolved', event: { action, note: note.trim(), admin: state.id } }));
+  }
   if (path === 'stats' && request.method === 'GET') {
     const [stats, live, play] = await Promise.all([
       db.rpc('admin_stats', { p_token: token }),
@@ -390,7 +433,7 @@ export class Room extends DurableObject {
     // Room state survives the object going to sleep between taps.
     ctx.blockConcurrencyWhile(async () => {
       this.room = upgradeRoom(await this.store.load());
-      if (this.room && this.room.storageVersion !== 2) await this.save();
+      if (this.room && (this.room.storageVersion !== 2 || !this.room.safetyInstance)) await this.save();
     });
   }
 
@@ -403,6 +446,7 @@ export class Room extends DurableObject {
   async fetch(request) {
     const url = new URL(request.url);
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return statsFetch(this.ctx, request);
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(SAFETY))) return this.run(() => safetyFetch(this.ctx, request));
     return this.run(() => this.fetchRoom(request));
   }
 
@@ -418,13 +462,14 @@ export class Room extends DurableObject {
       return json(200, { code });
     }
     if (url.pathname === '/exists') {
-      return this.room ? json(200, { code: this.room.code, partners: this.players().size }) : json(404, { error: 'Room not found' });
+      return this.room && !this.room.safetyClosed ? json(200, { code: this.room.code, partners: this.players().size }) : json(404, { error: 'Room not found' });
     }
     // Admin actions (only the Worker's admin routes call these).
     if (url.pathname === '/admin/close') {
       // Ordinary couple-room closure keeps accepted saves, including the outbox.
       // Only explicit data/account deletion discards that durable working copy.
-      const { reason = 'This room was closed', code = 4001, discard = false } = await request.json();
+      const { reason = 'This room was closed', code = 4001, discard = false, expectedInstance } = await request.json();
+      if (expectedInstance && this.room && this.room.safetyInstance !== expectedInstance) return json(409, { error: 'Room changed' });
       const name = this.room?.code;
       for (const ws of this.ctx.getWebSockets()) { try { ws.close(code, reason); } catch {} }
       if (discard || !this.room?.coupleId) {
@@ -460,6 +505,11 @@ export class Room extends DurableObject {
       if (!state || state.id !== player.id || state.couple_id !== coupleId) return json(401, { error: 'Your session or partner link changed. Please sign in again.' });
     }
 
+    const safety = coupleId ? await this.db.rpc('safety_state', { p_token: player.token }) : await safetyCall(this.env, 'terms', { id: player.id });
+    if (safety.restricted) return json(403, { error: 'Partner interactions are restricted. Contact support to appeal.' });
+    if (!history && !safety.accepted) return json(403, { error: 'Accept the Terms of Use before joining a room.' });
+    player.termsAccepted = safety.accepted;
+
     if (coupleId && !this.room) {
       // A couple's room is created on first use from what they saved before. It is only
       // kept once that load worked, so a database hiccup can't leave (and later save) a
@@ -481,6 +531,13 @@ export class Room extends DurableObject {
       return json(200, { linked: true, decks, total, used, remaining: total - used });
     }
 
+    if (!coupleId) {
+      if (this.room.safetyClosed) return json(403, { error: 'This room was ended for safety. Start a new room.' });
+      for (const other of Object.keys(this.room.names || {})) {
+        if (other !== player.id && (await safetyCall(this.env, 'blocked', { a: player.id, b: other })).blocked) return json(403, { error: 'These guests cannot share a room.' });
+      }
+    }
+
     // The same person reconnecting (a reload or a second device) takes over their seat.
     const existing = this.ctx.getWebSockets(player.id);
     if (!existing.length && this.players().size >= 2) return json(409, { error: 'Room is full' });
@@ -488,6 +545,10 @@ export class Room extends DurableObject {
 
     // Names are remembered so answers can still be shown with a name while someone is away.
     // A couple's id is made of both partners' ids, so the partner's id is the other half.
+    if (!coupleId) {
+      this.room.guestPartners ||= {};
+      for (const other of this.players().keys()) if (other !== player.id) { this.room.guestPartners[player.id] = other; this.room.guestPartners[other] = player.id; }
+    }
     const names = { [player.id]: player.name };
     const partnerName = decodeURIComponent(request.headers.get('x-partner-name') || '');
     const partnerId = coupleId && coupleId.split(':').find(id => id !== player.id);
@@ -526,9 +587,11 @@ export class Room extends DurableObject {
     try { action = JSON.parse(message); } catch { return; }
     if (!action || typeof action !== 'object' || Array.isArray(action)) return;
     if (!(await this.authorized(ws))) return;
+    if (['acceptTerms', 'reportUser', 'blockUser'].includes(action.type)) return this.handleSafety(ws, player, action);
     const changesContent = ['answer', 'favorite'].includes(action.type);
     const ack = (ok, error) => ({ type: 'ack', id: action.id, ok, ...(error ? { error } : {}), cardKey: action.cardKey });
     const sendAck = value => { try { ws.send(JSON.stringify(value)); } catch {} };
+    if (action.type === 'answer' && !player.termsAccepted) { sendAck(ack(false, 'Accept the Terms of Use before submitting answers.')); return; }
     let receiptKey;
     if (changesContent) {
       if (typeof action.id !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(action.id) || typeof action.cardKey !== 'string' || !Number.isSafeInteger(action.generation) || action.generation < 0) {
@@ -584,6 +647,50 @@ export class Room extends DurableObject {
     }
   }
 
+  safetyPartner(id) {
+    return this.room.coupleId ? this.room.coupleId.split(':').find(other => other !== id) : [...this.players().keys()].find(other => other !== id) || this.room.guestPartners?.[id] || (Object.keys(this.room.names || {}).length === 2 ? Object.keys(this.room.names).find(other => other !== id) : null);
+  }
+
+  async handleSafety(ws, player, action) {
+    const reply = value => { try { ws.send(JSON.stringify({ type: 'safetyResult', id: action.id, ...value })); } catch {} };
+    if (typeof action.id !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(action.id)) return;
+    try {
+      if (action.type === 'acceptTerms') {
+        if (action.version !== TERMS_VERSION) throw new DbError('Please review the current terms.', 400);
+        if (this.room.coupleId) await this.db.rpc('accept_terms', { p_token: player.token, p_version: TERMS_VERSION });
+        else await safetyCall(this.env, 'terms', { id: player.id, accept: TERMS_VERSION });
+        for (const socket of this.ctx.getWebSockets(player.id)) {
+          const attachment = socket.deserializeAttachment(); attachment.termsAccepted = true; socket.serializeAttachment(attachment);
+        }
+        reply({ ok: true }); await this.broadcast(); return;
+      }
+      const target = this.safetyPartner(player.id);
+      if (target && action.partnerHandle !== await safetyHandle(this.room.code + ':' + target)) throw new DbError('Your partner changed. Review this action again.', 400);
+      if (!target) throw new DbError('There is no partner to report or block yet.', 400);
+      if (action.type === 'reportUser') {
+        if (!REASONS.includes(action.reason) || typeof action.details !== 'string' || action.details.length > 1000) throw new DbError('Choose a reason and keep details under 1000 characters.', 400);
+        // Only a currently revealed partner answer can be attached, with explicit consent.
+        let excerpt = null;
+        if (action.includeAnswer === true) {
+          const view = publicState(this.room, this.players(), player.id);
+          if (action.cardKey !== view.card.id || !view.revealed?.some(a => !a.mine)) throw new DbError('The answer changed or is not revealed. Review your report again.', 400);
+          excerpt = this.room.answers[view.card.id]?.[target];
+          if (typeof excerpt !== 'string' || action.answerText !== excerpt) throw new DbError('The selected answer changed. Review the report again.', 400);
+        }
+        const result = await safetyCall(this.env, 'report', { reporter: player.id, requestId: action.id, target, reporterName: player.name, targetName: this.room.names?.[target] || 'Partner', room: this.room.code, roomInstance: this.room.safetyInstance, couple: Boolean(this.room.coupleId), reason: action.reason, details: action.details.trim(), excerpt, cardKey: excerpt ? action.cardKey : null });
+        reply({ ok: true, reportId: result.id }); return;
+      }
+      if (this.room.coupleId) await this.db.rpc('block_partner', { p_token: player.token });
+      else {
+        await safetyCall(this.env, 'block', { a: player.id, b: target });
+        this.room.safetyClosed = true; await this.save();
+      }
+      reply({ ok: true });
+      for (const socket of this.ctx.getWebSockets()) { try { socket.close(4001, 'This connection ended. You can start again with a different partner.'); } catch {} }
+      await this.broadcast(); this.reportPresence();
+    } catch (error) { reply({ ok: false, error: error instanceof DbError ? error.message : 'Could not save. Please try again.' }); }
+  }
+
   webSocketClose(ws) {
     try { ws.close(); } catch {} // already closed
     return this.run(async () => { await this.broadcast(); this.reportPresence(); });
@@ -626,11 +733,11 @@ export class Room extends DurableObject {
 
   async authorized(ws) {
     if (!this.room) return false;
-    if (!this.room.coupleId) return ws.readyState === WebSocket.OPEN;
+    if (!this.room.coupleId) return !this.room.safetyClosed && ws.readyState === WebSocket.OPEN;
     const p = ws.deserializeAttachment();
     try {
       const state = await this.db.me(p.token);
-      if (state?.id === p.id && state.couple_id === this.room.coupleId) return ws.readyState === WebSocket.OPEN;
+      if (state?.id === p.id && state.couple_id === this.room.coupleId && !(await this.db.rpc('safety_state', { p_token: p.token })).restricted) return ws.readyState === WebSocket.OPEN;
       ws.close(4001, 'Your session or partner link changed. Please sign in again.');
     } catch {
       // Reconnect retries unacknowledged commands after transient auth outages.
@@ -647,11 +754,12 @@ export class Room extends DurableObject {
     const players = this.players();
     for (const ws of allowed) {
       const { id } = ws.deserializeAttachment();
-      try { ws.send(JSON.stringify(publicState(this.room, players, id))); } catch {}
+      try { ws.send(JSON.stringify({ ...publicState(this.room, players, id), termsAccepted: Boolean(ws.deserializeAttachment().termsAccepted), termsVersion: TERMS_VERSION, canReportPartner: Boolean(this.safetyPartner(id)), reportablePartnerAnswer: Object.hasOwn(this.room.answers[cardKey(this.room.order[this.room.index])] || {}, id) ? this.room.answers[cardKey(this.room.order[this.room.index])]?.[this.safetyPartner(id)] ?? null : null, partnerSafetyHandle: this.safetyPartner(id) ? await safetyHandle(this.room.code + ':' + this.safetyPartner(id)) : null })); } catch {}
     }
   }
 
   async save(extras = {}) {
+    this.room.safetyInstance ||= crypto.randomUUID();
     this.room.lastActiveAt = Date.now();
     const pending = await this.ctx.storage.list({ prefix: 'pending:', limit: 1 });
     const queued = pending.size || Object.keys(extras).some(key => key.startsWith('pending:'));
@@ -665,6 +773,7 @@ export class Room extends DurableObject {
 
   async alarm() {
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return;
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(SAFETY))) return this.run(() => safetyAlarm(this.ctx));
     await this.flushOutbox();
     return this.run(async () => {
     if (!this.room) return;
