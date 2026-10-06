@@ -10,6 +10,7 @@ import type { Link, Connection } from '../useRoom';
 import { AccountPresence } from '../components/AccountPresence';
 import type { GuestResume } from '../sessionRecovery';
 import { History } from '../components/History';
+import { Profile } from '../components/Profile';
 import { Dashboard } from '../components/Dashboard';
 import { Icon, IconName } from '../components/Icon';
 import { Button, Field, HeartBadge, Or, Segmented } from '../components/ui';
@@ -45,7 +46,9 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [progress, setProgress] = useState<{ used: number; started: boolean } | null>(null);
   useEffect(() => { setProgress(null); }, [account?.id, account?.partner?.id]);
   const [roomLink, setRoomLink] = useState<Link>('connecting');
+  const [presenceError, setPresenceError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const pw = useRef<TextInput>(null);
@@ -161,11 +164,13 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
     Alert.alert('Delete your Closer account?', 'This permanently deletes your account, sessions, and saved couple answers and favorites. Your partner’s answers in those old rooms are also removed.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete account', style: 'destructive', onPress: () => run('delete', async () => {
-        await api('/api/account/delete', token, { password: deletePassword });
+        const result = await api<{ ok: boolean; cleanupPending?: boolean; message?: string }>('/api/account/delete', token, { password: deletePassword });
         setDeletePassword('');
         setDeleting(false);
         onSession(null, null, token);
-        Alert.alert('Account deleted', 'Your Closer account and saved couple data have been deleted.');
+        Alert.alert('Account deleted', result.cleanupPending
+          ? result.message || 'Your account was deleted. Stored room cleanup is pending and will retry automatically.'
+          : 'Your Closer account and saved couple data have been deleted.');
       }) },
     ]);
   };
@@ -288,15 +293,18 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   );
 
   if (account && !deleting) return <>
-    {account.partner && token ? <AccountPresence key={`${account.id}:${account.partner.id}:${token}`} token={token} id={account.id} name={account.name} controlsRef={presence} onOpen={onPlay} onLink={setRoomLink} onError={setErr} onProgress={setProgress}
+    <Profile visible={profileOpen} token={token} name={account.name} onClose={() => setProfileOpen(false)} onSaved={updated => { if (token) onSession(token, updated, token); }} />
+    {account.partner && token ? <AccountPresence key={`${account.id}:${account.partner.id}:${token}`} token={token} id={account.id} name={account.name} controlsRef={presence} onOpen={onPlay} onLink={setRoomLink} onError={setPresenceError} onProgress={setProgress}
       onLeave={message => { setErr(message); api<Account>('/api/me', token).then(me => onSession(token, me, token)).catch(fail); }} /> : null}
     <History visible={historyOpen} token={token} onClose={() => setHistoryOpen(false)} /><Dashboard
     played={account.partner ? progress?.used : 0} started={!!account.partner && progress?.started}
     onAdmin={account.isAdmin ? () => { Linking.openURL(`${WEBSITE}/admin`); } : undefined}
     title={account.partner ? 'A little time for two.' : `Welcome, ${account.name}.`}
     subtitle={account.partner ? (progress?.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.'}
-    disabled={!account.partner || roomLink !== 'live'} error={err || (account.partner && roomLink !== 'live' ? (roomLink === 'replaced' ? 'Your room is open on another device.' : 'Connecting to your shared room…') : '')}
+    disabled={!account.partner || roomLink !== 'live'} error={err || (account.partner ? presenceError : '') || (account.partner && roomLink !== 'live' ? (roomLink === 'replaced' ? 'Your room is open on another device.' : 'Connecting to your shared room…') : '')}
     onOpen={() => { if (!presence.current?.open()) setErr('Reconnecting…'); }}
+    onRetry={account.partner && (roomLink === 'reconnecting' || roomLink === 'replaced') ? () => { setErr(''); presence.current?.reclaim(); } : undefined}
+    retryTitle={roomLink === 'replaced' ? 'Use room here' : undefined}
     invite={!account.partner ? <>
       <Text style={st.label}>Your partner code</Text>
       <View style={st.row}><View style={st.bigcode}><Text style={st.bigcodeText} selectable>{account.inviteCode}</Text></View><Button kind="ghost" title="Share" onPress={shareCode} /></View>
@@ -304,6 +312,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
       <View style={st.row}><TextInput value={partnerCode} onChangeText={t => setPartnerCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={6} placeholder="CODE" autoCapitalize="characters" autoCorrect={false} returnKeyType="done" onSubmitEditing={linkPartner} accessibilityLabel="Partner's code" placeholderTextColor={colors.faint} style={[st.input, st.code]} /><Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} /></View>
     </> : undefined}
     menu={[
+      { title: 'Profile', onPress: () => setProfileOpen(true) },
       ...(roomLink === 'replaced' ? [{ title: 'Use room here', onPress: () => presence.current?.reclaim() }] : []),
       { title: 'Safety & support', onPress: () => { if (account.partner) presence.current?.safety(); else Linking.openURL('mailto:hozaiphaa@gmail.com'); } },
       { title: 'Terms & community rules', onPress: () => { Linking.openURL(`${WEBSITE}/terms`); } },

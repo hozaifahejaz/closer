@@ -430,8 +430,11 @@
   .dash-content p { color:var(--muted); font-size:15px; max-width:360px; line-height:1.7; margin:0 0 28px; }
   .dash-content button { min-width:180px; }
   .dash-link { display:block; color:var(--muted); overflow-wrap:anywhere; margin:12px 0 0; font-size:13px; }
-  #historyDialog { color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:28px; width:min(520px,calc(100% - 32px)); max-height:85dvh; }
-  #historyDialog::backdrop { background:#0009; }
+  #historyDialog, #profileDialog { color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:28px; width:min(520px,calc(100% - 32px)); max-height:85dvh; overflow:auto; }
+  #historyDialog::backdrop, #profileDialog::backdrop { background:#0009; }
+  #profileForm { margin-top:24px; }
+  #profileEmailRow { display:grid; gap:10px; }
+  #profileEmail { color:var(--muted); }
   .history-head { display:flex; align-items:center; justify-content:space-between; gap:16px; }
   .history-head h2 { font-family:var(--serif); margin:0; font-weight:500; font-size:28px; }
   .history-head button { min-height:40px; padding:8px 12px; }
@@ -551,6 +554,7 @@
     <header class="dash-head"><span class="brand"><span class="heart-badge" aria-hidden="true"><svg class="ico fill"><use href="#i-heart"/></svg></span><span>Closer</span></span>
       <button id="menuToggle" class="ghost" aria-label="Open menu" aria-expanded="false" aria-controls="dashboardMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <nav id="dashboardMenu" class="dash-menu hidden" aria-label="Dashboard menu">
+        <button class="link" id="profileOpen">Profile</button>
         <button class="link" id="dashboardSafety">Safety &amp; support</button><a class="link" href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a><a class="link" href="/privacy">Privacy policy</a>
         <div id="accountMenu" class="hidden"><button id="historyOpen" class="link">History</button></div>
         <button id="dashboardReclaim" class="link hidden">Use room here</button>
@@ -560,7 +564,7 @@
     <section id="inviteArea" class="dash-invite" aria-label="Invite your partner">
       <div id="guestInvite"><label>Your room code</label><div class="row"><span id="dashboardCode" class="dash-code"></span><button id="dashboardShare" class="ghost">Share invite</button></div></div>
     </section>
-    <section class="dash-content"><a id="dashboardAdmin" class="ghost dashboard-admin hidden" href="/admin">Admin dashboard<svg class="ico"><use href="#i-right"/></svg></a><h1 id="dashboardTitle"></h1><p id="dashboardSubtitle"></p><div class="dashboard-stat" aria-live="polite"><b id="dashboardPlayed">0</b><span>Cards played</span><small id="dashboardStatNote">Distinct cards revealed or answered together.</small></div><button id="dashboardCards" class="primary">Open cards</button><p id="dashboardError" class="err" role="alert"></p></section>
+    <section class="dash-content"><a id="dashboardAdmin" class="ghost dashboard-admin hidden" href="/admin">Admin dashboard<svg class="ico"><use href="#i-right"/></svg></a><h1 id="dashboardTitle"></h1><p id="dashboardSubtitle"></p><div class="dashboard-stat" aria-live="polite"><b id="dashboardPlayed">0</b><span>Cards played</span><small id="dashboardStatNote">Distinct cards revealed or answered together.</small></div><button id="dashboardCards" class="primary">Open cards</button><p id="dashboardError" class="err" role="alert"></p><button id="dashboardRetry" class="ghost hidden">Retry connection</button></section>
     <aside id="guestSignup" class="signup-prompt hidden" aria-labelledby="signupPromptTitle">
       <h2 id="signupPromptTitle">Make your moments last.</h2>
       <p>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</p>
@@ -569,6 +573,7 @@
     </aside>
   </main>
   <dialog id="historyDialog" aria-labelledby="historyTitle"><div class="history-head"><h2 id="historyTitle">History</h2><button id="historyClose" class="ghost" aria-label="Close history">✕</button></div><p class="history-note">Cards revealed or answered in your shared account room.</p><div id="historyContent" aria-live="polite"></div></dialog>
+  <dialog id="profileDialog" aria-labelledby="profileTitle"><div class="history-head"><h2 id="profileTitle">Profile</h2><button id="profileClose" class="ghost" aria-label="Close profile">✕</button></div><form id="profileForm" class="stack"><label for="profileName">Display name</label><input id="profileName" autocomplete="nickname" required maxlength="48"><p id="profileNote" class="hint">Use up to 24 characters.</p><div id="profileEmailRow"><label for="profileEmail">Email</label><input id="profileEmail" type="email" readonly aria-readonly="true"></div><p id="profileError" class="err" role="alert"></p><button id="profileSave" class="primary" type="submit">Save changes</button></form></dialog>
   <!-- Game -->
   <div id="game" class="hidden">
     <div class="top">
@@ -665,6 +670,7 @@ function show(box) {
 }
 function setToken(t) { token = t; try { t ? localStorage.setItem('closer:token', t) : localStorage.removeItem('closer:token'); } catch {} }
 function clearSession(why = '') {
+  if ($('profileDialog').open) $('profileDialog').close();
   setToken(null); account = null; historyRequest++; if ($('historyDialog').open) $('historyDialog').close(); $('historyContent').textContent = '';
   leaveRoom(why); drafts.clear(); pendingCommands.clear(); $('answerText').value = '';
   show('authBox'); $('err').textContent = why;
@@ -687,6 +693,45 @@ let roomView = 'dashboard';
 $('inviteArea').append($('linkBox'));
 $('accountMenu').append($('homeBox').lastElementChild);
 function closeMenu() { $('dashboardMenu').classList.add('hidden'); $('menuToggle').setAttribute('aria-expanded', 'false'); }
+let profileRequest = 0;
+$('profileClose').onclick = () => $('profileDialog').close();
+$('profileDialog').addEventListener('close', () => { profileRequest++; $('profileOpen').focus(); });
+$('profileOpen').onclick = async () => {
+  closeMenu(); const current = ++profileRequest;
+  $('profileName').value = room?.myName || account?.name || me;
+  $('profileError').textContent = ''; $('profileSave').disabled = false;
+  $('profileEmailRow').classList.toggle('hidden', !account || !room?.couple && !!room);
+  $('profileEmail').value = account?.email || '';
+  $('profileNote').textContent = account && (!room || room.couple) ? 'Use up to 24 characters. Your partner will see your updated name.' : 'Use up to 24 characters. This name is saved for this guest room.';
+  $('profileDialog').showModal();
+  if (account && (!room || room.couple) && !account.email) {
+    try { const updated = await api('/api/me'); if (current === profileRequest && account?.id === updated.id) { account = updated; $('profileEmail').value = updated.email || ''; } }
+    catch (error) { if (current === profileRequest) $('profileError').textContent = error.message; }
+  }
+};
+$('profileForm').onsubmit = async e => {
+  e.preventDefault(); if ($('profileSave').disabled) return;
+  const current = profileRequest, savedToken = token, accountId = account?.id, roomId = room?.roomId;
+  const name = $('profileName').value.trim(); $('profileError').textContent = '';
+  if (!name || Array.from(name).length > 24 || /[\u0000-\u001f\u007f-\u009f]/.test(name)) { $('profileError').textContent = 'Use a name between 1 and 24 characters, without line breaks.'; return; }
+  $('profileSave').disabled = true;
+  try {
+    let pending = false;
+    if (account && (!room || room.couple)) {
+      const updated = await api('/api/profile', { name });
+      if (savedToken !== token || accountId !== account?.id) return;
+      me = updated.name; showAccount(updated, false); pending = updated.liveRefreshPending;
+    } else {
+      await requestSafety({ type: 'renameGuest', name });
+      if (room?.roomId !== roomId || token !== savedToken) return;
+      me = name;
+    }
+    try { localStorage.setItem('closer:name', name); } catch {}
+    $('name').value = name;
+    if (current === profileRequest) { $('profileDialog').close(); toast(pending ? 'Name saved. Your partner will see it after reconnecting.' : 'Name updated.'); }
+  } catch (error) { if (current === profileRequest) $('profileError').textContent = error.message; }
+  finally { if (current === profileRequest) $('profileSave').disabled = false; }
+};
 $('menuToggle').onclick = () => { const open = $('dashboardMenu').classList.toggle('hidden') === false; $('menuToggle').setAttribute('aria-expanded', String(open)); };
 document.addEventListener('click', e => { if (!e.target.closest('.dash-head')) closeMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { closeMenu(); $('menuToggle').focus(); } });
@@ -714,16 +759,18 @@ function dashboard() {
   $('dashboardSubtitle').textContent = connected ? (room?.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : guest ? 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.';
   $('dashboardCards').disabled = (!guest && !connected) || !room || link !== 'live';
   $('dashboardReclaim').classList.toggle('hidden', link !== 'replaced');
-  $('dashboardError').textContent = room && link !== 'live' ? (link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…') : '';
+  $('dashboardRetry').classList.toggle('hidden', link !== 'reconnecting');
+  $('dashboardError').textContent = connectionError || (link === 'replaced' ? 'This room is open on another device.' : '');
   if (guest) { $('dashboardCode').textContent = room.code; }
   if (account) { $('helloName').textContent = account.name; $('myCode').textContent = account.inviteCode; }
 }
-function showAccount(a) {
+function showAccount(a, connectRoom = true) {
+  if (connectRoom) connectionError = '';
   account = a; show(a.partner ? 'homeBox' : 'linkBox');
   document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   dashboard();
   if (!a.termsAccepted) { openTerms(); return; }
-  if (a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
+  if (connectRoom && a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
     couple = true; me = a.name;
     openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not connect to your shared room.');
   }
@@ -746,7 +793,7 @@ $('historyOpen').onclick = async () => {
 };
 $('dashboardSignup').onclick = () => { if (accounts) window.open(location.origin + '/', '_blank', 'noopener,noreferrer'); };
 $('backDashboard').onclick = () => { saveDraft(); dashboard(); };
-$('dashboardReclaim').onclick = () => { closeMenu(); $('partners').click(); };
+$('dashboardReclaim').onclick = () => { closeMenu(); reclaimRoom(); };
 $('leaveGuest').onclick = () => { closeMenu(); leaveRoom(''); };
 
 let signingUp = true;
@@ -806,7 +853,8 @@ $('startCouple').onclick = () => {
 
 (async function init() {
   try {
-    accounts = (await fetch('/api/config').then(r => r.json())).accounts;
+    const config = await fetch('/api/config').then(r => r.json());
+    accounts = config.accounts;
   } catch {}
   if (!accounts || params.get('room')) return show('guestBox');
   // Even without a saved token, the sign-in cookie may still be there.
@@ -840,28 +888,36 @@ $('join').onclick = () => {
 // switch networks, so it quietly reconnects; the room keeps its state meanwhile.
 // live: in sync. reconnecting: dropped and trying again. replaced: the same person
 // opened the room on another device, which took over their seat.
-let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false;
-function setLink(l) { link = l; if (room) { renderPartners(room); if (roomView === 'dashboard') dashboard(); } }
+// unavailable: account room access was refused until the session or link changes.
+let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false, connectionError = '', socketTimer = null;
+function setLink(l, message = '') {
+  link = l; connectionError = message;
+  if (room) renderPartners(room);
+  if ((room || account) && roomView === 'dashboard') dashboard();
+}
 function openSocket(path, failMessage) {
   const url = new URL(path, location.origin);
   url.searchParams.set('protocol', '2');
   path = url.pathname + url.search;
   wsPath = path;
   socketReady = false;
+  clearTimeout(socketTimer); socketTimer = null;
   const previous = ws;
   const sock = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`);
   if (previous) previous.close();
-  let opened = false, receivedState = false;
-  sock.onopen = () => { opened = true; retry = 0; };
+  setLink('reconnecting', room ? 'Reconnecting…' : 'Connecting…');
+  let opened = false, receivedState = false, ended = false;
+  sock.onopen = () => { if (sock !== ws || ended) return; opened = true; retry = 0; };
   sock.onmessage = e => {
-    if (sock !== ws) return;
+    if (sock !== ws || ended) return;
     let message;
     try { message = JSON.parse(e.data); } catch { return; }
     if (!message || typeof message !== 'object') return;
     if (message.type === 'safetyResult') return finishSafety(message);
     if (message.type === 'ack') return acknowledge(message);
     if (!message.card || !Array.isArray(message.partners)) return;
-    link = 'live'; socketReady = true;
+    clearTimeout(socketTimer); socketTimer = null;
+    link = 'live'; socketReady = true; connectionError = '';
     render(message);
     if (!receivedState) {
       receivedState = true;
@@ -870,40 +926,72 @@ function openSocket(path, failMessage) {
       }
     }
   };
-  sock.onclose = e => {
-    if (sock !== ws) return; // replaced by a newer connection
+  const handleClose = e => {
+    if (sock !== ws || ended) return; // replaced by a newer connection or already closed
+    ended = true;
+    clearTimeout(socketTimer); socketTimer = null;
     socketReady = false;
     if (e.code === 4000) { setLink('replaced'); toast('Opened on another device'); return; }
     if (e.code === 4001) return leaveRoom(e.reason || 'This room was closed.');
-    if (!room) { $('err').textContent = failMessage; return; }
-    setLink('reconnecting');
+    const message = `${failMessage || 'Connection interrupted.'} Retrying…`;
+    setLink('reconnecting', message);
+    if (!room && !account) $('err').textContent = message;
     const again = () => setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
     // Refused outright rather than dropped: the room may be gone for good (a guest room
     // forgotten after hours away, a sign-in ended elsewhere, no longer linked).
-    if (opened) return again();
-    roomGone().then(why => { if (sock !== ws) return; if (why) leaveRoom(why); else again(); });
+    if (opened && receivedState) return again();
+    roomGone(path).then(result => {
+      if (sock !== ws) return;
+      if (!result) return again();
+      if (result.expired) return clearSession(result.why);
+      if (result.account) account = result.account;
+      leaveRoom(result.why, false);
+    });
   };
+  sock.onclose = handleClose;
+  socketTimer = setTimeout(() => {
+    if (sock !== ws || receivedState || ended) return;
+    // An open socket is not ready until a room frame confirms access and state.
+    handleClose({ code: 1006 });
+    sock.close();
+  }, 12000);
 }
 // Why the room can't be reopened, or null if it can (or we can't tell while offline).
-async function roomGone() {
-  if (!room) return null;
+async function roomGone(path = wsPath) {
+  const url = new URL(path, location.origin);
   try {
-    if (room.couple) {
+    if (room?.couple || url.pathname === '/api/couple/ws') {
       const res = await fetch('/api/me', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (res.status === 401) { clearSession('Please log in again.'); return 'Please log in again.'; }
-      return res.ok && !(await res.json()).partner ? "You're no longer linked." : null;
+      if (res.status === 401) return { why: 'Please log in again.', expired: true };
+      if (!res.ok) return null;
+      const current = await res.json();
+      if (!('partner' in current)) return null;
+      if (!current.partner) return { why: "You're no longer linked.", account: current };
+      if (!current.termsAccepted) return { why: 'Accept the Terms of Use before opening your room.', account: current };
+      // This account read also checks room access, including safety restrictions.
+      const access = await fetch('/api/history', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (access.status === 401) return { why: 'Please log in again.', expired: true };
+      if (access.status === 403) return { why: (await access.json()).error || 'Partner interactions are restricted. Contact support to appeal.', account: current };
+      return null;
     }
-    return (await fetch(`/api/rooms/${room.code}`)).status === 404 ? 'This room has ended. Start a new one.' : null;
+    const code = room?.code || url.pathname.match(/^\/api\/rooms\/([^/]+)\/ws$/)?.[1];
+    if (!code) return null;
+    const id = url.searchParams.get('id') || clientId;
+    const res = await fetch(`/api/rooms/${encodeURIComponent(code)}?id=${encodeURIComponent(id)}`);
+    if (res.status === 404) return { why: 'This room has ended. Start a new one.' };
+    if (res.status === 403 || res.status === 409) return { why: (await res.json()).error || 'Could not join this room. Please try another room.' };
+    return null;
   } catch { return null; }
 }
 // Back to the start screen, e.g. when the room was closed by Closer's team or has ended.
-function leaveRoom(why) {
+function leaveRoom(why, reconnectAccount = true) {
   const wasCouple = room && room.couple;
   roomView = 'dashboard'; closeMenu(); $('dashboard').classList.add('hidden'); document.body.classList.remove('on-dashboard');
   saveDraft();
+  clearTimeout(socketTimer); socketTimer = null;
   clearTimeout(cardTextTimer); lastKey = '';
   const previous = ws;
-  room = null; ws = null; link = 'live'; socketReady = false;
+  room = null; ws = null; link = 'live'; socketReady = false; connectionError = '';
   if (previous) previous.close();
   history.replaceState(null, '', '/');
   document.body.classList.remove('in-game', 'answer-mode', 'choosing', 'auto-reveal');
@@ -911,13 +999,17 @@ function leaveRoom(why) {
   if (wasCouple && !account) show('authBox'); // signed out elsewhere
   $('err').textContent = why;
   // Signed in: things may have changed (e.g. no longer linked), so refresh the start screen.
-  if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; }).catch(() => {});
+  if (account && !reconnectAccount) {
+    link = 'unavailable'; connectionError = why; showAccount(account, false);
+  } else if (account) api('/api/me').then(m => { showAccount(m); $('err').textContent = why; $('dashboardError').textContent = why; }).catch(() => {});
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && room && link !== 'replaced' && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
+  if (document.visibilityState === 'visible' && (room || account?.partner) && link !== 'replaced' && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
 });
+$('dashboardRetry').onclick = () => { if (link === 'reconnecting' && wsPath) { retry = 0; openSocket(wsPath, 'Could not connect to your shared room.'); } };
 // After another device took over the seat, tapping the partner pill takes it back.
-$('partners').onclick = () => { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } };
+function reclaimRoom() { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } }
+$('partners').onclick = reclaimRoom;
 
 async function connect(code) {
   try { await ensureGuestTerms(); } catch (error) { $('err').textContent = error.message; return; }
@@ -977,6 +1069,7 @@ function render(s) {
     document.body.classList.remove('on-dashboard'); $('dashboard').classList.add('hidden');
   }
   room = s;
+  if (s.myName) me = s.myName;
   $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); document.body.classList.add('in-game');
   $('roomPill').innerHTML = s.couple ? '<svg class="ico fill" style="color:var(--accent)"><use href="#i-heart"/></svg><b id="code" class="name">Just us</b>' : `Room <b id="code">${s.code}</b>`;
   $('roomPill').classList.toggle('hidden', !s.couple && s.partners.length === 2);

@@ -57,6 +57,19 @@ These exceptions are disclosed in the privacy policy.
 
 ## Release and operations
 
+Account deletion queues affected room IDs atomically with database erasure. A
+private maintenance Durable Object schedules retries before deletion and clears
+room working copies and presence records before acknowledging jobs. The API and
+deletion screens explicitly indicate pending cleanup after temporary outages.
+Deleting an account erases both partners' saved answers and favorites in all
+affected pair records. Ordinary room closure retains its discovery record while
+data remains stored.
+
+Review historical orphaned data from older deletion flows separately. The new
+flow cannot infer every former account ID after its profile, discovery record
+and all database references have already been erased; no historical bulk cleanup
+was performed as part of this promotion.
+
 Apply the three safety migrations before deploying the matching Worker and web
 assets, then publish production and Expo Go updates. The guarded persistence RPC
 can flush operations already accepted into the server outbox without falsely

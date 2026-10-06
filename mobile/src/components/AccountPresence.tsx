@@ -20,7 +20,7 @@ export function AccountPresence({ token, id, name, controlsRef, onOpen, onLeave,
   }, [controlsRef, link, send, reclaim]);
   useEffect(() => { onLink(link); }, [link, onLink]);
   useEffect(() => { if (room) onProgress({ used: room.deckList.reduce((total, deck) => total + deck.used, 0), started: room.started }); }, [room, onProgress]);
-  useEffect(() => { if (error) onError(error); }, [error, onError]);
+  useEffect(() => { onError(error); }, [error, onError]);
   useEffect(() => {
     if (!room) return;
     const next = room.cardsOpenVersion || 0;

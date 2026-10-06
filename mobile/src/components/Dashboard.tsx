@@ -6,8 +6,8 @@ import { Icon } from './Icon';
 import { Button, HeartBadge } from './ui';
 
 type MenuItem = { title: string; onPress: () => void };
-export function Dashboard({ title, subtitle, invite, onOpen, disabled, menu, error, promotion, played, started, onAdmin }: {
-  title: string; subtitle: string; invite?: ReactNode; onOpen: () => void; disabled?: boolean; menu: MenuItem[]; error?: string; promotion?: ReactNode; played?: number; started?: boolean; onAdmin?: () => void;
+export function Dashboard({ title, subtitle, invite, onOpen, onRetry, retryTitle = 'Retry connection', disabled, menu, error, promotion, played, started, onAdmin }: {
+  title: string; subtitle: string; invite?: ReactNode; onOpen: () => void; onRetry?: () => void; retryTitle?: string; disabled?: boolean; menu: MenuItem[]; error?: string; promotion?: ReactNode; played?: number; started?: boolean; onAdmin?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
@@ -16,7 +16,7 @@ export function Dashboard({ title, subtitle, invite, onOpen, disabled, menu, err
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[st.page, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
         <View style={st.header}><View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Closer</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Open menu" accessibilityState={{ expanded: open }} onPress={() => setOpen(true)} style={st.menuButton}><Icon name="menu" color={colors.text} /></Pressable></View>
         {invite ? <View style={st.invite}>{invite}</View> : null}
-        <View style={st.content}>{onAdmin ? <Button kind="ghost" title="Admin dashboard" onPress={onAdmin} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}<Text style={st.title}>{title}</Text><Text style={st.subtitle}>{subtitle}</Text><View accessibilityLiveRegion="polite" style={st.stat}><Text style={st.statNumber}>{played === undefined ? '…' : played}</Text><Text style={st.statLabel}>Cards played</Text></View><Text style={st.statNote}>Distinct cards revealed or answered in this shared room.</Text><Button title={started ? 'Continue cards' : 'Open cards'} onPress={onOpen} disabled={disabled} style={{ alignSelf: 'flex-start', minWidth: 180 }} />{error ? <Text accessibilityRole="alert" style={st.error}>{error}</Text> : null}</View>
+        <View style={st.content}>{onAdmin ? <Button kind="ghost" title="Admin dashboard" onPress={onAdmin} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}<Text style={st.title}>{title}</Text><Text style={st.subtitle}>{subtitle}</Text><View accessibilityLiveRegion="polite" style={st.stat}><Text style={st.statNumber}>{played === undefined ? '…' : played}</Text><Text style={st.statLabel}>Cards played</Text></View><Text style={st.statNote}>Distinct cards revealed or answered in this shared room.</Text><Button title={started ? 'Continue cards' : 'Open cards'} onPress={onOpen} disabled={disabled} style={{ alignSelf: 'flex-start', minWidth: 180 }} />{error ? <Text accessibilityRole="alert" style={st.error}>{error}</Text> : null}{onRetry ? <Button kind="ghost" title={retryTitle} onPress={onRetry} style={{ alignSelf: 'flex-start' }} /> : null}</View>
         {promotion ? <View style={st.promotion}>{promotion}</View> : null}
       </ScrollView>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

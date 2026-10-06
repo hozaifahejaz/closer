@@ -9,6 +9,7 @@ import { useKeyboardVisible } from '../useKeyboard';
 import { AnswerPanel } from '../components/AnswerPanel';
 import { Safety } from '../components/Safety';
 import { History } from '../components/History';
+import { Profile } from '../components/Profile';
 import { Dashboard } from '../components/Dashboard';
 import { Card } from '../components/Card';
 import { DeckPicker } from '../components/DeckPicker';
@@ -27,6 +28,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   const openVersion = useRef<number | null>(null);
   const [safetyOpen, setSafetyOpen] = useState<'terms' | 'report' | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [dashboard, setDashboard] = useState(conn.kind === 'guest');
 
   const say = useCallback((msg: string) => {
@@ -65,12 +67,14 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
       <View style={[st.fill, st.center]}>
         <ActivityIndicator color={colors.accent} size="large" />
         <Text style={st.loading}>{conn.kind === 'couple' ? 'Opening your cards…' : `Joining room ${conn.code}…`}</Text>
+        {error ? <Text accessibilityRole="alert" style={[st.loading, { color: colors.bad }]}>{error}</Text> : null}
+        {link === 'reconnecting' || link === 'replaced' ? <Button kind="ghost" title={link === 'replaced' ? 'Use room here' : 'Retry connection'} onPress={reclaim} style={{ marginTop: 16 }} /> : null}
         <Button kind="link" title="Cancel" onPress={() => onLeave()} style={{ marginTop: 16 }} />
       </View>
     );
   }
 
-  const me = conn.name;
+  const me = room.myName || conn.name;
   const partner = room.partners.find(p => p !== me) || (room.partners.length === 2 ? room.partners[1] : '');
   const together = room.partners.length === 2;
   // Includes the question: a fresh deal or a rebuilt room can put a different card at the same place.
@@ -87,12 +91,13 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
 
   const safety = <Safety mode={safetyOpen} room={room} request={requestSafety} onClose={() => setSafetyOpen(null)} />;
 
-  if (dashboard) return <>{safety}<History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
+  if (dashboard) return <>{safety}<Profile visible={profileOpen} token={conn.kind === 'couple' ? conn.token : null} name={me} onClose={() => setProfileOpen(false)} renameGuest={name => requestSafety({ type: 'renameGuest', name })} onNotice={say} /><History visible={historyOpen} token={conn.kind === 'couple' ? conn.token : null} onClose={() => setHistoryOpen(false)} /><Dashboard
     played={room.deckList.reduce((total, deck) => total + deck.used, 0)} started={room.started}
     onAdmin={isAdmin ? () => { Linking.openURL(`${WEBSITE}/admin`); } : undefined}
-    title={together || room.couple ? 'A little time for two.' : `Welcome, ${conn.name}.`}
+    title={together || room.couple ? 'A little time for two.' : `Welcome, ${me}.`}
     subtitle={together || room.couple ? (room.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.'}
     onOpen={() => act({ type: 'openCards' })} disabled={link !== 'live'} error={error || (link === 'live' ? undefined : link === 'replaced' ? 'This room is open on another device.' : 'Reconnecting…')}
+    onRetry={link === 'reconnecting' || link === 'replaced' ? reclaim : undefined} retryTitle={link === 'replaced' ? 'Use room here' : undefined}
     invite={!room.couple && !together ? <>
       <Text style={st.pillText}>Your room code</Text>
       <View style={st.row}><Text selectable style={[st.pillCode, { fontSize: 26, letterSpacing: 6, flex: 1 }]}>{room.code}</Text><Button kind="ghost" title="Share invite" onPress={invite} /></View>
@@ -104,6 +109,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
       <Text style={{ fontFamily: fonts.sans, fontSize: 12, lineHeight: 19, color: colors.muted }}>{accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.'}</Text>
     </> : undefined}
     menu={[
+      { title: 'Profile', onPress: () => setProfileOpen(true) },
       ...(room.couple ? [{ title: 'History', onPress: () => setHistoryOpen(true) }] : []),
       ...(link === 'replaced' ? [{ title: 'Use room here', onPress: reclaim }] : []),
       { title: 'Safety & support', onPress: () => setSafetyOpen('report') },

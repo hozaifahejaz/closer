@@ -40,12 +40,18 @@ export function randomCode(length) {
 
 export function newRoom(code, coupleId = null) {
   return { code, coupleId, cardsOpenVersion: 0, decks: [], category: 'All', order: buildOrder([]), index: 0, progress: {}, choosing: true, started: false,
-    flipped: true, tapToReveal: false, favorites: [], mode: 'talk', answers: {} };
+    flipped: true, tapToReveal: false, favorites: [], mode: 'talk', answers: {}, ...(coupleId ? {} : { guestMembers: [] }) };
 }
 
 // Rooms saved before decks existed only had one category.
 export function upgradeRoom(room) {
   if (!room) return room;
+  if (!room.coupleId && !Array.isArray(room.guestMembers)) {
+    // Legacy rooms may contain more people than their two current sockets.
+    // Keep an unambiguous pair; an ambiguous history must start a new room.
+    room.guestMembers = [...new Set([...Object.keys(room.names || {}), ...Object.values(room.answers || {}).flatMap(Object.keys)])];
+    if (room.guestMembers.length > 2) room.safetyClosed = true;
+  }
   if (room.tapToReveal === undefined) { room.tapToReveal = false; room.flipped = true; }
   if (!room.decks) {
     room.decks = !room.category || room.category === 'All' ? [] : [room.category];
@@ -131,7 +137,8 @@ export function publicState(room, players, viewerId) {
   // Answers count whether or not the partner is connected right now: a phone that
   // sleeps for a moment mustn't hide answers already revealed, and a couple's partner
   // may have answered this card on another day.
-  const others = Object.keys(answers).filter(id => id !== viewerId);
+  const members = room.coupleId ? room.coupleId.split(':') : room.guestMembers || [];
+  const others = members.filter(id => id !== viewerId && Object.hasOwn(answers, id));
   const bothAnswered = Object.hasOwn(answers, viewerId) && others.length > 0;
   const nameOf = id => players.get(id) || (Object.hasOwn(room.names || {}, id) ? room.names[id] : null) || 'Partner';
   return {
@@ -155,6 +162,7 @@ export function publicState(room, players, viewerId) {
     tapToReveal: tapToReveal(room),
     card: { id: cardKey(card), category: card.c, text: questionText(card) },
     partners: [...players.values()],
+    myName: nameOf(viewerId),
     favorites: room.favorites,
     mode: room.mode,
     myAnswer: Object.hasOwn(answers, viewerId) ? answers[viewerId] : null,

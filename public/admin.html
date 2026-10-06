@@ -522,8 +522,10 @@ $('userList').onclick = async e => {
   }
   btn.disabled = true;
   try {
-    await api('/api/admin/action', body);
-    toast({ signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
+    const result = await api('/api/admin/action', body);
+    toast(act === 'delete' && result.cleanupPending
+      ? result.message || 'Account deleted. Stored room cleanup is pending and will retry automatically.'
+      : { signout: 'Signed out everywhere', unlink: 'Unlinked', delete: 'Account deleted', admin: 'Admin access updated' }[act]);
     await loadUsers();
   } catch (err) { toast(err.message); btn.disabled = false; }
 };

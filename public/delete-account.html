@@ -60,10 +60,12 @@ form.addEventListener('submit', async event => {
   const password = document.getElementById('password').value;
   try {
     const { token } = await post('/api/login', { email, password });
-    await post('/api/account/delete', { password }, token);
+    const result = await post('/api/account/delete', { password }, token);
     try { localStorage.removeItem('closer:token'); } catch {}
     form.remove();
-    message.textContent = 'Your Closer account and saved couple data have been deleted.';
+    message.textContent = result.cleanupPending
+      ? result.message || 'Your account was deleted. Stored room cleanup is pending and will retry automatically.'
+      : 'Your Closer account and saved couple data have been deleted.';
   } catch (error) {
     message.textContent = error.message;
     button.disabled = false;

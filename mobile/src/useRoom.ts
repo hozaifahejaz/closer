@@ -23,15 +23,27 @@ const pathFor = (c: Connection) => c.kind === 'couple'
 // Why the room can't be reopened, or null if it can (or we can't tell while offline).
 async function roomGone(c: Connection): Promise<string | null> {
   try {
-    if (c.kind === 'guest') { await api(`/api/rooms/${c.code}`, null); return null; }
+    if (c.kind === 'guest') { await api(`/api/rooms/${c.code}?id=${encodeURIComponent(c.id)}`, null); return null; }
     const me = await api<Account>('/api/me', c.token);
-    return me.partner ? null : "You're no longer linked.";
+    if (!me.partner) return "You're no longer linked.";
+    if (!me.termsAccepted) return 'Accept the Terms of Use before joining a room.';
+    // /api/me still permits account maintenance while partner interactions are
+    // restricted. History checks the shared room's current access policy.
+    await api('/api/history', c.token);
+    return null;
   } catch (e) {
     if (!(e instanceof ApiError)) return null;
     if (e.status === 404) return 'This room has ended. Start a new one.';
     if (e.status === 401) return 'Please log in again.';
+    if (e.status === 403 || (c.kind === 'guest' && e.status === 409)) return e.message;
     return null;
   }
+}
+
+function closeSocket(sock: WebSocket | null) {
+  if (!sock) return;
+  sock.onopen = null; sock.onclose = null; sock.onmessage = null;
+  try { sock.close(); } catch {}
 }
 
 export function useRoom(conn: Connection, onLeave: (message: string) => void) {
@@ -47,29 +59,46 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
   const retry = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const handshake = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const hadRoom = useRef(false);
+  const attempt = useRef(0);
   const alive = useRef(true);
+  const paused = useRef(false);
+  const ended = useRef(false);
   const replaced = useRef(false);
   const leave = useRef(onLeave);
   useEffect(() => { leave.current = onLeave; }, [onLeave]);
 
   const open = useCallback(function connect() {
+    if (!alive.current || paused.current || ended.current || replaced.current) return;
     clearTimeout(timer.current);
     clearTimeout(handshake.current);
     const old = ws.current;
     ws.current = null;
-    if (old) { old.onclose = null; old.onmessage = null; try { old.close(); } catch {} }
+    closeSocket(old);
+    const version = ++attempt.current;
     const sock = new WebSocket(socketUrl(pathFor(conn)));
     ws.current = sock;
-    let opened = false;
     let synchronized = false;
-    handshake.current = setTimeout(() => {
-      if (ws.current !== sock || synchronized) return;
+    const recover = (message: string) => {
+      if (ws.current !== sock || !alive.current) return;
+      clearTimeout(handshake.current);
       ws.current = null;
-      try { sock.close(); } catch {}
-      leave.current('Could not synchronize your room. Please try again with the latest version of Closer.');
+      closeSocket(sock);
+      setLink('reconnecting');
+      setError(message);
+      const again = () => {
+        if (!alive.current || paused.current || ended.current || replaced.current || attempt.current !== version) return;
+        timer.current = setTimeout(connect, Math.min(1000 * 2 ** Math.min(retry.current++, 4), 10000));
+      };
+      if (synchronized) { again(); return; }
+      roomGone(conn).then(why => {
+        if (!alive.current || paused.current || attempt.current !== version || ws.current) return;
+        if (why) { ended.current = true; setError(why); leave.current(why); }
+        else again();
+      });
+    };
+    handshake.current = setTimeout(() => {
+      if (!synchronized) recover('Could not synchronize your room. Trying again…');
     }, 12000);
-    sock.onopen = () => { opened = true; retry.current = 0; };
     sock.onmessage = e => {
       if (sock !== ws.current) return; // a late message from a replaced socket
       let control;
@@ -95,11 +124,12 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
       current.current = s;
       session.current = roomSession(JSON.stringify([SERVER, conn.kind, conn.id]), s.roomId);
       setActiveSession(session.current);
-      hadRoom.current = true;
       setRoom(s);
       setLink('live');
       if (!synchronized) {
         synchronized = true;
+        retry.current = 0;
+        setError('');
         for (const action of session.current.pendingActions()) {
           try { sock.send(JSON.stringify(action)); } catch { break; }
         }
@@ -107,31 +137,38 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
     };
     sock.onclose = e => {
       if (sock !== ws.current || !alive.current) return; // replaced by a newer connection, or the screen is gone
-      clearTimeout(handshake.current);
-      ws.current = null;
-      if (e.code === 4000) { replaced.current = true; setLink('replaced'); return; }
-      if (e.code === 4001) { leave.current(e.reason || 'This room was closed.'); return; }
-      setLink('reconnecting');
-      const again = () => { timer.current = setTimeout(connect, Math.min(1000 * 2 ** retry.current++, 10000)); };
-      // Refused outright (not a dropped network): the room may be gone for good, e.g. a
-      // guest room forgotten overnight, a sign-in ended elsewhere, or no longer linked.
-      if (opened) return again();
-      roomGone(conn).then(why => {
-        if (!alive.current || ws.current) return;
-        if (why) leave.current(why);
-        else if (!hadRoom.current) leave.current(conn.kind === 'couple' ? 'Could not open your room. Please try again.' : 'Could not join (the room may be full).');
-        else again();
-      });
+      if (e.code === 4000 || e.code === 4001) {
+        clearTimeout(handshake.current); ws.current = null; closeSocket(sock);
+        if (e.code === 4000) { replaced.current = true; setError(''); setLink('replaced'); }
+        else {
+          ended.current = true;
+          const reason = e.reason || 'This room was closed.';
+          setLink('reconnecting'); setError(reason); leave.current(reason);
+        }
+        return;
+      }
+      recover('Connection interrupted. Trying again…');
     };
   }, [conn]);
 
   useEffect(() => {
     alive.current = true;
+    paused.current = AppState.currentState === 'background' || AppState.currentState === 'inactive';
+    ended.current = false;
+    replaced.current = false;
     const pendingSafety = safetyPending.current;
     open();
     // Phones drop sockets while asleep: reconnect as soon as the app is back.
     const sub = AppState.addEventListener('change', s => {
-      if (s !== 'active' || replaced.current) return;
+      paused.current = s !== 'active';
+      if (paused.current) {
+        ++attempt.current;
+        clearTimeout(timer.current); clearTimeout(handshake.current);
+        const sock = ws.current; ws.current = null; closeSocket(sock);
+        if (!replaced.current && !ended.current) setLink('reconnecting');
+        return;
+      }
+      if (replaced.current || ended.current) return;
       // An apparently OPEN socket may be stale after the OS suspended the app.
       retry.current = 0; setLink('reconnecting'); open();
     });
@@ -144,7 +181,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
       clearTimeout(handshake.current);
       const sock = ws.current;
       ws.current = null;
-      if (sock) { sock.onclose = null; try { sock.close(); } catch {} }
+      closeSocket(sock);
     };
   }, [open]);
 
@@ -185,7 +222,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
     changed(n => n + 1);
   }, [room]);
 
-  const reclaim = useCallback(() => { replaced.current = false; retry.current = 0; setLink('reconnecting'); open(); }, [open]);
+  const reclaim = useCallback(() => { replaced.current = false; ended.current = false; retry.current = 0; setError(''); setLink('reconnecting'); open(); }, [open]);
 
   const draft = room ? activeSession?.getDraft(room.card.id) || '' : '';
   const answerPending = !!room && !!activeSession?.pendingActions().some(a => a.type === 'answer' && a.cardKey === room.card.id);

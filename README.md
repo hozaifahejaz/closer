@@ -4,9 +4,10 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 
 ## Play
 
-- **Guest room:** Create or join a room with a four-letter code. No account is needed. The room holds its cards and answers for up to six hours after it becomes idle; guest answers are not saved to an account.
+- **Guest room:** Create or join a room with a four-letter code. No account is needed. Its original two guest identities reserve the room and can reconnect; replacement guests must start a new room. The room holds its cards and answers for up to six hours after it becomes idle; guest answers are not saved to an account.
 - **Couple account:** Sign up with an email and password, then link once using your partner's six-letter invite code. The linked pair gets a private room. Answers and favorites are saved in Supabase.
-- **Account deletion:** Signed-in users can delete their account after confirming their password. The website and mobile app link to the same deletion API; the public [deletion page](https://closer.hozaiphaa.workers.dev/delete-account) also works outside the app. Deletion revokes sessions, unlinks the partner, and removes saved data and durable room copies for the account's former couples.
+- **Account deletion:** Signed-in users can delete their account after confirming their password. The website and mobile app link to the same deletion API; the public [deletion page](https://closer.hozaiphaa.workers.dev/delete-account) also works outside the app. Deletion revokes sessions, unlinks the partner, and removes both partners' saved answers and favorites in the account's former couples. Durable room cleanup retries automatically after temporary outages, with a pending-cleanup notice when needed.
+- **Profile:** Menu → Profile lets account and guest users change their display name. Account users can view their read-only email. Names update for connected partners without changing account links or progress.
 - **Dashboard:** Guest and account users start on a minimalist dashboard. Invite codes appear while waiting for a partner. The header shows the Closer heart logo beside the name. The menu holds account and room actions; admins also have a visible Admin dashboard button. Opening cards brings both connected partners into cards; returning to the dashboard is individual. Returning players use **Continue cards** to resume their saved card and deck selection without an automatic deck prompt. **Cards played** shows distinct cards revealed or answered in the current shared room. Guest users are offered signup to save future progress; existing guest progress does not transfer.
 - **History:** Account users can view unique used cards, remaining cards, and per-deck progress from Menu → History. Cards count when revealed or answered. History covers the current shared room; after one year of inactivity, rebuilding it restores answered-card history only.
 - **Cards:** Choose any mix of the 26 decks (1,378 questions), move forward or back, and switch decks without losing your place in that selection. A couple can also choose **Only new cards**. The shared room remembers deck progress while it exists; idle couple rooms expire after one year and rebuild from saved answers and favorites.
@@ -14,6 +15,11 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 - **Modes:** Use **Just talk** or **Answer & reveal**. In Answer & reveal, each answer is hidden from the other partner until both have answered. **Tap to reveal** is off for new rooms; existing rooms keep their saved preference. Either partner can toggle **Tap to reveal**, flip a card, change decks or modes, and mark a shared favorite.
 
 Web and native clients keep unfinished answer drafts while moving between cards or reconnecting. Draft text lives in memory and is lost after a page reload or app process restart. The native app can offer to resume a recent guest room after restarting.
+
+Dashboards recover from transient connection failures, time out stalled handshakes,
+and offer Retry connection. Expired sessions, unlinking, restrictions and invalid
+guest seats require the appropriate account or room action. HTTP account APIs
+ignore URL session tokens; browser WebSockets keep their query-token transport.
 
 ## Terms and safety
 
@@ -56,7 +62,7 @@ The app uses its own account and session functions, protected by the Worker secr
 | --- | --- |
 | `public/index.html`, `public/admin.html` | Web app and admin dashboard |
 | `worker/index.js`, `worker/game.js` | API, WebSocket rooms, and game rules |
-| `worker/room-storage.js`, `worker/db.js` | Durable room data and Supabase calls |
+| `worker/room-storage.js`, `worker/db.js`, `worker/maintenance.js` | Durable room data, Supabase calls and retried account-room cleanup |
 | `questions.json` | 26 decks; card positions are stable IDs |
 | `supabase/migrations/` | Database schema and account functions |
 | [`mobile/`](mobile/) | React Native / Expo Android and iOS app |
@@ -78,5 +84,11 @@ Cloudflare hosts the website, API, and WebSocket Durable Objects as the `closer`
 The website and native app source are together on `main`; `mobile-apps` mirrors the release. Android and iOS production over-the-air updates for runtime `1.0.0` have been published through Expo. Store builds and their distribution are managed separately from the website; see the [mobile README](mobile/README.md).
 
 The dashboard, card statistics and continuation, question numbering, History, shared card opening, and reveal defaults reuse the existing database schema; their original 14 Supabase migrations remain in the history. The safety release adds versioned migrations for consent, blocking, account restrictions, and safe persistence of previously accepted outbox operations. Local demo accounts and preview configuration are not included in production.
+
+The 2026-10-06 promotion adds Profile editing, guest-seat protection, authentication
+hardening, connection recovery and durable account-room cleanup. Production
+migrations `20261006103744`, `20261006103748` and `20261006103848` provide the
+cleanup queue, profile update RPC and its restricted role grants. Experiments
+remain separate; local simulation and demo credentials are not part of production.
 
 A one-time deck purchase/unlock, a saved-answer library, account recovery, and end-to-end encryption are future features; they are not in the current release.

@@ -10,6 +10,7 @@ import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, de
 import { Db, DbError } from './db.js';
 import { TERMS_VERSION, SAFETY, REASONS, safetyHandle, safetyFetch, safetyAlarm } from './safety.js';
 import { RoomStorage, listEntries } from './room-storage.js';
+import { MAINTENANCE, maintenanceFetch, maintenanceAlarm } from './maintenance.js';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
 // A couple's room holds their place in each deck; if it's ever forgotten it is
@@ -25,7 +26,10 @@ async function readBody(request) {
 
 function tokenOf(request, url) {
   const header = request.headers.get('Authorization') || '';
-  return header.startsWith('Bearer ') ? header.slice(7) : url.searchParams.get('token');
+  // Browser WebSockets cannot set Authorization. HTTP navigation must never
+  // turn a token from a shared URL into a new persistent login cookie.
+  return header.startsWith('Bearer ') ? header.slice(7) :
+    url.pathname === '/api/couple/ws' && request.headers.get('Upgrade') === 'websocket' ? url.searchParams.get('token') : null;
 }
 
 // The sign-in is also kept in a first-party, HttpOnly cookie. Browsers (Safari
@@ -55,7 +59,14 @@ async function tooMany(limiter, ...keys) {
 const clientIp = request => request.headers.get('CF-Connecting-IP') || 'local';
 const slowDown = () => json(429, { error: 'Too many tries. Please wait a minute and try again' });
 
-const publicMe = s => ({ id: s.id, name: s.name, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin), termsAccepted: Boolean(s.terms_accepted) });
+const publicMe = s => ({ id: s.id, name: s.name, email: s.email, inviteCode: s.invite_code, partner: s.partner, isAdmin: Boolean(s.is_admin), termsAccepted: Boolean(s.terms_accepted) });
+function displayName(value) {
+  if (typeof value !== 'string') throw new DbError('Enter your name.', 400);
+  const name = value.trim();
+  if (!name || Array.from(name).length > 24 || /[\u0000-\u001f\u007f-\u009f]/.test(name))
+    throw new DbError('Use a name between 1 and 24 characters, without line breaks.', 400);
+  return name;
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -90,7 +101,10 @@ export default {
       if (m) {
         if (await tooMany(env.ROOM_LOOKUP_LIMIT, `room:${clientIp(request)}`)) return slowDown();
         const stub = roomStub(env, m[1]);
-        if (!m[2]) return stub.fetch('https://room/exists');
+        if (!m[2]) {
+          const candidate = url.searchParams.get('id');
+          return stub.fetch('https://room/exists' + (candidate ? `?id=${encodeURIComponent(candidate)}` : ''));
+        }
         const id = url.searchParams.get('id') || crypto.randomUUID();
         if (!/^[A-Za-z0-9_-]{8,64}$/.test(id) || Object.hasOwn(Object.prototype, id)) return json(400, { error: 'Invalid guest identity. Refresh and try again.' });
         const name = (url.searchParams.get('name') || 'Partner').slice(0, 24);
@@ -116,6 +130,22 @@ const roomStub = (env, name) => env.ROOMS.get(env.ROOMS.idFromName(name));
 const STATS = '__stats';
 const statsStub = env => roomStub(env, STATS);
 const safetyStub = env => roomStub(env, SAFETY);
+const maintenanceStub = env => roomStub(env, MAINTENANCE);
+async function prepareDeletion(env) {
+  const response = await maintenanceStub(env).fetch('https://maintenance/arm', { method: 'POST' });
+  if (!response.ok) throw new DbError('Could not schedule account deletion. Please try again.', 503);
+}
+async function finishDeletion(db, env, rooms) {
+  let cleanupPending = true;
+  try {
+    await maintenanceStub(env).fetch('https://maintenance/drain', { method: 'POST' });
+    const pending = await db.rpc('pending_room_cleanup', { p_rooms: rooms });
+    if (!Array.isArray(pending)) throw new Error('Invalid cleanup status');
+    cleanupPending = pending.length > 0;
+  } catch (error) { console.error('Account cleanup will retry:', error.message); }
+  return json(cleanupPending ? 202 : 200, { ok: true, cleanupPending,
+    ...(cleanupPending ? { message: 'Your account was deleted. Stored room cleanup is pending and will retry automatically.' } : {}) });
+}
 async function safetyCall(env, path, body = {}) {
   const res = await safetyStub(env).fetch('https://safety/' + path, { method: 'POST', body: JSON.stringify(body) });
   const data = await res.json();
@@ -136,6 +166,11 @@ function withPlayer(request, { id, name, token = '', couple = '', partnerName = 
 }
 
 async function accountApi(request, url, db, env) {
+  if (request.method === 'POST' && ['/api/login', '/api/signup'].includes(url.pathname)) {
+    if (!sameOrigin(request, url)) return json(403, { error: 'Not allowed' });
+    if (request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/json')
+      return json(415, { error: 'Send account requests as JSON.' });
+  }
   if (url.pathname === '/api/signup' && request.method === 'POST') {
     const { email, password, name, termsVersion } = await readBody(request);
     if (await tooMany(env.AUTH_LIMIT, `signup:${clientIp(request)}`)) return slowDown();
@@ -176,6 +211,19 @@ async function accountApi(request, url, db, env) {
     const res = json(200, { ...publicMe(state), ...(fromCookie ? { token } : {}) });
     return withCookie(res, url, token); // renewed on every visit, so it never runs out while in use
   }
+  if (url.pathname === '/api/profile' && request.method === 'POST') {
+    if (await tooMany(env.AUTH_LIMIT, `profile:${state.id}`)) return slowDown();
+    const name = displayName((await readBody(request)).name);
+    const updated = await db.rpc('update_display_name', { p_token: token, p_name: name });
+    let liveRefreshPending = false;
+    if (updated.couple_id) {
+      try {
+        const response = await roomStub(env, `couple:${updated.couple_id}`).fetch('https://room/admin/profile', { method: 'POST' });
+        liveRefreshPending = !response.ok;
+      } catch { liveRefreshPending = true; }
+    }
+    return json(200, { ...publicMe(updated), liveRefreshPending });
+  }
   if (url.pathname === '/api/link' && request.method === 'POST') {
     if (!state.terms_accepted) return json(403, { error: 'Accept the Terms of Use before linking.' });
     if ((await db.rpc('safety_state', { p_token: token })).restricted) return json(403, { error: 'Partner interactions are restricted. Contact support to appeal.' });
@@ -205,23 +253,10 @@ async function accountApi(request, url, db, env) {
       active = (await statsStub(env).fetch('https://stats/rooms').then(r => r.json()))
         .filter(r => r.couple && r.room?.slice(7).split(':').includes(state.id))
         .map(r => r.room.slice(7));
-    } catch (error) { console.error('Could not list active rooms during account deletion', error); }
-    const saved = await db.rpc('delete_own_account', { p_token: token, p_password: password });
-    for (const couple of new Set([...saved, ...active])) {
-      const room = `couple:${couple}`;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const response = await roomStub(env, room).fetch('https://room/admin/close', {
-            method: 'POST', body: JSON.stringify({ reason: 'This account was deleted', discard: true }),
-          });
-          if (response.ok) break;
-          if (attempt === 2) console.error('Could not clear deleted account room', room, response.status);
-        } catch (error) {
-          if (attempt === 2) console.error('Could not clear deleted account room', room, error);
-        }
-      }
-    }
-    return withCookie(json(200, { ok: true }), url, null);
+    } catch { throw new DbError('Could not locate stored rooms. Please try account deletion again.', 503); }
+    await prepareDeletion(env);
+    const saved = await db.rpc('delete_own_account_with_rooms', { p_token: token, p_password: password, p_rooms: active });
+    return withCookie(await finishDeletion(db, env, saved), url, null);
   }
   if (url.pathname.startsWith('/api/admin/')) return adminApi(request, url, db, env, token, state);
   if (url.pathname === '/api/history' && request.method === 'GET') {
@@ -293,6 +328,11 @@ async function adminApi(request, url, db, env, token, state) {
     const affected = ['signout', 'delete', 'unlink'].includes(action)
       ? (await statsStub(env).fetch('https://stats/rooms').then(r => r.json()))
         .filter(r => r.couple && r.room.slice(7).split(':').includes(String(user))) : [];
+    if (action === 'delete') {
+      await prepareDeletion(env);
+      const rooms = await db.rpc('admin_delete_user_with_rooms', { ...args, p_rooms: affected.map(r => r.room.slice(7)) });
+      return finishDeletion(db, env, rooms);
+    }
     await db.rpc(fn, args);
     for (const r of affected) {
       if (action === 'delete') await closeRoom(r.room, { discard: true });
@@ -382,7 +422,7 @@ async function statsFetch(ctx, request) {
     // A record older than the longest room lifetime is a room that was never reported gone.
     const stale = Date.now() - COUPLE_ROOM_TTL - 86400e3;
     const rooms = [];
-    for (const [key, r] of await ctx.storage.list({ prefix: 'room:' })) {
+    for (const [key, r] of await listEntries(ctx.storage, 'room:')) {
       if (r.at < stale) { await ctx.storage.delete(key); continue; }
       if (!r.handle) { r.handle = crypto.randomUUID(); await ctx.storage.put(key, r); }
       rooms.push(r);
@@ -432,8 +472,10 @@ export class Room extends DurableObject {
     this.flushing = null;
     // Room state survives the object going to sleep between taps.
     ctx.blockConcurrencyWhile(async () => {
-      this.room = upgradeRoom(await this.store.load());
-      if (this.room && (this.room.storageVersion !== 2 || !this.room.safetyInstance)) await this.save();
+      const saved = await this.store.load();
+      const guestUpgrade = saved && !saved.coupleId && !Array.isArray(saved.guestMembers);
+      this.room = upgradeRoom(saved);
+      if (this.room && (this.room.storageVersion !== 2 || !this.room.safetyInstance || guestUpgrade)) await this.save();
     });
   }
 
@@ -447,6 +489,7 @@ export class Room extends DurableObject {
     const url = new URL(request.url);
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return statsFetch(this.ctx, request);
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(SAFETY))) return this.run(() => safetyFetch(this.ctx, request));
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(MAINTENANCE))) return this.run(() => maintenanceFetch(this.ctx, this.env, this.db, request));
     return this.run(() => this.fetchRoom(request));
   }
 
@@ -462,6 +505,17 @@ export class Room extends DurableObject {
       return json(200, { code });
     }
     if (url.pathname === '/exists') {
+      const candidate = url.searchParams.get('id');
+      if (this.room && !this.room.safetyClosed && candidate) {
+        if (!this.room.guestMembers?.includes(candidate)) {
+          if (this.room.guestMembers?.length >= 2) return json(409, { error: 'This guest room belongs to its original pair. Start a new room.' });
+          if (this.players().size >= 2) return json(409, { error: 'Room is full.' });
+        }
+        for (const other of this.room.guestMembers || []) {
+          if (other !== candidate && (await safetyCall(this.env, 'blocked', { a: candidate, b: other })).blocked)
+            return json(403, { error: 'These guests cannot share a room.' });
+        }
+      }
       return this.room && !this.room.safetyClosed ? json(200, { code: this.room.code, partners: this.players().size }) : json(404, { error: 'Room not found' });
     }
     // Admin actions (only the Worker's admin routes call these).
@@ -477,7 +531,11 @@ export class Room extends DurableObject {
         await this.ctx.storage.deleteAll();
         this.store = new RoomStorage(this.ctx.storage);
       }
-      if (name) await this.statsGone(name);
+      if (name && (discard || !this.room?.coupleId)) await this.statsGone(name);
+      return json(200, { ok: true });
+    }
+    if (url.pathname === '/admin/profile' && request.method === 'POST') {
+      if (this.room?.coupleId) { await this.broadcast(); await this.save(); this.reportPresence(); }
       return json(200, { ok: true });
     }
     if (url.pathname === '/admin/kick' || url.pathname === '/admin/revoke') {
@@ -510,6 +568,13 @@ export class Room extends DurableObject {
     if (!history && !safety.accepted) return json(403, { error: 'Accept the Terms of Use before joining a room.' });
     player.termsAccepted = safety.accepted;
 
+    if (coupleId) {
+      // Record even Just Talk rooms before retaining any durable working copy.
+      // This registry survives ordinary room closure and discovers old rooms
+      // when either account is later deleted.
+      await this.db.rpc('register_room', { p_token: player.token, p_couple_id: coupleId });
+    }
+
     if (coupleId && !this.room) {
       // A couple's room is created on first use from what they saved before. It is only
       // kept once that load worked, so a database hiccup can't leave (and later save) a
@@ -533,6 +598,9 @@ export class Room extends DurableObject {
 
     if (!coupleId) {
       if (this.room.safetyClosed) return json(403, { error: 'This room was ended for safety. Start a new room.' });
+      if (this.room.names?.[player.id]) player.name = this.room.names[player.id];
+      if (!this.room.guestMembers.includes(player.id) && this.room.guestMembers.length >= 2)
+        return json(403, { error: 'This guest room belongs to its original pair. Start a new room.' });
       for (const other of Object.keys(this.room.names || {})) {
         if (other !== player.id && (await safetyCall(this.env, 'blocked', { a: player.id, b: other })).blocked) return json(403, { error: 'These guests cannot share a room.' });
       }
@@ -546,6 +614,10 @@ export class Room extends DurableObject {
     // Names are remembered so answers can still be shown with a name while someone is away.
     // A couple's id is made of both partners' ids, so the partner's id is the other half.
     if (!coupleId) {
+      if (!this.room.guestMembers.includes(player.id)) {
+        this.room.guestMembers.push(player.id);
+        await this.save();
+      }
       this.room.guestPartners ||= {};
       for (const other of this.players().keys()) if (other !== player.id) { this.room.guestPartners[player.id] = other; this.room.guestPartners[other] = player.id; }
     }
@@ -587,7 +659,7 @@ export class Room extends DurableObject {
     try { action = JSON.parse(message); } catch { return; }
     if (!action || typeof action !== 'object' || Array.isArray(action)) return;
     if (!(await this.authorized(ws))) return;
-    if (['acceptTerms', 'reportUser', 'blockUser'].includes(action.type)) return this.handleSafety(ws, player, action);
+    if (['acceptTerms', 'reportUser', 'blockUser', 'renameGuest'].includes(action.type)) return this.handleSafety(ws, player, action);
     const changesContent = ['answer', 'favorite'].includes(action.type);
     const ack = (ok, error) => ({ type: 'ack', id: action.id, ok, ...(error ? { error } : {}), cardKey: action.cardKey });
     const sendAck = value => { try { ws.send(JSON.stringify(value)); } catch {} };
@@ -648,13 +720,24 @@ export class Room extends DurableObject {
   }
 
   safetyPartner(id) {
-    return this.room.coupleId ? this.room.coupleId.split(':').find(other => other !== id) : [...this.players().keys()].find(other => other !== id) || this.room.guestPartners?.[id] || (Object.keys(this.room.names || {}).length === 2 ? Object.keys(this.room.names).find(other => other !== id) : null);
+    return (this.room.coupleId ? this.room.coupleId.split(':') : this.room.guestMembers || []).find(other => other !== id);
   }
 
   async handleSafety(ws, player, action) {
     const reply = value => { try { ws.send(JSON.stringify({ type: 'safetyResult', id: action.id, ...value })); } catch {} };
     if (typeof action.id !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(action.id)) return;
     try {
+      if (action.type === 'renameGuest') {
+        if (this.room.coupleId) throw new DbError('Edit your account name in Profile.', 400);
+        const name = displayName(action.name);
+        this.room.names ||= {};
+        this.room.names[player.id] = name;
+        await this.save();
+        for (const socket of this.ctx.getWebSockets(player.id)) {
+          const attachment = socket.deserializeAttachment(); attachment.name = name; socket.serializeAttachment(attachment);
+        }
+        await this.broadcast(); this.reportPresence(); reply({ ok: true }); return;
+      }
       if (action.type === 'acceptTerms') {
         if (action.version !== TERMS_VERSION) throw new DbError('Please review the current terms.', 400);
         if (this.room.coupleId) await this.db.rpc('accept_terms', { p_token: player.token, p_version: TERMS_VERSION });
@@ -733,11 +816,23 @@ export class Room extends DurableObject {
 
   async authorized(ws) {
     if (!this.room) return false;
-    if (!this.room.coupleId) return !this.room.safetyClosed && ws.readyState === WebSocket.OPEN;
+    if (!this.room.coupleId) {
+      if (this.room.safetyClosed || !this.room.guestMembers?.includes(ws.deserializeAttachment().id)) {
+        try { ws.close(4001, 'This room has ended. Start a new room.'); } catch {}
+        return false;
+      }
+      return ws.readyState === WebSocket.OPEN;
+    }
     const p = ws.deserializeAttachment();
     try {
       const state = await this.db.me(p.token);
-      if (state?.id === p.id && state.couple_id === this.room.coupleId && !(await this.db.rpc('safety_state', { p_token: p.token })).restricted) return ws.readyState === WebSocket.OPEN;
+      if (state?.id === p.id && state.couple_id === this.room.coupleId && !(await this.db.rpc('safety_state', { p_token: p.token })).restricted) {
+        p.name = state.name; ws.serializeAttachment(p);
+        this.room.names ||= {};
+        this.room.names[p.id] = state.name;
+        if (state.partner) this.room.names[state.partner.id] = state.partner.name;
+        return ws.readyState === WebSocket.OPEN;
+      }
       ws.close(4001, 'Your session or partner link changed. Please sign in again.');
     } catch {
       // Reconnect retries unacknowledged commands after transient auth outages.
@@ -774,6 +869,7 @@ export class Room extends DurableObject {
   async alarm() {
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return;
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(SAFETY))) return this.run(() => safetyAlarm(this.ctx));
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(MAINTENANCE))) return this.run(() => maintenanceAlarm(this.ctx, this.env, this.db));
     await this.flushOutbox();
     return this.run(async () => {
     if (!this.room) return;
