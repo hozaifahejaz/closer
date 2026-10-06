@@ -23,7 +23,7 @@ ignore URL session tokens; browser WebSockets keep their query-token transport.
 
 ## Terms and safety
 
-Users explicitly accept [Terms of Use and Community Rules](https://closer.hozaiphaa.workers.dev/terms) before signup, guest entry, or existing-account partner interactions. Acceptance is recorded by version, and the server gates new answer submissions. Consent checkboxes appear below the form content.
+Users explicitly accept the [Terms of Use and Community Rules](https://closer.hozaiphaa.workers.dev/terms) and [Privacy Policy](https://closer.hozaiphaa.workers.dev/privacy) before signup or guest entry. Acceptance is recorded by version, and the server gates new answer submissions.
 
 **Safety & support** is available from the dashboard and cards. Users can report a partner with a reason, optional details, and an optional explicitly selected revealed answer. Account blocking unlinks both users and prevents relinking in either direction. Guest blocking ends the room and blocks the saved guest identities for up to one year; clearing storage or changing devices creates a new identity.
 
@@ -90,5 +90,9 @@ hardening, connection recovery and durable account-room cleanup. Production
 migrations `20261006103744`, `20261006103748` and `20261006103848` provide the
 cleanup queue, profile update RPC and its restricted role grants. Experiments
 remain separate; local simulation and demo credentials are not part of production.
+
+Consent forms use one checkbox sentence with linked Terms of Use & Community
+Rules and Privacy Policy names. The October 6, 2026 copy update is recorded in
+[`docs/releases/2026-10-06-consent-copy.md`](docs/releases/2026-10-06-consent-copy.md).
 
 A one-time deck purchase/unlock, a saved-answer library, account recovery, and end-to-end encryption are future features; they are not in the current release.

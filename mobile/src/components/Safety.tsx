@@ -42,9 +42,7 @@ export function Safety({ mode, room, request, onClose }: {
       <Text style={st.title}>{mode === 'terms' ? 'Before sharing an answer' : 'Safety & support'}</Text>
       {mode === 'terms' ? <>
         <Text style={st.text}>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</Text>
-        <Button kind="link" title="Read Terms of Use & Community Rules" onPress={() => { Linking.openURL(`${WEBSITE}/terms`); }} />
-        <Button kind="link" title="Privacy policy" onPress={() => { Linking.openURL(`${WEBSITE}/privacy`); }} />
-        {toggle('I have read and agree to the Terms of Use & Community Rules.')}
+        <Pressable accessibilityRole="checkbox" accessibilityState={{ checked, disabled: busy }} disabled={busy} onPress={() => setChecked(!checked)} style={st.check}><Text style={st.text}>{checked ? '☑' : '☐'} I have read and agree to the <Text style={{ color: colors.accent, textDecorationLine: 'underline' }} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/terms`); }}>Terms of Use &amp; Community Rules</Text> and <Text style={{ color: colors.accent, textDecorationLine: 'underline' }} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/privacy`); }}>Privacy Policy</Text>.</Text></Pressable>
         <Button title="Accept terms" disabled={!checked || busy} busy={busy} onPress={() => { void run({ type: 'acceptTerms', version: room.termsVersion }); }} />
         <Text style={st.note}>Your draft stays here. Submit your answer after accepting.</Text>
       </> : <>

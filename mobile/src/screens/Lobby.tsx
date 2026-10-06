@@ -181,7 +181,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [heroH, setHeroH] = useState(0);
   const view = account ? (account.partner ? 'home' : 'link') : guest ? 'guest' : 'auth';
 
-  const consent = <View style={{ gap: 8 }}><Button kind="link" title="Read Terms & community rules" onPress={() => { Linking.openURL(`${WEBSITE}/terms`); }} /><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: termsChecked }} onPress={() => setTermsChecked(!termsChecked)} style={{ paddingVertical: 10 }}><Text style={st.hint}>{termsChecked ? '☑' : '☐'} I have read and agree to the Terms of Use & Community Rules.</Text></Pressable></View>;
+  const consent = <View style={{ gap: 8 }}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: termsChecked }} onPress={() => setTermsChecked(!termsChecked)} style={{ paddingVertical: 10 }}><Text style={st.hint}>{termsChecked ? '☑' : '☐'} I have read and agree to the <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/terms`); }}>Terms of Use &amp; Community Rules</Text> and <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/privacy`); }}>Privacy Policy</Text>.</Text></Pressable></View>;
 
   if (account && !account.termsAccepted && !deleting) return <ScrollView contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 16 }}><Text style={st.hello}>Review the terms before playing</Text><Text style={st.hint}>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</Text>{consent}<Button title="Accept terms" disabled={!termsChecked} busy={busy === 'terms'} onPress={() => { void run('terms', async () => { await api('/api/terms', token, { version: '2026-10-04' }); onSession(token, await api<Account>('/api/me', token), token); }); }} /><Button kind="link" title="Log out" onPress={logout} /><Button kind="link" title="Delete account" onPress={() => setDeleting(true)} />{err ? <Text style={st.err}>{err}</Text> : null}</ScrollView>;
 
@@ -217,10 +217,6 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]} />
           </View>
           <Button title={signup ? 'Create account' : 'Log in'} onPress={auth} busy={busy === 'auth'} style={compact && st.btnCompact} />
-          {signup ? (
-            <Text style={st.hint}>Read our{' '}
-              <Text style={st.a} onPress={() => Linking.openURL(`${WEBSITE}/privacy`)} accessibilityRole="link">privacy policy</Text>.</Text>
-          ) : null}
           <Or>or</Or>
           <Button kind="ghost" title="Play as a guest" onPress={() => { setGuest(true); setErr(''); }} style={compact && st.btnCompact} />
           {signup ? consent : null}

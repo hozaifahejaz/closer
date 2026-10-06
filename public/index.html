@@ -500,7 +500,7 @@
       <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
       <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
       <button class="primary" id="authGo" type="submit">Create account</button>
-      <p class="hint" id="agree">Read our <a href="/privacy">privacy policy</a> and <a href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a>. These rules apply to your display name and answers.<br><label><input type="checkbox" id="signupTerms"> I have read and agree to the Terms of Use &amp; Community Rules.</label></p>
+      <p class="hint" id="agree"><label><input type="checkbox" id="signupTerms"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label></p>
       <div class="or">or</div>
       <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
     </form>
@@ -515,7 +515,7 @@
         <button class="ghost" id="join">Join</button>
       </div>
       <button class="link hidden" type="button" id="showAuth">Sign up or log in instead</button>
-    <label class="hint"><input type="checkbox" id="guestTerms"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a>.</label>
+      <label class="hint"><input type="checkbox" id="guestTerms"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label>
     </div>
 
     <!-- Signed in, not linked yet -->
@@ -645,7 +645,7 @@
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 
 
-<dialog id="termsDialog" aria-labelledby="termsTitle"><h2 id="termsTitle">Before sharing an answer</h2><p>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</p><p><a href="/terms" target="_blank" rel="noopener">Read Terms of Use &amp; Community Rules</a> · <a href="/privacy" target="_blank" rel="noopener">Privacy policy</a></p><label><input type="checkbox" id="termsCheck"> I have read and agree to the Terms of Use &amp; Community Rules.</label><p id="termsError" class="err" role="alert"></p><div class="row"><button id="termsCancel" class="ghost">Cancel</button><button id="termsAccept" class="primary" disabled>Accept terms</button></div></dialog>
+<dialog id="termsDialog" aria-labelledby="termsTitle"><h2 id="termsTitle">Before sharing an answer</h2><p>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</p><label><input type="checkbox" id="termsCheck"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label><p id="termsError" class="err" role="alert"></p><div class="row"><button id="termsCancel" class="ghost">Cancel</button><button id="termsAccept" class="primary" disabled>Accept terms</button></div></dialog>
 <dialog id="safetyDialog" aria-labelledby="safetyTitle"><h2 id="safetyTitle">Safety &amp; support</h2><p>You choose what to share. Other private answers are not included. If you are in immediate danger, contact local emergency services.</p><form id="reportForm" class="stack"><label for="reportReason">Report reason</label><select id="reportReason"><option>Harassment or threats</option><option>Sexual or inappropriate content</option><option>Hate or discrimination</option><option>Child safety</option><option>Spam or impersonation</option><option>Other</option></select><label for="reportDetails">Details (optional)</label><textarea id="reportDetails" maxlength="1000" placeholder="Explain what happened. Include only what you want reviewers to see."></textarea><div id="reportAttachment" class="hidden"><blockquote id="reportPreview" style="white-space:pre-wrap;overflow-wrap:anywhere"></blockquote><label><input id="reportInclude" type="checkbox"> Share the revealed partner answer with reviewers</label></div><button id="reportSubmit" class="primary">Submit report</button></form><p id="safetyStatus" role="status" aria-live="polite"></p><p id="safetyError" class="err" role="alert"></p><button id="blockPartner" class="ghost">Block partner</button><p class="hint" id="blockExplanation"></p><p><a href="/terms" target="_blank" rel="noopener">Terms &amp; community rules</a> · <a href="mailto:hozaiphaa@gmail.com">Contact support / appeal</a></p><button id="safetyClose" class="ghost">Close</button></dialog>
 <script>
 const $ = id => document.getElementById(id);
