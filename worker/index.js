@@ -4,7 +4,7 @@
 // - Each room (a guest room with a 4-letter code, or a linked couple's private
 //   room) is a Durable Object. Both phones hold a WebSocket to it, and every tap
 //   is sent over that socket and broadcast back to both.
-// - Accounts go through database functions in Supabase (see supabase/schema.sql).
+// - Accounts, couple links and saved answers live in Cloudflare D1 (see worker/db.js).
 import { DurableObject } from 'cloudflare:workers';
 import { randomCode, newRoom, upgradeRoom, publicState, applyAction, cardKey, deckSummary, cardUsage } from './game.js';
 import { Db, DbError } from './db.js';
