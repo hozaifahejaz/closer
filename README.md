@@ -5,7 +5,7 @@ Closer is a shared deck of questions for couples. Partners see the same card in 
 ## Play
 
 - **Guest room:** Create or join a room with a four-letter code. No account is needed. Its original two guest identities reserve the room and can reconnect; replacement guests must start a new room. The room holds its cards and answers for up to six hours after it becomes idle; guest answers are not saved to an account.
-- **Couple account:** Sign up with an email and password, then link once using your partner's six-letter invite code. The linked pair gets a private room. Answers and favorites are saved in Supabase.
+- **Couple account:** Sign up with an email and password, then link once using your partner's six-letter invite code. The linked pair gets a private room. Answers and favorites are saved in Cloudflare D1.
 - **Account deletion:** Signed-in users can delete their account after confirming their password. The website and mobile app link to the same deletion API; the public [deletion page](https://closer.hozaiphaa.workers.dev/delete-account) also works outside the app. Deletion revokes sessions, unlinks the partner, and removes both partners' saved answers and favorites in the account's former couples. Durable room cleanup retries automatically after temporary outages, with a pending-cleanup notice when needed.
 - **Profile:** Menu → Profile lets account and guest users change their display name. Account users can view their read-only email. Names update for connected partners without changing account links or progress.
 - **Dashboard:** Guest and account users start on a minimalist dashboard. Invite codes appear while waiting for a partner. The header shows the Closer heart logo beside the name. The menu holds account and room actions; admins also have a visible Admin dashboard button. Opening cards brings both connected partners into cards; returning to the dashboard is individual. Returning players use **Continue cards** to resume their saved card and deck selection without an automatic deck prompt. **Cards played** shows distinct cards revealed or answered in the current shared room. Guest users are offered signup to save future progress; existing guest progress does not transfer.
@@ -35,7 +35,7 @@ The [admin dashboard](https://closer.hozaiphaa.workers.dev/admin) shows activity
 
 Stored answers are **not end-to-end encrypted**. The service processes answer text to sync and save it, and someone with direct database or infrastructure access can read it. The dashboard restriction does not prevent that access.
 
-Logging out or unlinking revokes room access. Unlinking rotates both invite codes. Answers and favorites carry a card ID, command ID, and data generation so delayed or repeated saves cannot attach to another card or recreate explicitly deleted data. Acknowledged saves wait in the room's durable outbox if Supabase is temporarily unavailable.
+Logging out or unlinking revokes room access. Unlinking rotates both invite codes. Answers and favorites carry a card ID, command ID, and data generation so delayed or repeated saves cannot attach to another card or recreate explicitly deleted data. Acknowledged saves wait in the room's durable outbox if the database is temporarily unavailable.
 
 ## Run the website locally
 
@@ -48,13 +48,13 @@ npm start                 # http://localhost:8787
 
 Guest rooms work without local secrets. To try the site on another device on the same Wi-Fi, run `npm start -- --ip 0.0.0.0` and open the computer's local IP address.
 
-Future changes are reviewed in the separate `Closer-experiments` worktree on `experiments/staging`. Hosted experiments use guest rooms; account testing uses its private local PostgreSQL database and local demo login buttons. Production is updated only after approval. The public defaults in `wrangler.jsonc` point to production Supabase; do not use production credentials or data for local testing.
+Future changes are reviewed in the separate `Closer-experiments` worktree on `experiments/staging`. Hosted experiments use guest rooms; account testing uses a local D1 database (`npm start` creates one) and local demo login buttons. Production is updated only after approval. Do not use production data for local testing.
 
 ## Database setup
 
-The versioned files in `supabase/migrations/` are the database history. Apply them in timestamp order to a new Supabase project. `supabase/schema.sql` is a copy of the first migration for manual setup; do not apply both. After creating the schema, set `private.config.server_key` to the same long random value used for the Worker's `CLOSER_DB_KEY` secret (see the instructions at the top of `supabase/schema.sql`). Keep that value out of Git.
+Accounts, sessions, couple links, answers and favorites are stored in the Cloudflare D1 database `closer` (binding `DB` in `wrangler.jsonc`). Only the Worker can reach it, so there are no database keys or secrets. The schema is in `migrations/`; apply new files with `npx wrangler d1 migrations apply closer --remote` before deploying code that needs them, and `npx wrangler d1 migrations apply closer --local` for local testing.
 
-The app uses its own account and session functions, protected by the Worker secret. User data tables have row level security with no direct client policies; the private configuration schema is restricted separately. The public Supabase URL and anon key are configured in `wrangler.jsonc`; they do not replace the server secret.
+Passwords are hashed with PBKDF2-SHA256 (Web Crypto). Accounts created before the move from Supabase (2026-10-26) still have bcrypt hashes; those are checked with the vendored `worker/vendor/bcrypt.js` and replaced with PBKDF2 at the next log-in. Session tokens are stored only as SHA-256 hashes. Preview builds have no D1 binding, so accounts are off there (guest rooms work).
 
 ## Code and checks
 
@@ -62,9 +62,9 @@ The app uses its own account and session functions, protected by the Worker secr
 | --- | --- |
 | `public/index.html`, `public/admin.html` | Web app and admin dashboard |
 | `worker/index.js`, `worker/game.js` | API, WebSocket rooms, and game rules |
-| `worker/room-storage.js`, `worker/db.js`, `worker/maintenance.js` | Durable room data, Supabase calls and retried account-room cleanup |
+| `worker/room-storage.js`, `worker/db.js`, `worker/maintenance.js` | Durable room data, D1 account functions and retried account-room cleanup |
 | `questions.json` | 26 decks; card positions are stable IDs |
-| `supabase/migrations/` | Database schema and account functions |
+| `migrations/` | D1 database schema |
 | [`mobile/`](mobile/) | React Native / Expo Android and iOS app |
 
 Always append questions to a deck. If a question must be retired, replace it with `null`: changing earlier positions would change saved card IDs and progress.
@@ -79,11 +79,11 @@ The database checks need PostgreSQL with `pgcrypto` and `initdb`, `pg_ctl`, and 
 
 ## Release
 
-Cloudflare hosts the website, API, and WebSocket Durable Objects as the `closer` Worker. `npm run deploy` publishes the current checkout; the connected GitHub deployment also redeploys pushes to `main`. Set `CLOSER_DB_KEY` as a Cloudflare Worker secret and apply database migrations before deploying Worker code that needs them.
+Cloudflare hosts the website, API, and WebSocket Durable Objects as the `closer` Worker. `npm run deploy` publishes the current checkout; the connected GitHub deployment also redeploys pushes to `main`. Apply D1 migrations before deploying Worker code that needs them.
 
 The website and native app source are together on `main`; `mobile-apps` mirrors the release. Android and iOS production over-the-air updates for runtime `1.0.0` have been published through Expo. Store builds and their distribution are managed separately from the website; see the [mobile README](mobile/README.md).
 
-The dashboard, card statistics and continuation, question numbering, History, shared card opening, and reveal defaults reuse the existing database schema; their original 14 Supabase migrations remain in the history. The safety release adds versioned migrations for consent, blocking, account restrictions, and safe persistence of previously accepted outbox operations. Local demo accounts and preview configuration are not included in production.
+The dashboard, card statistics and continuation, question numbering, History, shared card opening, and reveal defaults reuse the existing database schema; their original Supabase migrations remain in the Git history (the database moved to D1 on 2026-10-26). The safety release adds versioned migrations for consent, blocking, account restrictions, and safe persistence of previously accepted outbox operations. Local demo accounts and preview configuration are not included in production.
 
 The 2026-10-06 promotion adds Profile editing, guest-seat protection, authentication
 hardening, connection recovery and durable account-room cleanup. Production

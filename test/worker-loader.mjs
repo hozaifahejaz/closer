@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 
 export async function loadWorker(overrides = {}) {
-  const context = vm.createContext({ console, crypto, Request, Response, Headers, URL, URLSearchParams, TextEncoder, structuredClone, setTimeout, clearTimeout, ...overrides });
+  const context = vm.createContext({ console, crypto, Request, Response, Headers, URL, URLSearchParams, TextEncoder, structuredClone, atob, btoa, setTimeout, clearTimeout, ...overrides });
   const modules = new Map();
   const root = path.resolve('worker/index.js');
   async function load(file) {
