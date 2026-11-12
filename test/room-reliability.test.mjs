@@ -12,7 +12,7 @@ async function fixture({ storage = new MemoryStorage(), valid = true, offline = 
   let init;
   const pending = [];
   const frames = [];
-  const player = { id: A, name: 'A', token: 'session-a' };
+  const player = { id: A, name: 'A', token: 'session-a', termsAccepted: true };
   const ws = { readyState: 1, deserializeAttachment: () => player, serializeAttachment: x => Object.assign(player,x),
     send: data => frames.push(JSON.parse(data)), close: () => { ws.readyState = 3; } };
   const ctx = { storage, id: { equals: () => false }, blockConcurrencyWhile: fn => { init = fn(); },
@@ -25,6 +25,9 @@ async function fixture({ storage = new MemoryStorage(), valid = true, offline = 
   room.db = { me: async () => valid ? { id: A, couple_id: cid } : null,
     rpc: async (fn,args) => {
       if (fn === 'record_activity') return;
+      if (fn === 'safety_state') return { accepted: true, restricted: false };
+      if (fn === 'room_generation') return { generation: 0 };
+      if (fn === 'register_room') return;
       if (offline) throw new Error('Temporary outage');
       if (fn === 'persist_room_change') backend.set(args.p_id, args);
       return { applied: true };
@@ -129,7 +132,8 @@ test('closing a couple room retains acknowledged saves waiting for the database'
 test('room hydration rejects answers belonging to a different current couple', async () => {
   const f = await fixture();
   f.room.room = null;
-  f.room.db.rpc = async () => ({couple_id:'another-couple',generation:0,answers:[{card_key:'x:0',user_id:B,text:'Other couple secret'}],favorites:[]});
+  f.room.db.rpc = async fn => fn === 'safety_state' ? { accepted: true, restricted: false } : fn === 'register_room' ? undefined
+    : ({couple_id:'another-couple',generation:0,answers:[{card_key:'x:0',user_id:B,text:'Other couple secret'}],favorites:[]});
   const response = await f.room.fetch(new Request('https://room/ws',{headers:{Upgrade:'websocket','x-player-id':A,'x-player-token':'session-a','x-couple-id':cid}}));
   assert.equal(response.status,409);
   assert.equal(f.room.room,null);

@@ -10,6 +10,8 @@ function browser(page = 'index', fetcher = () => new Promise(() => {})) {
   const html = readFileSync(new URL(`../public/${page}.html`, import.meta.url), 'utf8');
   const dom = new JSDOM(html, { url: 'https://closer.test/', runScripts: 'outside-only' });
   const { window } = dom;
+  // jsdom has no <dialog> implementation.
+  for (const dialog of window.document.querySelectorAll('dialog')) { dialog.showModal = () => { dialog.open = true; }; dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new window.Event('close')); }; }
   const timers = new Map(), sockets = [];
   let timerId = 0, commandId = 0;
   window.fetch = fetcher;
@@ -51,6 +53,7 @@ function state(card = 0, extra = {}) {
     index: card, total: 20, favorites: [], flipped: true, tapToReveal: true,
     mode: 'answer', myAnswer: null, partnerAnswered: false, revealed: null,
     partners: ['Me', 'Partner'], choosing: false, started: true, fresh: false, saved: {},
+    termsAccepted: true, termsVersion: '2026-10-04', canReportPartner: true, partnerSafetyHandle: 'handle', reportablePartnerAnswer: null,
     ...extra,
   };
 }
