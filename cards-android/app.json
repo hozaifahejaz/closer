@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Closer Cards",
+    "slug": "closer-cards",
+    "version": "1.0.0",
+    "description": "Deep and playful question cards for good conversations. Works fully offline, with no account.",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1d1420",
+    "android": {
+      "package": "com.hozaifahejaz.closercards",
+      "adaptiveIcon": {
+        "backgroundColor": "#1d1420",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#1d1420"
+        }
+      ]
+    ],
+    "owner": "hozaifahs-team",
+    "extra": {
+      "eas": {
+        "projectId": "e8163c44-a4d7-4aa6-8183-347cade55990"
+      }
+    }
+  }
+}
