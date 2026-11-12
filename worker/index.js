@@ -11,6 +11,8 @@ import { Db, DbError } from './db.js';
 import { TERMS_VERSION, SAFETY, REASONS, safetyHandle, safetyFetch, safetyAlarm } from './safety.js';
 import { RoomStorage, listEntries } from './room-storage.js';
 import { MAINTENANCE, maintenanceFetch, maintenanceAlarm } from './maintenance.js';
+import { RESETS, resetsFetch } from './resets.js';
+import { mailEnabled, sendMail, resetEmail } from './mail.js';
 
 // Idle rooms are forgotten: guest rooms after 6 hours, couple rooms after a year.
 // A couple's room holds their place in each deck; if it's ever forgotten it is
@@ -74,7 +76,7 @@ export default {
     const db = new Db(env);
 
     try {
-      if (url.pathname === '/api/config') return json(200, { accounts: db.enabled });
+      if (url.pathname === '/api/config') return json(200, { accounts: db.enabled, passwordReset: db.enabled && mailEnabled(env) });
 
       if (url.pathname === '/api/guest/terms' && request.method === 'POST') {
         if (!sameOrigin(request, url)) return json(403, { error: 'Not allowed' });
@@ -166,7 +168,7 @@ function withPlayer(request, { id, name, token = '', couple = '', partnerName = 
 }
 
 async function accountApi(request, url, db, env) {
-  if (request.method === 'POST' && ['/api/login', '/api/signup'].includes(url.pathname)) {
+  if (request.method === 'POST' && ['/api/login', '/api/signup', '/api/forgot', '/api/reset'].includes(url.pathname)) {
     if (!sameOrigin(request, url)) return json(403, { error: 'Not allowed' });
     if (request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/json')
       return json(415, { error: 'Send account requests as JSON.' });
@@ -182,6 +184,38 @@ async function accountApi(request, url, db, env) {
     if (await tooMany(env.AUTH_LIMIT, `login:${clientIp(request)}`, `login:${String(email || '').trim().toLowerCase()}`)) return slowDown();
     const token = await db.rpc('log_in', { p_email: String(email || ''), p_password: String(password || '') });
     return withCookie(json(200, { token, me: publicMe(await db.me(token)) }), url, token);
+  }
+
+  // ---- Forgotten passwords ----
+  // The answer is the same whether or not the email has an account, so the form
+  // can't be used to find out who has signed up.
+  if (url.pathname === '/api/forgot' && request.method === 'POST') {
+    if (!mailEnabled(env)) return json(503, { error: 'Password reset by email is not set up yet. Please contact us.' });
+    const email = String((await readBody(request)).email || '').trim().toLowerCase();
+    if (await tooMany(env.AUTH_LIMIT, `forgot:${clientIp(request)}`, `forgot:${email}`)) return slowDown();
+    const who = await db.rpc('profile_for_reset', { p_email: email });
+    if (who) {
+      const { token } = await (await roomStub(env, RESETS).fetch('https://resets/issue', { method: 'POST', body: JSON.stringify({ user: who.id }) })).json();
+      const link = `${url.origin}/?reset=${token}`;
+      try { await sendMail(env, { to: who.email, ...resetEmail({ name: who.name, link }) }); }
+      catch (err) { console.error('Password reset email failed:', err.message); return json(502, { error: 'The email could not be sent right now. Please try again in a minute.' }); }
+    }
+    return json(200, { ok: true });
+  }
+  if (url.pathname === '/api/reset' && request.method === 'POST') {
+    const { token: resetToken, password } = await readBody(request);
+    if (await tooMany(env.AUTH_LIMIT, `reset:${clientIp(request)}`)) return slowDown();
+    if (Array.from(String(password || '')).length < 6) return json(400, { error: 'Password needs at least 6 characters' });
+    const redeem = await roomStub(env, RESETS).fetch('https://resets/redeem', { method: 'POST', body: JSON.stringify({ token: resetToken }) });
+    const outcome = await redeem.json();
+    if (!redeem.ok) return json(410, { error: outcome.error });
+    // The new password signs the account out everywhere else, including any open room.
+    const token = await db.rpc('reset_password', { p_user: outcome.user, p_password: String(password) });
+    const me = await db.me(token);
+    if (me?.couple_id) await roomStub(env, `couple:${me.couple_id}`).fetch('https://room/admin/revoke', {
+      method: 'POST', body: JSON.stringify({ user: me.id, reason: 'Your password was changed. Please log in again.' }),
+    }).catch(() => {});
+    return withCookie(json(200, { token, me: publicMe(me) }), url, token);
   }
 
   // Logging out may use it too, so a page that lost its saved token still ends the session.
@@ -509,6 +543,7 @@ export class Room extends DurableObject {
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(STATS))) return statsFetch(this.ctx, request);
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(SAFETY))) return this.run(() => safetyFetch(this.ctx, request));
     if (this.ctx.id.equals(this.env.ROOMS.idFromName(MAINTENANCE))) return this.run(() => maintenanceFetch(this.ctx, this.env, this.db, request));
+    if (this.ctx.id.equals(this.env.ROOMS.idFromName(RESETS))) return this.run(() => resetsFetch(this.ctx, request));
     return this.run(() => this.fetchRoom(request));
   }
 
@@ -736,7 +771,8 @@ export class Room extends DurableObject {
     await this.broadcast();
     // A new card dealt (going back doesn't count), or an answer written, is counted as play.
     const card = this.room.order[this.room.index];
-    const dealt = action.type !== 'prev' && cardKey(card) !== before;
+    // Starting the room counts its first card too, even when the deal happened to keep it.
+    const dealt = action.type !== 'prev' && (cardKey(card) !== before || (!previous.started && this.room.started));
     const answered = Boolean(result.answer);
     this.reportPresence(dealt || answered
       ? { deck: dealt ? card.c : null, mode: this.room.mode, couple: Boolean(this.room.coupleId), answered } : null);

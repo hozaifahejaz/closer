@@ -24,7 +24,7 @@ import { CONFIG_ERROR, SERVER, TOKEN_KEY } from './src/config';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-type Boot = { accounts: boolean; token: string | null; account: Account | null; clientId: string; name: string; notice: string; guest?: boolean; resume: GuestResume | null };
+type Boot = { accounts: boolean; passwordReset: boolean; token: string | null; account: Account | null; clientId: string; name: string; notice: string; guest?: boolean; resume: GuestResume | null };
 
 // Everything the website does on load: is the server offering accounts, is
 // someone signed in on this phone, and a stable id for guest rooms.
@@ -34,8 +34,11 @@ async function boot(): Promise<Boot> {
   const name = (await getItem('closer:name')) || '';
   const resume = readGuestResume(await getItem('closer:guestRoom'), SERVER, clientId);
   let token = await getItem(TOKEN_KEY);
-  let accounts = true;
-  try { accounts = (await api<{ accounts: boolean }>('/api/config', null)).accounts; } catch {}
+  let accounts = true, passwordReset = false;
+  try {
+    const config = await api<{ accounts: boolean; passwordReset?: boolean }>('/api/config', null);
+    accounts = config.accounts; passwordReset = !!config.passwordReset;
+  } catch {}
   let account: Account | null = null;
   let notice = '';
   if (accounts && token) {
@@ -46,7 +49,7 @@ async function boot(): Promise<Boot> {
       notice = e instanceof Error ? e.message : '';
     }
   }
-  return { accounts, token, account, clientId, name, notice, resume, guest: !!resume };
+  return { accounts, passwordReset, token, account, clientId, name, notice, resume, guest: !!resume };
 }
 
 export default function App() {
@@ -108,7 +111,7 @@ export default function App() {
       ) : conn ? (
         <Game conn={conn} onLeave={onLeave} accounts={state.accounts} signedIn={!!state.account} isAdmin={!!state.account?.isAdmin} />
       ) : (
-        <Lobby accounts={state.accounts} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
+        <Lobby accounts={state.accounts} passwordReset={state.passwordReset} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
           notice={state.notice} onSession={onSession} onPlay={onPlay} resume={state.resume} onForgetResume={forgetResume} />
       )}
     </SafeAreaProvider>

@@ -20,23 +20,25 @@ const pathFor = (c: Connection) => c.kind === 'couple'
 
 // One live connection to a room, like the website's: every tap is sent over the
 // socket and the room broadcasts the new state to both partners.
-// Why the room can't be reopened, or null if it can (or we can't tell while offline).
-async function roomGone(c: Connection): Promise<string | null> {
+// Why the room can't be reopened (`gone`), or what the server answered when it
+// should be reachable (`detail`), or nothing if we can't tell while offline.
+type Diagnosis = { gone?: string; detail?: string };
+async function roomGone(c: Connection): Promise<Diagnosis> {
   try {
-    if (c.kind === 'guest') { await api(`/api/rooms/${c.code}?id=${encodeURIComponent(c.id)}`, null); return null; }
+    if (c.kind === 'guest') { await api(`/api/rooms/${c.code}?id=${encodeURIComponent(c.id)}`, null); return {}; }
     const me = await api<Account>('/api/me', c.token);
-    if (!me.partner) return "You're no longer linked.";
-    if (!me.termsAccepted) return 'Accept the Terms of Use before joining a room.';
+    if (!me.partner) return { gone: "You're no longer linked." };
+    if (!me.termsAccepted) return { gone: 'Accept the Terms of Use before joining a room.' };
     // /api/me still permits account maintenance while partner interactions are
     // restricted. History checks the shared room's current access policy.
     await api('/api/history', c.token);
-    return null;
+    return {};
   } catch (e) {
-    if (!(e instanceof ApiError)) return null;
-    if (e.status === 404) return 'This room has ended. Start a new one.';
-    if (e.status === 401) return 'Please log in again.';
-    if (e.status === 403 || (c.kind === 'guest' && e.status === 409)) return e.message;
-    return null;
+    if (!(e instanceof ApiError)) return {};
+    if (e.status === 404) return { gone: 'This room has ended. Start a new one.' };
+    if (e.status === 401) return { gone: 'Please log in again.' };
+    if (e.status === 403 || (c.kind === 'guest' && e.status === 409)) return { gone: e.message };
+    return { detail: e.message || `error ${e.status}` };
   }
 }
 
@@ -57,6 +59,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
   const ws = useRef<WebSocket | null>(null);
   const safetyPending = useRef(new Map<string, { resolve: (result: { reportId?: string }) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>());
   const retry = useRef(0);
+  const failures = useRef(0); // connections in a row that never synchronized
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const handshake = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const attempt = useRef(0);
@@ -90,10 +93,13 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
         timer.current = setTimeout(connect, Math.min(1000 * 2 ** Math.min(retry.current++, 4), 10000));
       };
       if (synchronized) { again(); return; }
-      roomGone(conn).then(why => {
+      roomGone(conn).then(({ gone, detail }) => {
         if (!alive.current || paused.current || attempt.current !== version || ws.current) return;
-        if (why) { ended.current = true; setError(why); leave.current(why); }
-        else again();
+        if (gone) { ended.current = true; setError(gone); leave.current(gone); return; }
+        // After a few failures in a row, say what the server answered instead of a
+        // bare "Trying again…" forever.
+        if (++failures.current >= 3) setError(`${message} ${detail ? `The server said: ${detail}` : 'Check your connection.'}`);
+        again();
       });
     };
     handshake.current = setTimeout(() => {
@@ -129,6 +135,7 @@ export function useRoom(conn: Connection, onLeave: (message: string) => void) {
       if (!synchronized) {
         synchronized = true;
         retry.current = 0;
+        failures.current = 0;
         setError('');
         for (const action of session.current.pendingActions()) {
           try { sock.send(JSON.stringify(action)); } catch { break; }

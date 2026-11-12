@@ -500,9 +500,28 @@
       <div><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
       <div><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
       <button class="primary" id="authGo" type="submit">Create account</button>
+      <button class="link hidden" type="button" id="forgotLink">Forgot your password?</button>
       <p class="hint" id="agree"><label><input type="checkbox" id="signupTerms"> I have read and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Use &amp; Community Rules</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label></p>
       <div class="or">or</div>
       <button class="ghost wide" type="button" id="showGuest">Play as a guest</button>
+    </form>
+
+    <!-- Forgotten password: emails a one-hour reset link -->
+    <form id="forgotBox" class="stack hidden">
+      <p class="hello">Reset your password</p>
+      <div><label for="forgotEmail">Email</label><input id="forgotEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></div>
+      <button class="primary" id="forgotGo" type="submit">Email me a reset link</button>
+      <p class="hint" id="forgotDone" hidden>If that email has a Closer account, a reset link is on its way. It works for one hour; check your spam folder too.</p>
+      <button class="link" type="button" id="forgotBack">Back to log in</button>
+    </form>
+
+    <!-- Arrived from a reset link -->
+    <form id="resetBox" class="stack hidden">
+      <p class="hello">Choose a new password</p>
+      <div><label for="resetPassword">New password</label><input id="resetPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+      <button class="primary" id="resetGo" type="submit">Save and log in</button>
+      <p class="hint">This signs you out everywhere else.</p>
+      <button class="link" type="button" id="resetBack">Back to log in</button>
     </form>
 
     <!-- Guest rooms -->
@@ -650,7 +669,7 @@
 <script>
 const $ = id => document.getElementById(id);
 let room = null, me = '';
-let accounts = false, couple = false, token = null, account = null, linkPoll = null;
+let accounts = false, passwordReset = false, couple = false, token = null, account = null, linkPoll = null;
 try { token = localStorage.getItem('closer:token'); } catch {}
 let clientId;
 try { clientId = localStorage.getItem('closer:id'); if (!clientId) { clientId = crypto.randomUUID(); localStorage.setItem('closer:id', clientId); } }
@@ -658,11 +677,13 @@ catch { clientId = Math.random().toString(36).slice(2) + Date.now().toString(36)
 
 try { $('name').value = localStorage.getItem('closer:name') || ''; } catch {}
 const params = new URLSearchParams(location.search);
+// A room link that was opened while signed out: joined right after signing in.
+let pendingRoom = params.get('room') ? params.get('room').toUpperCase() : null;
 if (params.get('room')) $('joinCode').value = params.get('room').toUpperCase();
 
 // ---- Lobby screens ----
 function show(box) {
-  for (const id of ['authBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
+  for (const id of ['authBox', 'forgotBox', 'resetBox', 'guestBox', 'linkBox', 'homeBox']) $(id).classList.toggle('hidden', id !== box);
   $('err').textContent = '';
   $('dashboardError').textContent = '';
   $('lobby').classList.add('ready');
@@ -768,13 +789,24 @@ function dashboard() {
 }
 function showAccount(a, connectRoom = true) {
   if (connectRoom) connectionError = '';
-  account = a; show(a.partner ? 'homeBox' : 'linkBox');
+  account = a;
+  if (pendingRoom) {
+    // Signed in from a room link: join that room right away, under the account's name.
+    const code = pendingRoom; pendingRoom = null;
+    $('name').value = a.name; me = a.name;
+    // The account already agreed to the same terms, so the guest checkbox is ticked for them.
+    if (a.termsAccepted) $('guestTerms').checked = true;
+    show('guestBox'); $('showAuth').classList.add('hidden');
+    void connect(code);
+    return;
+  }
+  show(a.partner ? 'homeBox' : 'linkBox');
   document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   dashboard();
   if (!a.termsAccepted) { openTerms('play'); return; }
   if (connectRoom && a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
     couple = true; me = a.name;
-    openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not connect to your shared room.');
+    openSocket(coupleSocketPath(), 'Could not connect to your shared room.');
   }
   if (!a.partner) linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
 }
@@ -808,8 +840,33 @@ function setAuthTab(signup) {
   $('password').placeholder = signup ? 'At least 6 characters' : 'Your password';
   $('authGo').textContent = signup ? 'Create account' : 'Log in';
   $('password').autocomplete = signup ? 'new-password' : 'current-password';
+  $('forgotLink').classList.toggle('hidden', signup || !passwordReset);
   $('err').textContent = '';
 }
+$('forgotLink').onclick = () => { $('forgotEmail').value = $('email').value; $('forgotDone').hidden = true; show('forgotBox'); $('forgotEmail').focus(); };
+$('forgotBack').onclick = () => { show('authBox'); setAuthTab(false); };
+$('resetBack').onclick = () => { history.replaceState(null, '', '/'); show('authBox'); setAuthTab(false); };
+$('forgotBox').onsubmit = async e => {
+  e.preventDefault();
+  const email = $('forgotEmail').value.trim();
+  if (!email) { $('err').textContent = 'Enter your email first.'; return; }
+  $('forgotGo').disabled = true;
+  try { await api('/api/forgot', { email }); $('err').textContent = ''; $('forgotDone').hidden = false; $('email').value = email; }
+  catch (err) { $('err').textContent = err.message; }
+  finally { $('forgotGo').disabled = false; }
+};
+$('resetBox').onsubmit = async e => {
+  e.preventDefault();
+  const password = $('resetPassword').value;
+  if (Array.from(password).length < 6) { $('err').textContent = 'Password needs at least 6 characters.'; return; }
+  $('resetGo').disabled = true;
+  try {
+    const r = await api('/api/reset', { token: params.get('reset'), password });
+    $('resetPassword').value = ''; history.replaceState(null, '', '/');
+    setToken(r.token); toast('Password changed'); showAccount(r.me);
+  } catch (err) { $('err').textContent = err.message; }
+  finally { $('resetGo').disabled = false; }
+};
 $('tabSignup').onclick = () => setAuthTab(true);
 $('tabLogin').onclick = () => setAuthTab(false);
 $('authBox').onsubmit = async e => {
@@ -850,18 +907,25 @@ $('shareMyCode').onclick = async () => {
   try { if (navigator.share) await navigator.share({ title: 'Closer', text }); else { await navigator.clipboard.writeText(text); toast('Invite copied'); } }
   catch { toast(`Your code: ${account.inviteCode}`); }
 };
+// The sign-in cookie authenticates the room socket, so the token stays out of URLs
+// and logs. If a browser dropped the cookie, the next attempt sends the token instead.
+const coupleSocketPath = () => `/api/couple/ws${connectFailures > 0 && token ? `?token=${encodeURIComponent(token)}` : ''}`;
+const retryPath = path => path.startsWith('/api/couple/ws') ? coupleSocketPath() : path;
 $('startCouple').onclick = () => {
   couple = true; me = account.name; $('err').textContent = '';
-  openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not open your room. Please try again.');
+  openSocket(coupleSocketPath(), 'Could not open your room. Please try again.');
 };
 
 (async function init() {
   try {
     const config = await fetch('/api/config').then(r => r.json());
-    accounts = config.accounts;
+    accounts = config.accounts; passwordReset = Boolean(config.passwordReset);
   } catch {}
   // A room link goes straight to the guest screen, with a way back to signing in.
   if (!accounts || params.get('room')) { $('showAuth').classList.toggle('hidden', !accounts); return show('guestBox'); }
+  // Links from the reset email and from the app's "Forgot your password?".
+  if (params.get('reset')) { show('resetBox'); $('resetPassword').focus(); return; }
+  if (params.get('forgot') && passwordReset) { history.replaceState(null, '', '/'); show('forgotBox'); $('forgotEmail').focus(); return; }
   // Even without a saved token, the sign-in cookie may still be there.
   try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
   catch (err) { show('authBox'); if (token) $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
@@ -943,7 +1007,7 @@ function openSocket(path, failMessage) {
     const message = `${failMessage || 'Connection interrupted.'} Retrying…`;
     setLink('reconnecting', message);
     if (!room && !account) $('err').textContent = message;
-    const again = () => setTimeout(() => { if (sock === ws) openSocket(path, failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
+    const again = () => setTimeout(() => { if (sock === ws) openSocket(retryPath(path), failMessage); }, Math.min(1000 * 2 ** retry++, 10000));
     // Refused outright rather than dropped: the room may be gone for good (a guest room
     // forgotten after hours away, a sign-in ended elsewhere, no longer linked).
     if (opened && receivedState) return again();
@@ -1022,7 +1086,7 @@ function leaveRoom(why, reconnectAccount = true) {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && (room || account?.partner) && link !== 'replaced' && ws && ws.readyState > 1) { retry = 0; openSocket(wsPath, ''); }
 });
-$('dashboardRetry').onclick = () => { if (link === 'reconnecting' && wsPath) { retry = 0; openSocket(wsPath, 'Could not connect to your shared room.'); } };
+$('dashboardRetry').onclick = () => { if (link === 'reconnecting' && wsPath) { retry = 0; openSocket(retryPath(wsPath), 'Could not connect to your shared room.'); } };
 // After another device took over the seat, tapping the partner pill takes it back.
 function reclaimRoom() { if (link === 'replaced') { retry = 0; setLink('reconnecting'); openSocket(wsPath, ''); } }
 $('partners').onclick = reclaimRoom;

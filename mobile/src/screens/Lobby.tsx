@@ -17,6 +17,7 @@ import { Button, Field, HeartBadge, Or, Segmented } from '../components/ui';
 
 type Props = {
   accounts: boolean; // false when the server has accounts switched off: guest rooms only
+  passwordReset?: boolean; // the server can email password reset links
   token: string | null;
   account: Account | null;
   clientId: string;
@@ -29,7 +30,7 @@ type Props = {
   onForgetResume: () => void;
 };
 
-export function Lobby({ accounts, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest, resume, onForgetResume }: Props) {
+export function Lobby({ accounts, passwordReset, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest, resume, onForgetResume }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [guest, setGuest] = useState(!accounts || !!startAsGuest);
@@ -38,6 +39,7 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
   const [name, setName] = useState(savedName);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [partnerCode, setPartnerCode] = useState('');
   const [err, setErr] = useState(notice);
@@ -217,6 +219,12 @@ export function Lobby({ accounts, token, account, clientId, savedName, notice, o
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]} />
           </View>
           <Button title={signup ? 'Create account' : 'Log in'} onPress={auth} busy={busy === 'auth'} style={compact && st.btnCompact} />
+          {!signup && passwordReset ? (resetSent
+            ? <Text style={st.hint}>If that email has a Closer account, a reset link is on its way. It works for one hour; check your spam folder too.</Text>
+            : <Button kind="link" title="Forgot your password?" busy={busy === 'forgot'} onPress={() => {
+              if (!email.trim()) { setErr('Enter your email first.'); return; }
+              void run('forgot', async () => { await api('/api/forgot', null, { email: email.trim() }); setResetSent(true); });
+            }} />) : null}
           <Or>or</Or>
           <Button kind="ghost" title="Play as a guest" onPress={() => { setGuest(true); setErr(''); }} style={compact && st.btnCompact} />
           {signup ? consent : null}
