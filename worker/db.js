@@ -178,6 +178,25 @@ const FUNCTIONS = {
     return token;
   },
 
+  async profile_for_reset(db, { p_email }) {
+    const email = String(p_email || '').trim().toLowerCase();
+    if (!email) return null;
+    return (await db.first('SELECT id, email, name FROM profiles WHERE email = ?', email)) || null;
+  },
+
+  async reset_password(db, { p_user, p_password }) {
+    if (Array.from(String(p_password || '')).length < 6) throw friendly('Password needs at least 6 characters');
+    const me = await db.first('SELECT id FROM profiles WHERE id = ?', String(p_user || ''));
+    if (!me) throw new DbError('That account no longer exists', 404);
+    const { token, statement } = await db.newSessionStatement(me.id);
+    await db.batch([
+      db.sql('UPDATE profiles SET password_hash = ? WHERE id = ?', await hashPassword(String(p_password)), me.id),
+      db.sql('DELETE FROM sessions WHERE profile_id = ?', me.id),
+      statement,
+    ]);
+    return token;
+  },
+
   async log_out(db, { p_token }) {
     await db.sql('DELETE FROM sessions WHERE token_hash = ?', await sha256Hex(String(p_token || ''))).run();
   },
@@ -331,7 +350,8 @@ const FUNCTIONS = {
       (SELECT count(*) FROM favorites) AS favorites,
       (${active(d7)}) AS active_7d,
       (${active(d30)}) AS active_30d,
-      (SELECT count(DISTINCT couple_id) FROM answers) AS couples_answering`, today, d7, d30);
+      (SELECT count(*) FROM profiles me JOIN profiles p ON p.id = me.partner_id AND p.partner_id = me.id
+        WHERE me.id < p.id AND EXISTS (SELECT 1 FROM answers WHERE couple_id = me.id || ':' || p.id)) AS couples_answering`, today, d7, d30);
     const perDay = async table => {
       const rows = await db.all(`SELECT substr(created_at, 1, 10) AS day, count(*) AS c FROM ${table} WHERE created_at >= ? GROUP BY 1`, days[0]);
       const byDay = new Map(rows.map(r => [r.day, r.c]));
