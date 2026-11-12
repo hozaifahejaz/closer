@@ -19,7 +19,7 @@ export async function drainCleanup(ctx, env, db) {
   for (const { couple_id: pair } of jobs) {
     try {
       const result = await env.ROOMS.get(env.ROOMS.idFromName(`couple:${pair}`)).fetch('https://room/admin/close', {
-        method: 'POST', body: JSON.stringify({ reason: 'This account was deleted', discard: true }),
+        method: 'POST', body: JSON.stringify({ reason: "Your partner's account was deleted, so this room has ended.", discard: true }),
       });
       if (!result.ok) throw new Error('Stored room cleanup is unavailable');
       // Room closure clears its own presence best-effort. Delete it explicitly

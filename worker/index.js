@@ -335,8 +335,7 @@ async function adminApi(request, url, db, env, token, state) {
     }
     await db.rpc(fn, args);
     for (const r of affected) {
-      if (action === 'delete') await closeRoom(r.room, { discard: true });
-      else await roomStub(env, r.room).fetch('https://room/admin/revoke', { method: 'POST', body: JSON.stringify({
+      await roomStub(env, r.room).fetch('https://room/admin/revoke', { method: 'POST', body: JSON.stringify({
         ...(action === 'unlink' ? { all: true } : { user: String(user) }), reason: action === 'unlink' ? "You're no longer linked." : 'Please log in again.',
       }) });
     }
@@ -353,6 +352,10 @@ async function adminApi(request, url, db, env, token, state) {
     const room = rooms.find(r => r.handle === handle)?.room;
     if (!room) return json(404, { error: 'Room not found' });
     if (action === 'close') await closeRoom(room, { reason: 'This room was closed' });
+    // Forgets a couple room's working copy (its place in each deck); their answers and
+    // favorites are read back from the database when they next open it. The way out
+    // when a room is stuck for a reason that can't be seen from here.
+    else if (action === 'rebuild' && room.startsWith('couple:')) await refreshCouple(room.slice(7));
     else if (action === 'kick') await roomStub(env, room).fetch('https://room/admin/kick', { method: 'POST', body: JSON.stringify({ player: String(player || '') }) });
     else return json(400, { error: 'Unknown action' });
     return json(200, { ok: true });
@@ -472,11 +475,27 @@ export class Room extends DurableObject {
     this.flushing = null;
     // Room state survives the object going to sleep between taps.
     ctx.blockConcurrencyWhile(async () => {
-      const saved = await this.store.load();
-      const guestUpgrade = saved && !saved.coupleId && !Array.isArray(saved.guestMembers);
-      this.room = upgradeRoom(saved);
-      if (this.room && (this.room.storageVersion !== 2 || !this.room.safetyInstance || guestUpgrade)) await this.save();
+      try {
+        const saved = await this.store.load();
+        const guestUpgrade = saved && !saved.coupleId && !Array.isArray(saved.guestMembers);
+        this.room = upgradeRoom(saved);
+        if (this.room && (this.room.storageVersion !== 2 || !this.room.safetyInstance || guestUpgrade)) await this.save();
+      } catch (err) {
+        // A room that can't even be loaded would fail every request forever. Start it
+        // over instead: a couple's answers are safe in the database and are read back
+        // on the next connection; a guest room only ever lasts a few hours anyway.
+        console.error('Room could not be loaded, starting it over:', err);
+        await this.discard();
+      }
     });
+  }
+
+  // Forgets this room's working copy. Couple rooms are rebuilt from the database on
+  // the next connection; a guest room is simply gone.
+  async discard() {
+    this.room = null;
+    await this.ctx.storage.deleteAll();
+    this.store = new RoomStorage(this.ctx.storage);
   }
 
   run(task) {
@@ -526,12 +545,9 @@ export class Room extends DurableObject {
       if (expectedInstance && this.room && this.room.safetyInstance !== expectedInstance) return json(409, { error: 'Room changed' });
       const name = this.room?.code;
       for (const ws of this.ctx.getWebSockets()) { try { ws.close(code, reason); } catch {} }
-      if (discard || !this.room?.coupleId) {
-        this.room = null;
-        await this.ctx.storage.deleteAll();
-        this.store = new RoomStorage(this.ctx.storage);
-      }
-      if (name && (discard || !this.room?.coupleId)) await this.statsGone(name);
+      const forget = discard || !this.room?.coupleId;
+      if (forget) await this.discard();
+      if (name && forget) await this.statsGone(name);
       return json(200, { ok: true });
     }
     if (url.pathname === '/admin/profile' && request.method === 'POST') {
@@ -575,6 +591,17 @@ export class Room extends DurableObject {
       await this.db.rpc('register_room', { p_token: player.token, p_couple_id: coupleId });
     }
 
+    if (coupleId && this.room) {
+      // The working copy must be on the same data generation as the database. If the
+      // saved data was deleted or restored behind the room's back (an admin wiped it,
+      // the database was moved), every save from here would be refused, so the room
+      // is rebuilt from what the database holds now.
+      const { generation } = await this.db.rpc('room_generation', { p_couple_id: coupleId });
+      if (generation !== (this.room.generation || 0)) {
+        console.error(`Room ${this.room.code} is on generation ${this.room.generation || 0} but the database is on ${generation}; rebuilding it`);
+        await this.discard();
+      }
+    }
     if (coupleId && !this.room) {
       // A couple's room is created on first use from what they saved before. It is only
       // kept once that load worked, so a database hiccup can't leave (and later save) a
@@ -848,8 +875,22 @@ export class Room extends DurableObject {
     for (const ws of this.sockets()) if (await this.authorized(ws)) allowed.push(ws);
     const players = this.players();
     for (const ws of allowed) {
-      const { id } = ws.deserializeAttachment();
-      try { ws.send(JSON.stringify({ ...publicState(this.room, players, id), termsAccepted: Boolean(ws.deserializeAttachment().termsAccepted), termsVersion: TERMS_VERSION, canReportPartner: Boolean(this.safetyPartner(id)), reportablePartnerAnswer: Object.hasOwn(this.room.answers[cardKey(this.room.order[this.room.index])] || {}, id) ? this.room.answers[cardKey(this.room.order[this.room.index])]?.[this.safetyPartner(id)] ?? null : null, partnerSafetyHandle: this.safetyPartner(id) ? await safetyHandle(this.room.code + ':' + this.safetyPartner(id)) : null })); } catch {}
+      const { id, termsAccepted } = ws.deserializeAttachment();
+      let frame;
+      try {
+        const partner = this.safetyPartner(id);
+        const answers = this.room.answers[cardKey(this.room.order[this.room.index])] || {};
+        frame = JSON.stringify({ ...publicState(this.room, players, id), termsAccepted: Boolean(termsAccepted), termsVersion: TERMS_VERSION,
+          canReportPartner: Boolean(partner), reportablePartnerAnswer: Object.hasOwn(answers, id) ? answers[partner] ?? null : null,
+          partnerSafetyHandle: partner ? await safetyHandle(this.room.code + ':' + partner) : null });
+      } catch (err) {
+        // Never fail silently: a player whose room can't be described would otherwise
+        // wait forever for a first frame. The error shows up in the Worker's logs.
+        console.error(`Room ${this.room.code} could not build its state:`, err);
+        try { ws.close(1011, 'This room ran into a problem. Please try again.'); } catch {}
+        continue;
+      }
+      try { ws.send(frame); } catch {} // a socket that closed a moment ago
     }
   }
 
@@ -880,9 +921,7 @@ export class Room extends DurableObject {
     const expires = (this.room.lastActiveAt || Date.now()) + this.ttl();
     if (expires > Date.now()) return this.ctx.storage.setAlarm(expires);
     const name = this.room?.code;
-    this.room = null;
-    await this.ctx.storage.deleteAll();
-    this.store = new RoomStorage(this.ctx.storage);
+    await this.discard();
     if (name) await this.statsGone(name);
     });
   }

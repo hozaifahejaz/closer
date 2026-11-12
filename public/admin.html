@@ -599,7 +599,7 @@ function renderRooms() {
         <span class="meta" style="margin:0">${r.players ? `<span class="nowDot">●</span> ${r.players} in the room` : 'empty'} · ${r.mode === 'answer' ? 'Answer & reveal' : 'Just talk'} · ${esc(r.category)} · card ${r.card} of ${r.total}</span></div>
       <div class="meta">Started ${ago(r.createdAt)} · last used ${ago(r.at)}${r.deck ? ` · on ${esc(r.deck)}` : ''}${r.couple ? '' : ` · ${plural(r.answered, 'card', 'cards')} answered`}</div>
       <div class="people">${(r.people || []).map(p => `<span class="person">${esc(p.name)}<button data-kick="${esc(p.id)}">Remove</button></span>`).join('') || '<span class="meta" style="margin:0">Nobody connected</span>'}</div>
-      <div class="actions"><button class="danger" data-close>${r.couple ? 'Close room' : 'Close and delete room'}</button></div>
+      <div class="actions">${r.couple ? '<button data-rebuild>Rebuild from saved data</button>' : ''}<button class="danger" data-close>${r.couple ? 'Close room' : 'Close and delete room'}</button></div>
     </div>`).join('') : '<div class="empty">No rooms here right now</div>';
 }
 async function loadRooms() {
@@ -614,8 +614,12 @@ $('roomList').onclick = async e => {
   const r = rooms.find(x => x.handle === row.dataset.handle);
   const kick = e.target.closest('button[data-kick]');
   const close = e.target.closest('button[data-close]');
+  const rebuild = e.target.closest('button[data-rebuild]');
   let body;
-  if (kick) {
+  if (rebuild) {
+    if (!confirm('Rebuild this couple\'s room from their saved answers and favorites? Use this when their room won\'t open. They lose their place in each deck and any answer that was still saving; everything saved stays.')) return;
+    body = { action: 'rebuild', handle: r.handle };
+  } else if (kick) {
     const who = r.people.find(p => p.id === kick.dataset.kick);
     if (!confirm(`Remove ${who ? who.name : 'this person'} from the room? They can rejoin with the code.`)) return;
     body = { action: 'kick', handle: r.handle, player: kick.dataset.kick };
@@ -624,7 +628,7 @@ $('roomList').onclick = async e => {
       : 'Close this guest room? Anyone in it is sent back to the start, and the room and its answers are deleted.')) return;
     body = { action: 'close', handle: r.handle };
   } else return;
-  try { await api('/api/admin/room', body); toast(kick ? 'Removed' : 'Room closed'); setTimeout(() => loadRooms().catch(() => {}), 400); }
+  try { await api('/api/admin/room', body); toast(kick ? 'Removed' : rebuild ? 'Room will be rebuilt when they next open it' : 'Room closed'); setTimeout(() => loadRooms().catch(() => {}), 400); }
   catch (err) { toast(err.message); }
 };
 

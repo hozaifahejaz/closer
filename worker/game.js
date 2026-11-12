@@ -71,7 +71,20 @@ export function upgradeRoom(room) {
     if (next?.order.length) room.progress[key] = next;
     else if (next) delete room.progress[key];
   }
+  repairDeal(room);
   return room;
+}
+// Last line of defence: a room must always sit on a live card. A saved room that
+// somehow lost its cards (or points past them) is dealt again from its decks, so
+// it can still open instead of failing silently every time.
+function repairDeal(room) {
+  const decks = cleanDecks(room.decks);
+  if (deckKey(decks) !== deckKey(room.decks)) { room.decks = decks; room.category = deckLabel(decks); }
+  if (Array.isArray(room.order) && room.order.length && live(room.order[room.index] || {})) return;
+  room.fresh = false;
+  room.order = buildOrder(decks);
+  room.index = 0;
+  freshCard(room);
 }
 // Brings a dealt order up to date with questions.json, keeping the room's place:
 // retired cards drop out, and cards added since are shuffled into the cards still

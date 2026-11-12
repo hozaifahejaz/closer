@@ -402,6 +402,13 @@ const FUNCTIONS = {
     await db.sql('INSERT INTO room_generations (couple_id) VALUES (?) ON CONFLICT DO NOTHING', p_couple_id).run();
   },
 
+  // The generation a couple's saved data is on (0 until anything was saved or deleted).
+  async room_generation(db, { p_couple_id }) {
+    checkPair(p_couple_id);
+    const row = await db.first('SELECT generation FROM room_generations WHERE couple_id = ?', p_couple_id);
+    return { generation: row?.generation || 0 };
+  },
+
   async couple_data(db, { p_token }) {
     const cid = await db.myCouple(await db.sessionProfile(p_token));
     if (!cid) throw friendly('Link with your partner first');

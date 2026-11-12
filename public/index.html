@@ -757,10 +757,12 @@ function dashboard() {
   $('dashboardStatNote').textContent = guest ? 'Distinct cards revealed or answered in this guest room.' : 'Distinct cards revealed or answered in your shared account room.';
   $('dashboardTitle').textContent = connected ? 'A little time for two.' : `Welcome, ${guest ? me : account?.name || ''}.`;
   $('dashboardSubtitle').textContent = connected ? (room?.started ? 'Pick up your conversation where you left off.' : 'Choose a deck. Start a conversation.') : guest ? 'Share your invite with your partner. Once your partner joins, open cards to play together. Find more options in the menu.' : 'Share your code or enter your partner’s code above. Once linked, open cards to play together. Find more options in the menu.';
-  $('dashboardCards').disabled = (!guest && !connected) || !room || link !== 'live';
+  // An account that hasn't accepted the terms yet can't open its room; the button says so and opens them.
+  const needsTerms = !guest && !!account && !account.termsAccepted;
+  $('dashboardCards').disabled = !needsTerms && ((!guest && !connected) || !room || link !== 'live');
   $('dashboardReclaim').classList.toggle('hidden', link !== 'replaced');
   $('dashboardRetry').classList.toggle('hidden', link !== 'reconnecting');
-  $('dashboardError').textContent = connectionError || (link === 'replaced' ? 'This room is open on another device.' : '');
+  $('dashboardError').textContent = connectionError || (link === 'replaced' ? 'This room is open on another device.' : needsTerms && connected ? 'Accept the Terms of Use to open your cards.' : '');
   if (guest) { $('dashboardCode').textContent = room.code; }
   if (account) { $('helloName').textContent = account.name; $('myCode').textContent = account.inviteCode; }
 }
@@ -769,7 +771,7 @@ function showAccount(a, connectRoom = true) {
   account = a; show(a.partner ? 'homeBox' : 'linkBox');
   document.querySelectorAll('[data-admin]').forEach(l => l.classList.toggle('hidden', !a.isAdmin));
   dashboard();
-  if (!a.termsAccepted) { openTerms(); return; }
+  if (!a.termsAccepted) { openTerms('play'); return; }
   if (connectRoom && a.partner && (!room?.couple || !ws || ws.readyState > 1)) {
     couple = true; me = a.name;
     openSocket(`/api/couple/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`, 'Could not connect to your shared room.');
@@ -777,7 +779,9 @@ function showAccount(a, connectRoom = true) {
   if (!a.partner) linkPoll = setInterval(async () => { try { const m = await api('/api/me'); if (m.partner) showAccount(m); } catch {} }, 4000);
 }
 $('dashboardCards').onclick = () => {
-  closeMenu(); if (room) act({ type: 'openCards' });
+  closeMenu();
+  if (account && !account.termsAccepted && !(room && !room.couple)) { openTerms('play'); return; }
+  if (room) act({ type: 'openCards' });
 };
 let historyRequest = 0;
 $('historyClose').onclick = () => { historyRequest++; $('historyDialog').close(); };
@@ -836,7 +840,7 @@ $('unlink').onclick = async () => {
   try { await api('/api/unlink', {}); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
 };
 $('linkGo').onclick = async () => {
-  if (!account.termsAccepted) { openTerms(); return; }
+  if (!account.termsAccepted) { openTerms('play'); return; }
   const code = $('partnerCode').value.trim().toUpperCase();
   if (code.length !== 6) { $('dashboardError').textContent = 'Partner codes are 6 letters.'; return; }
   try { await api('/api/link', { code }); showAccount(await api('/api/me')); } catch (err) { $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
@@ -856,7 +860,8 @@ $('startCouple').onclick = () => {
     const config = await fetch('/api/config').then(r => r.json());
     accounts = config.accounts;
   } catch {}
-  if (!accounts || params.get('room')) return show('guestBox');
+  // A room link goes straight to the guest screen, with a way back to signing in.
+  if (!accounts || params.get('room')) { $('showAuth').classList.toggle('hidden', !accounts); return show('guestBox'); }
   // Even without a saved token, the sign-in cookie may still be there.
   try { const me = await api('/api/me'); if (me.token) setToken(me.token); showAccount(me); }
   catch (err) { show('authBox'); if (token) $('err').textContent = err.message; $('dashboardError').textContent = err.message; }
@@ -889,7 +894,7 @@ $('join').onclick = () => {
 // live: in sync. reconnecting: dropped and trying again. replaced: the same person
 // opened the room on another device, which took over their seat.
 // unavailable: account room access was refused until the session or link changes.
-let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false, connectionError = '', socketTimer = null;
+let ws = null, wsPath = null, retry = 0, link = 'live', socketReady = false, connectionError = '', socketTimer = null, connectFailures = 0;
 function setLink(l, message = '') {
   link = l; connectionError = message;
   if (room) renderPartners(room);
@@ -908,6 +913,8 @@ function openSocket(path, failMessage) {
   setLink('reconnecting', room ? 'Reconnecting…' : 'Connecting…');
   let opened = false, receivedState = false, ended = false;
   sock.onopen = () => { if (sock !== ws || ended) return; opened = true; retry = 0; };
+  // Details of why the room won't open, once a few tries in a row have failed.
+  const failedMessage = detail => `${failMessage || 'Connection interrupted.'} ${detail ? `The server said: ${detail}` : 'Check your connection.'} Still trying…`;
   sock.onmessage = e => {
     if (sock !== ws || ended) return;
     let message;
@@ -917,7 +924,7 @@ function openSocket(path, failMessage) {
     if (message.type === 'ack') return acknowledge(message);
     if (!message.card || !Array.isArray(message.partners)) return;
     clearTimeout(socketTimer); socketTimer = null;
-    link = 'live'; socketReady = true; connectionError = '';
+    link = 'live'; socketReady = true; connectionError = ''; connectFailures = 0;
     render(message);
     if (!receivedState) {
       receivedState = true;
@@ -942,7 +949,12 @@ function openSocket(path, failMessage) {
     if (opened && receivedState) return again();
     roomGone(path).then(result => {
       if (sock !== ws) return;
-      if (!result) return again();
+      if (!result || result.retry) {
+        // Nothing says the room is gone, so keep trying; but after a few failures in a
+        // row, say what the server answered instead of a bare "Retrying…" forever.
+        if (++connectFailures >= 3) setLink('reconnecting', failedMessage(result?.detail));
+        return again();
+      }
       if (result.expired) return clearSession(result.why);
       if (result.account) account = result.account;
       leaveRoom(result.why, false);
@@ -957,13 +969,15 @@ function openSocket(path, failMessage) {
   }, 12000);
 }
 // Why the room can't be reopened, or null if it can (or we can't tell while offline).
+// A server error that isn't final comes back as { retry, detail } so it can be shown.
 async function roomGone(path = wsPath) {
   const url = new URL(path, location.origin);
+  const detailOf = async res => ({ retry: true, detail: (await res.json().catch(() => ({}))).error || `error ${res.status}` });
   try {
     if (room?.couple || url.pathname === '/api/couple/ws') {
       const res = await fetch('/api/me', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (res.status === 401) return { why: 'Please log in again.', expired: true };
-      if (!res.ok) return null;
+      if (!res.ok) return detailOf(res);
       const current = await res.json();
       if (!('partner' in current)) return null;
       if (!current.partner) return { why: "You're no longer linked.", account: current };
@@ -972,6 +986,7 @@ async function roomGone(path = wsPath) {
       const access = await fetch('/api/history', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (access.status === 401) return { why: 'Please log in again.', expired: true };
       if (access.status === 403) return { why: (await access.json()).error || 'Partner interactions are restricted. Contact support to appeal.', account: current };
+      if (!access.ok) return detailOf(access);
       return null;
     }
     const code = room?.code || url.pathname.match(/^\/api\/rooms\/([^/]+)\/ws$/)?.[1];
@@ -980,6 +995,7 @@ async function roomGone(path = wsPath) {
     const res = await fetch(`/api/rooms/${encodeURIComponent(code)}?id=${encodeURIComponent(id)}`);
     if (res.status === 404) return { why: 'This room has ended. Start a new one.' };
     if (res.status === 403 || res.status === 409) return { why: (await res.json()).error || 'Could not join this room. Please try another room.' };
+    if (!res.ok) return detailOf(res);
     return null;
   } catch { return null; }
 }
@@ -1326,7 +1342,12 @@ async function ensureGuestTerms() {
   const result = await res.json();
   if (!res.ok || !result.accepted) throw new Error(result.error || 'Accept the Terms of Use before joining a room.');
 }
-function openTerms() { $('termsCheck').checked = false; $('termsAccept').disabled = true; $('termsError').textContent = ''; if (!$('termsDialog').open) $('termsDialog').showModal(); }
+// Shown before an answer is shared, and (for accounts that haven't agreed yet) before the room opens.
+function openTerms(why = 'answer') {
+  $('termsTitle').textContent = why === 'play' ? 'Before you play' : 'Before sharing an answer';
+  $('termsCheck').checked = false; $('termsAccept').disabled = true; $('termsError').textContent = '';
+  if (!$('termsDialog').open) $('termsDialog').showModal();
+}
 function requestSafety(body) {
   return new Promise((resolve, reject) => {
     if (!socketReady || !ws || ws.readyState !== WebSocket.OPEN) return reject(new Error('Reconnect before using this action.'));
@@ -1354,7 +1375,7 @@ $('termsAccept').onclick = async () => {
   finally { $('termsAccept').disabled = !$('termsCheck').checked; }
 };
 function openSafety() {
-  closeMenu(); if (!room) { if (account && !account.termsAccepted) openTerms(); else window.location.href = 'mailto:hozaiphaa@gmail.com'; return; }
+  closeMenu(); if (!room) { if (account && !account.termsAccepted) openTerms('play'); else window.location.href = 'mailto:hozaiphaa@gmail.com'; return; }
   reportPartner = room.partnerSafetyHandle;
   $('reportInclude').checked = false; $('reportDetails').value = ''; $('safetyStatus').textContent = ''; $('safetyError').textContent = '';
   const excerpt = room.reportablePartnerAnswer ?? undefined;
