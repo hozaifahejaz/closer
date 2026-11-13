@@ -88,7 +88,7 @@ export default function App() {
       case 'info':
         return <Info page={screen.page} version={app.expo.version} onBack={home} />;
     }
-    return <Home daily={daily} seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
+    return <Home seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
       place={dealt ? { index: state.index, total: state.order.length, label: deckLabel(state.decks) } : null}
       onContinue={() => setScreen({ name: 'play' })}
       onDecks={() => setPicker(true)}
