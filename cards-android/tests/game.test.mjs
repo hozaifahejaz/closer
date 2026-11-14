@@ -138,13 +138,8 @@ test('favorites can be added, removed and survive a retired question', () => {
   assert.deepEqual(later.restore(JSON.parse(JSON.stringify(s))).favorites, [{ k: 'B:1', q: 'b1' }]);
 });
 
-test('the card of the day opens once a day and removing a favorite can be undone', () => {
-  let s = game.openDaily(game.newState(), '2026-11-14');
-  assert.equal(s.dailyDay, '2026-11-14');
-  assert.equal(s.seen[game.daily('2026-11-14')], 1);
-  assert.equal(game.openDaily(s, '2026-11-14'), s);
-  assert.equal(game.restore(JSON.parse(JSON.stringify(s))).dailyDay, '2026-11-14');
-  assert.equal(game.restore({ dailyDay: 'yesterday' }).dailyDay, '');
+test('removing a favorite can be undone', () => {
+  let s = game.newState();
   for (const k of game.start(s, ['Dilemmas'], false).order.slice(0, 3)) s = game.toggleFavorite(s, k);
   const before = s.favorites, gone = s.favorites[1];
   s = game.toggleFavorite(s, gone.k);
@@ -177,13 +172,6 @@ test('shuffling keeps the same cards and goes back to the first', () => {
   assert.deepEqual([...again.order].sort(), [...s.order].sort());
   assert.notDeepEqual(again.order, s.order);
   check(game, again);
-});
-
-test('the card of the day is the same all day, a live card, and changes between days', () => {
-  assert.equal(game.daily('2026-11-12'), game.daily('2026-11-12'));
-  const days = Array.from({ length: 365 }, (_, i) => game.daily(new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10)));
-  for (const k of days) assert.ok(game.live(k));
-  assert.ok(new Set(days).size > 300);
 });
 
 test('saving and loading gives back the same state', () => {
@@ -254,7 +242,7 @@ test('thousands of random taps never break a state', () => {
       else if (r < 0.85) s = g.toggleFavorite(s, g.current(s) ?? pick(g.names) + ':0');
       else if (r < 0.88) s = g.reshuffle(s);
       else if (r < 0.9) s = g.resetProgress(s);
-      else if (r < 0.95) s = g.openDaily(s, `2026-01-${String(1 + i % 28).padStart(2, '0')}`);
+      else if (r < 0.95) s = g.see(s, pick(g.names) + ':0');
       else { const loaded = g.restore(JSON.parse(JSON.stringify(s))); assert.deepEqual(loaded, s); s = loaded; }
       if (i % 50 === 0) check(g, s);
     }

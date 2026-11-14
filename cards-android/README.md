@@ -12,7 +12,7 @@ A separate app from the two-player Closer app in `../mobile`. One person, one ph
 ```bash
 npm install
 npm run sync-questions   # copy ../questions.json into the app (do this before a release)
-npm test                 # game rules, 19 tests
+npm test                 # game rules, 18 tests
 npx tsc --noEmit && npx expo lint
 npx expo export --platform web   # quick look in a browser; layouts were checked this way at 10 sizes
 EXPO_TOKEN=... npx eas-cli build -p android --profile production --non-interactive   # AAB for Play

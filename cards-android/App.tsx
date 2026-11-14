@@ -31,9 +31,8 @@ type Screen =
   | { name: 'home' } | { name: 'play' } | { name: 'favorites' }
   | { name: 'info'; page: 'privacy' | 'about' }
   // The cards are a snapshot, so un-hearting one while flicking through doesn't make it vanish mid-swipe.
-  | { name: 'viewer'; title: string; cards: CardView[]; startAt: number; from: 'home' | 'favorites' };
+  | { name: 'viewer'; title: string; cards: CardView[]; startAt: number; from: 'favorites' };
 
-const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // Checks a screen read back from storage before trusting it.
 function toScreen(raw: any): Screen {
@@ -41,7 +40,7 @@ function toScreen(raw: any): Screen {
   if (raw?.name === 'play' || raw?.name === 'favorites') return { name: raw.name };
   if (raw?.name === 'info' && (raw.page === 'privacy' || raw.page === 'about')) return { name: 'info', page: raw.page };
   if (raw?.name === 'viewer' && typeof raw.title === 'string' && Array.isArray(raw.cards) && raw.cards.length && raw.cards.every(isCard)) {
-    return { name: 'viewer', title: raw.title, cards: raw.cards, startAt: Number.isInteger(raw.startAt) ? raw.startAt : 0, from: raw.from === 'favorites' ? 'favorites' : 'home' };
+    if (raw.from === 'favorites') return { name: 'viewer', title: raw.title, cards: raw.cards, startAt: Number.isInteger(raw.startAt) ? raw.startAt : 0, from: 'favorites' };
   }
   return { name: 'home' };
 }
@@ -53,7 +52,6 @@ export default function App() {
   const [picker, setPicker] = useState(false);
   const [menu, setMenu] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
-  const [day, setDay] = useState(localDay);
 
   // What was saved on this phone, or a clean start. A damaged save can't stop the app opening.
   useEffect(() => {
@@ -62,7 +60,7 @@ export default function App() {
   const setScreen = useCallback((next: Screen) => { setScreenNow(next); saveNav(next); }, []);
   useEffect(() => { if (state) { save(state); setHapticsOn(state.haptics); } }, [state]);
   useEffect(() => {
-    const sub = AppState.addEventListener('change', now => { if (now === 'active') setDay(localDay()); else flush(); });
+    const sub = AppState.addEventListener('change', now => { if (now !== 'active') flush(); });
     return () => sub.remove();
   }, []);
 
@@ -71,7 +69,7 @@ export default function App() {
 
   const update = useCallback((change: (s: State) => State) => setState(s => s && change(s)), []);
   const home = useCallback(() => setScreen({ name: 'home' }), [setScreen]);
-  const back = useCallback(() => setScreen(screen.name === 'viewer' && screen.from === 'favorites' ? { name: 'favorites' } : { name: 'home' }), [screen, setScreen]);
+  const back = useCallback(() => setScreen(screen.name === 'viewer' ? { name: 'favorites' } : { name: 'home' }), [screen, setScreen]);
 
   // Android's back button or gesture: one screen back, and out of the app from the first screen.
   const atHome = screen.name === 'home';
@@ -83,7 +81,6 @@ export default function App() {
 
   const list = useMemo(() => state ? game.usage(state) : [], [state?.seen]); // eslint-disable-line react-hooks/exhaustive-deps
   const favorites = useMemo<CardView[]>(() => (state?.favorites ?? []).map(f => game.view(f.k) ?? { id: f.k, category: f.k.slice(0, f.k.lastIndexOf(':')), text: f.q }).reverse(), [state?.favorites]);
-  const daily = useMemo(() => game.view(game.daily(day))!, [day]);
 
   if (!ready || !state) return <View style={st.fill} />;
 
@@ -106,11 +103,10 @@ export default function App() {
       case 'info':
         return <Info page={screen.page} version={app.expo.version} onBack={home} />;
     }
-    return <Home daily={daily} dailyOpen={state.dailyDay === day} onOpenDaily={() => update(s => game.openDaily(s, day))} seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
+    return <Home seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
       place={dealt ? { index: state.index, total: state.order.length, label: deckName(state.decks) } : null}
       onContinue={() => setScreen({ name: 'play' })}
       onDecks={() => setPicker(true)}
-      onDaily={() => setScreen({ name: 'viewer', title: 'Card of the day', cards: [daily], startAt: 0, from: 'home' })}
       onFavorites={() => setScreen({ name: 'favorites' })}
       onMenu={() => setMenu(true)} />;
   })();

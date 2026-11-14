@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DeckInfo } from '../game';
 import { colors, fonts } from '../theme';
@@ -33,14 +33,19 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   const insets = useSafeAreaInsets();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [freshOn, setFreshOn] = useState(false);
-  const [edge, setEdge] = useState({ above: false, below: false });
+  // The fades at the top and bottom of the list follow the scroll on the UI thread, so scrolling
+  // never waits for JavaScript and never redraws the tiles.
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [maxY, setMaxY] = useState(0);
+  const listRef = useRef<ScrollView>(null);
 
   // Start from what is being played now, each time the picker opens.
   useEffect(() => {
     if (!visible) return;
     setSel(new Set(decks.length ? decks : list.map(d => d.name)));
     setFreshOn(freshNow);
-    setEdge(e => e.above ? { ...e, above: false } : e);
+    scrollY.setValue(0);
+    listRef.current?.scrollTo({ y: 0, animated: false });
   }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fresh = freshOn;
@@ -63,61 +68,32 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   const cardH = Math.floor(Math.min(rowH, cardW * 7 / 4));
   // When width limits the cards, the box shrinks to four cards and a peek, centred, instead of showing half the next row.
   const boxH = Math.min(grid.h + 10 * k, layout.rows * (cardH + layout.gap) + peek + 10 * k);
-  const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
-    if (above !== edge.above || below !== edge.below) setEdge({ above, below });
-  };
+  const onScroll = useMemo(() => Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }), [scrollY]);
+  const topFade = scrollY.interpolate({ inputRange: [0, 24], outputRange: [0, 1], extrapolate: 'clamp' });
+  const bottomFade = scrollY.interpolate({ inputRange: [Math.max(0, maxY - 24), Math.max(1, maxY)], outputRange: [1, 0], extrapolate: 'clamp' });
 
-  const fan = list.map(d => deckColors(d.name).c1);
-  const toggle = (name: string | null) => {
+  const names = useMemo(() => list.map(d => d.name).join('\n'), [list]);
+  const fan = useMemo(() => names.split('\n').map(n => deckColors(n).c1), [names]);
+  // The same function every render, so tapping one deck redraws only the tiles that changed.
+  const toggle = useCallback((name: string | null) => {
     tap();
-    if (name === null) setSel(sel.size === list.length ? new Set() : new Set(list.map(d => d.name)));
-    else { const next = new Set(sel); if (next.has(name)) next.delete(name); else next.add(name); setSel(next); }
-  };
+    const all = names.split('\n');
+    setSel(sel => {
+      if (name === null) return sel.size === all.length ? new Set() : new Set(all);
+      const next = new Set(sel); if (next.has(name)) next.delete(name); else next.add(name); return next;
+    });
+  }, [names]);
   const start = () => { if (picked.length) onStart(picked.map(d => d.name), fresh); };
 
   const go = !picked.length ? 'Pick at least one deck'
     : fresh ? (unused ? 'Start' : "You've seen every card here")
     : saved && saved.index > 0 ? `Continue · card ${num(saved.index + 1)} of ${num(saved.total)}` : 'Start';
 
-  const tile = (name: string | null, label: string, cards: number, fresh_: number, on: boolean) => {
-    const spent = fresh && !fresh_;
-    const deck = name ?? 'All';
-    const { c2 } = deckColors(deck);
-    // Type and art scale with the card; each card shows just the deck's name and card count.
-    const m = Math.min(cardW, cardH * 1.1);
-    const low = cardH < 150 * k;
-    const nameSize = Math.max(14 * k, Math.min(23 * k, cardW * 0.1, cardH * 0.12));
-    const countSize = Math.max(9 * k, Math.min(11.5 * k, cardW * 0.056, cardH * 0.07));
-    const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
-    const chk = Math.max(18 * k, Math.min(26 * k, m * 0.12));
-    const inset = Math.max(8 * k, Math.min(14 * k, m * 0.06));
-    const count = !fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${num(fresh_)} new` : 'All seen';
-    const lineH = nameSize * 1.15;
-    // A picked deck is bright with a strong ring in its colour; an unpicked one fades back.
-    // The art sits on the same line in every card and the name always has room for two lines,
-    // so the counts line up across a row even when one name wraps.
-    return (
-      <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-        accessibilityLabel={`${label}, ${count}, ${on ? 'picked' : 'not picked'}`}
-        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingHorizontal: low ? 6 * k : cardW * 0.07 },
-          { backgroundColor: colors.card, borderColor: on ? c2 : c2 + '40' }, !on && st.off, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ height: art, marginBottom: Math.min(18 * k, cardH * (low ? 0.03 : 0.05)), opacity: spent ? 0.5 : 1 }}>
-          <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
-        </View>
-        <View style={{ height: lineH * 2, justifyContent: 'center' }}>
-          <Text style={[st.nm, { fontSize: nameSize, lineHeight: lineH }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
-        </View>
-        {cardH < 110 * k ? null : (
-          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(10 * k, cardH * (low ? 0.02 : 0.03)) }]} numberOfLines={1}>{count}</Text>
-        )}
-        <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: inset, right: inset },
-          on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
-          {on ? <Icon name="check" size={chk * 0.7} color="#fff" strokeWidth={3} /> : null}
-        </View>
-      </Pressable>
-    );
-  };
+  const tileSize = { cardW, cardH, k };
+  const tiles = [
+    { name: null, label: 'All decks', cards: sum(list, d => d.count), fresh_: sum(list, left), on: sel.size === list.length },
+    ...list.map(d => ({ name: d.name, label: d.name, cards: d.count, fresh_: left(d), on: sel.has(d.name) })),
+  ];
 
   const column = cardW * COLS + layout.gap * (COLS - 1) + 28 * k; // the cards plus their side padding
 
@@ -135,18 +111,16 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
         <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28 * k, h: e.nativeEvent.layout.height - 10 * k })}>
           {grid.w ? (
             <View style={{ height: boxH, width: '100%' }}>
-              <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > boxH + 2 }))}
-                scrollEventThrottle={32} showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never"
-                snapToInterval={cardH + layout.gap} decelerationRate="fast" snapToAlignment="start">
+              {/* Plain, free scrolling with normal momentum: no snapping to rows, which made it jerky. */}
+              <Animated.ScrollView ref={listRef} style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} scrollEventThrottle={16}
+                onContentSizeChange={(_, h) => setMaxY(Math.max(0, Math.round(h - boxH)))}
+                showsVerticalScrollIndicator={false} overScrollMode="never" removeClippedSubviews={Platform.OS === 'android'}>
                 <View style={[st.cards, { width: cardW * COLS + layout.gap * (COLS - 1), columnGap: layout.gap, rowGap: layout.gap }]}>
-                  {[
-                    tile(null, 'All decks', sum(list, d => d.count), sum(list, left), sel.size === list.length),
-                    ...list.map(d => tile(d.name, d.name, d.count, left(d), sel.has(d.name))),
-                  ]}
+                  {tiles.map(t => <DeckTile key={t.label} {...t} {...tileSize} fresh={fresh} fan={fan} onToggle={toggle} st={st} />)}
                 </View>
-              </ScrollView>
-              {edge.above ? <LinearGradient pointerEvents="none" colors={[colors.bg, colors.bg + '00']} style={[st.fade, { top: 0 }]} /> : null}
-              {edge.below ? <LinearGradient pointerEvents="none" colors={[colors.bg + '00', colors.bg]} style={[st.fade, { bottom: 0 }]} /> : null}
+              </Animated.ScrollView>
+              <Animated.View pointerEvents="none" style={[st.fade, { top: 0, opacity: topFade }]}><LinearGradient colors={[colors.bg, colors.bg + '00']} style={StyleSheet.absoluteFill} /></Animated.View>
+              {maxY > 2 ? <Animated.View pointerEvents="none" style={[st.fade, { bottom: 0, opacity: bottomFade }]}><LinearGradient colors={[colors.bg + '00', colors.bg]} style={StyleSheet.absoluteFill} /></Animated.View> : null}
             </View>
           ) : null}
         </View>
@@ -162,6 +136,49 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   );
 }
 
+type TileProps = { name: string | null; label: string; cards: number; fresh_: number; on: boolean; fresh: boolean;
+  cardW: number; cardH: number; k: number; fan: string[]; onToggle: (name: string | null) => void; st: ReturnType<typeof useScaled<typeof base>> };
+
+// One deck. Memoised, so scrolling and tapping other decks never redraw it.
+const DeckTile = memo(function DeckTile({ name, label, cards, fresh_, on, fresh, cardW, cardH, k, fan, onToggle, st }: TileProps) {
+  const spent = fresh && !fresh_;
+  const deck = name ?? 'All';
+  const { c2 } = deckColors(deck);
+  // Type and art scale with the card; each card shows just the deck's name and card count.
+  const m = Math.min(cardW, cardH * 1.1);
+  const low = cardH < 150 * k;
+  const nameSize = Math.max(14 * k, Math.min(23 * k, cardW * 0.1, cardH * 0.12));
+  const countSize = Math.max(9 * k, Math.min(11.5 * k, cardW * 0.056, cardH * 0.07));
+  const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
+  const chk = Math.max(18 * k, Math.min(26 * k, m * 0.12));
+  const inset = Math.max(8 * k, Math.min(14 * k, m * 0.06));
+  const count = !fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${num(fresh_)} new` : 'All seen';
+  const lineH = nameSize * 1.15;
+  // A picked deck is bright with a strong ring in its colour; an unpicked one fades back.
+  // The art sits on the same line in every card and the name always has room for two lines,
+  // so the counts line up across a row even when one name wraps.
+  return (
+    <Pressable onPress={() => onToggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+      accessibilityLabel={`${label}, ${count}, ${on ? 'picked' : 'not picked'}`}
+      style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingHorizontal: low ? 6 * k : cardW * 0.07 },
+        { borderColor: on ? c2 : c2 + '40' }, !on && st.off, pressed && { transform: [{ scale: 0.97 }] }]}>
+      <View style={{ height: art, marginBottom: Math.min(18 * k, cardH * (low ? 0.03 : 0.05)), opacity: spent ? 0.5 : 1 }}>
+        <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
+      </View>
+      <View style={{ height: lineH * 2, justifyContent: 'center' }}>
+        <Text style={[st.nm, { fontSize: nameSize, lineHeight: lineH }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
+      </View>
+      {cardH < 110 * k ? null : (
+        <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(10 * k, cardH * (low ? 0.02 : 0.03)) }]} numberOfLines={1}>{count}</Text>
+      )}
+      <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: inset, right: inset },
+        on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
+        {on ? <Icon name="check" size={chk * 0.7} color="#fff" strokeWidth={3} /> : null}
+      </View>
+    </Pressable>
+  );
+});
+
 const base = sheet({
   sheet: { flex: 1, backgroundColor: colors.bg },
   grabber: { alignSelf: 'center', width: 38, height: 5, borderRadius: 3, backgroundColor: colors.line2, marginBottom: 14, display: Platform.OS === 'ios' ? 'flex' : 'none' },
@@ -174,8 +191,8 @@ const base = sheet({
   cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   fade: { position: 'absolute', left: 0, right: 0, height: 36 },
   off: { opacity: 0.5, elevation: 0, shadowOpacity: 0 },
-  card: { borderRadius: 16, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  card: { borderRadius: 16, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card,
+    shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   chk: { position: 'absolute', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   nm: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center' },
   ct: { marginTop: 4, fontFamily: fonts.sansBold, letterSpacing: 1.4, textTransform: 'uppercase', fontVariant: ['tabular-nums'] },

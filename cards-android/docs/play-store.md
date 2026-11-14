@@ -34,7 +34,6 @@ Pick the decks you're in the mood for, turn a card, and talk. Use it on a date n
 
 - 26 decks, from Getting Closer and Who You Are to Midnight Questions, Dilemmas and Would You Rather
 - Mix any decks together; your place in every mix is saved
-- A new Card of the day, every day
 - Save favorites with a tap and share any question
 - "Only cards I haven't seen" so nothing repeats
 - Works completely offline. No account, no ads, no tracking. Nothing leaves your phone.

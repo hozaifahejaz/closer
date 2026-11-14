@@ -13,7 +13,7 @@ import { sheet, useK, useScaled } from '../scale';
 
 type Props = { title: string; cards: CardView[]; startAt: number; state: State; update: (change: (s: State) => State) => void; onBack: () => void };
 
-// One card on its own (the card of the day), or a short stack to flick through (favorites).
+// A short stack of favorites to flick through, starting at the one that was tapped.
 export function Viewer({ title, cards, startAt, state, update, onBack }: Props) {
   const st = useScaled(base);
   const k = useK();
