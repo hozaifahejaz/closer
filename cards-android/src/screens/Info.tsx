@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { TopBar } from '../components/TopBar';
+import { HeartBadge } from '../components/ui';
 
 export const CONTACT = 'hozaiphaa@gmail.com';
 export const POLICY_DATE = 'November 12, 2026';
@@ -16,7 +17,7 @@ const PRIVACY: [string, string][] = [
   ['Deleting your data', 'Use "Reset my progress" in the menu to clear seen cards and saved places, and remove favorites from the Favorites screen. Uninstalling the app, or clearing its storage in Android settings, removes everything. If your phone backs up app data to your Google account, Android handles that backup under your Google settings.'],
   ['Age', 'Closer Cards is meant for adults aged 18 and over. Some decks include questions about intimacy and relationships.'],
   ['Changes', 'If this policy changes, the new version will ship with an app update and the date below will change.'],
-  ['Contact', `Questions about privacy: ${CONTACT}`],
+  ['Contact', 'Questions about privacy:'],
 ];
 
 const ABOUT: [string, string][] = [
@@ -24,7 +25,7 @@ const ABOUT: [string, string][] = [
   ['How it works', 'Choose one deck, a few, or all of them. Swipe or tap Next for another card. Tap the heart to keep a card in your favorites. Your place in every set of decks is saved, so you can always pick up where you left off.'],
   ['Offline, always', 'Every question is inside the app. Nothing is downloaded and nothing is uploaded.'],
   ['For adults', 'The app is intended for people aged 18 and over.'],
-  ['Contact', CONTACT],
+  ['Contact', 'Questions or ideas:'],
 ];
 
 export function Info({ page, version, onBack }: { page: 'privacy' | 'about'; version: string; onBack: () => void }) {
@@ -32,12 +33,17 @@ export function Info({ page, version, onBack }: { page: 'privacy' | 'about'; ver
   const sections = page === 'privacy' ? PRIVACY : ABOUT;
   return (
     <View style={[st.fill, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <TopBar title={page === 'privacy' ? 'Privacy policy' : 'About'} onBack={onBack} />
+      <TopBar title={page === 'privacy' ? 'Privacy policy' : 'About'} onBack={onBack} maxWidth={640} />
       <ScrollView style={st.scroll} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: insets.bottom + 32 }}>
+        {page === 'about' ? <View style={st.badge}><HeartBadge size={64} /></View> : null}
         {sections.map(([title, body]) => (
           <View key={title} style={{ marginBottom: 22 }}>
             <Text style={st.h} accessibilityRole="header">{title}</Text>
             <Text style={st.p} selectable>{body}</Text>
+            {title === 'Contact' ? (
+              // Opens the phone's mail app; the app itself still sends nothing.
+              <Text style={[st.p, st.mail]} accessibilityRole="link" onPress={() => { Linking.openURL(`mailto:${CONTACT}`).catch(() => {}); }}>{CONTACT}</Text>
+            ) : null}
           </View>
         ))}
         <Text style={st.foot}>{page === 'privacy' ? `Last updated ${POLICY_DATE}` : `Version ${version}`}</Text>
@@ -51,5 +57,7 @@ const st = StyleSheet.create({
   scroll: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
   h: { fontFamily: fonts.serifBold, fontSize: 19, color: colors.text, marginBottom: 6 },
   p: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 23, color: colors.soft },
+  mail: { color: colors.accent2, textDecorationLine: 'underline', paddingVertical: 6 },
+  badge: { alignItems: 'center', paddingTop: 8, paddingBottom: 22 },
   foot: { fontFamily: fonts.sans, fontSize: 13, color: colors.faint },
 });

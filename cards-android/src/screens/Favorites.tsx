@@ -1,25 +1,25 @@
-import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CardView } from '../game';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from '../components/Icon';
-import { Confirm } from '../components/Sheet';
+import { useToast } from '../components/Toast';
 import { TopBar } from '../components/TopBar';
 import { Button, tap } from '../components/ui';
 
-type Props = { cards: CardView[]; onOpen: (index: number) => void; onRemove: (id: string) => void; onBack: () => void; onDecks: () => void };
+// onRemove takes the card out at once and returns how to put it back.
+type Props = { cards: CardView[]; onOpen: (index: number) => void; onRemove: (id: string) => () => void; onBack: () => void; onDecks: () => void };
 
 // Every card saved with the heart, newest first.
 export function Favorites({ cards, onOpen, onRemove, onBack, onDecks }: Props) {
   const insets = useSafeAreaInsets();
-  const [removing, setRemoving] = useState<CardView | null>(null);
+  const { say, toast } = useToast({ bottom: insets.bottom + 20 });
   return (
     <View style={[st.fill, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <TopBar title="Favorites" onBack={onBack} />
+      <TopBar title="Favorites" onBack={onBack} maxWidth={640} />
       {cards.length ? (
         <FlatList data={cards} keyExtractor={c => c.id} style={st.list} initialNumToRender={10} windowSize={7}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: insets.bottom + 24, gap: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: insets.bottom + 84, gap: 10 }}
           renderItem={({ item, index }) => (
             <Pressable onPress={() => { tap(); onOpen(index); }} accessibilityRole="button" accessibilityLabel={`${item.category}. ${item.text}`}
               style={({ pressed }) => [st.item, pressed && { opacity: 0.9 }]}>
@@ -27,7 +27,7 @@ export function Favorites({ cards, onOpen, onRemove, onBack, onDecks }: Props) {
                 <Text style={st.cat} numberOfLines={1}>{item.category}</Text>
                 <Text style={st.q}>{item.text}</Text>
               </View>
-              <Pressable onPress={() => { tap(); setRemoving(item); }} hitSlop={10} style={st.remove} accessibilityRole="button" accessibilityLabel="Remove from favorites">
+              <Pressable onPress={() => { tap(); say('Removed from favorites', { label: 'Undo', onPress: onRemove(item.id) }); }} hitSlop={10} style={st.remove} accessibilityRole="button" accessibilityLabel="Remove from favorites">
                 <Icon name="heart" size={22} color={colors.accent} fill />
               </Pressable>
             </Pressable>
@@ -40,8 +40,7 @@ export function Favorites({ cards, onOpen, onRemove, onBack, onDecks }: Props) {
           <Button title="Choose decks" onPress={onDecks} style={{ marginTop: 12, minWidth: 200 }} />
         </View>
       )}
-      <Confirm visible={!!removing} title="Remove this favorite?" body={removing?.text ?? ''} yes="Remove"
-        onYes={() => { if (removing) onRemove(removing.id); }} onClose={() => setRemoving(null)} />
+      {toast}
     </View>
   );
 }

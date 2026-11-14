@@ -44,3 +44,23 @@ export function flush() {
   if (queued && queued !== last) write(queued);
   queued = null;
 }
+
+// Which screen was open, so a restart that the person didn't ask for (Android rebuilding the app
+// after a font size, theme or window change, or clearing it from memory in the background) comes
+// back to the same place. A fresh start much later opens on Home as usual.
+const NAV = 'closercards.nav.v1';
+const NAV_KEEP = 30 * 60 * 1000;
+let navNow: unknown = null; // survives while the JavaScript side stays alive
+
+export async function loadNav(): Promise<unknown> {
+  if (navNow) return navNow;
+  try {
+    const saved = parse(await AsyncStorage.getItem(NAV));
+    return saved && typeof saved.at === 'number' && Math.abs(Date.now() - saved.at) < NAV_KEEP ? saved.screen : null;
+  } catch { return null; }
+}
+
+export function saveNav(screen: unknown) {
+  navNow = screen;
+  AsyncStorage.setItem(NAV, JSON.stringify({ screen, at: Date.now() })).catch(() => {});
+}

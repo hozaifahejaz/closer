@@ -16,7 +16,7 @@ export const bump = (strong = false) => {
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  kind?: 'primary' | 'ghost' | 'link';
+  kind?: 'primary' | 'ghost' | 'link' | 'danger';
   icon?: IconName;
   iconRight?: IconName;
   disabled?: boolean;
@@ -26,11 +26,11 @@ type ButtonProps = {
 
 export function Button({ title, onPress, kind = 'primary', icon, iconRight, disabled, style, accessibilityLabel }: ButtonProps) {
   const off = !!disabled;
-  const tint = kind === 'primary' ? colors.onPrimary : kind === 'link' ? colors.muted : colors.text;
+  const tint = kind === 'primary' ? colors.onPrimary : kind === 'link' ? colors.muted : kind === 'danger' ? colors.bad : colors.text;
   const body = (
     <>
       {icon ? <Icon name={icon} size={18} color={tint} /> : null}
-      {title ? <Text numberOfLines={1} style={[s.btnText, { color: tint }, kind === 'link' && s.linkText]}>{title}</Text> : null}
+      {title ? <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.btnText, { color: tint }, kind === 'link' && s.linkText]}>{title}</Text> : null}
       {iconRight ? <Icon name={iconRight} size={18} color={tint} /> : null}
     </>
   );
@@ -42,7 +42,7 @@ export function Button({ title, onPress, kind = 'primary', icon, iconRight, disa
       accessibilityLabel={accessibilityLabel || title}
       accessibilityState={{ disabled: off }}
       hitSlop={kind === 'link' ? 8 : 0}
-      style={({ pressed }) => [kind === 'link' ? s.link : s.btn, kind === 'ghost' && s.ghost, style,
+      style={({ pressed }) => [kind === 'link' ? s.link : s.btn, (kind === 'ghost' || kind === 'danger') && s.ghost, style,
         pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }, off && { opacity: 0.5 }]}
     >
       {kind === 'primary' ? (

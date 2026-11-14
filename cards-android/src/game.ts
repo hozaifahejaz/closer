@@ -18,6 +18,7 @@ export type State = {
   seen: Record<string, 1>;
   favorites: Favorite[]; // newest last
   haptics: boolean;
+  dailyDay: string; // the local day ("2026-11-14") whose card of the day has been opened, or ''
 };
 export type DeckInfo = { name: string; count: number; used: number };
 export type CardView = { id: string; category: string; text: string };
@@ -59,7 +60,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   }
 
   const newState = (): State => ({ v: 1, decks: [], fresh: false, order: [], index: 0, flipped: true, tapToReveal: false,
-    started: false, progress: {}, seen: {}, favorites: [], haptics: true });
+    started: false, progress: {}, seen: {}, favorites: [], haptics: true, dailyDay: '' });
 
   const current = (s: State): string | null => (s.started && s.order[s.index]) || null;
   const isSeen = (s: State, key: string) => s.seen[key] === 1;
@@ -71,6 +72,8 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
     return { ...s, seen: { ...s.seen, [key]: 1 } };
   }
   const see = (s: State, key: string): State => !live(key) || isSeen(s, key) ? s : { ...s, seen: { ...s.seen, [key]: 1 } };
+  // Turning over the card of the day: it counts as seen, and stays open for the rest of that day.
+  const openDaily = (s: State, day: string): State => s.dailyDay === day ? s : { ...see(s, daily(day)), dailyDay: day };
 
   function step(s: State, by: 1 | -1): State {
     const n = s.order.length;
@@ -122,9 +125,16 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
     const q = text(key);
     return q === null ? s : { ...s, favorites: [...s.favorites, { k: key, q }] };
   }
+  // Puts a removed favorite back where it was (the Undo after removing one).
+  function restoreFavorite(s: State, fav: Favorite, at: number): State {
+    if (isFavorite(s, fav.k)) return s;
+    const favorites = s.favorites.slice();
+    favorites.splice(Math.max(0, Math.min(at, favorites.length)), 0, fav);
+    return { ...s, favorites };
+  }
 
   // Forgets seen cards and every saved place. Favorites and settings stay.
-  const resetProgress = (s: State): State => ({ ...newState(), tapToReveal: s.tapToReveal, haptics: s.haptics, favorites: s.favorites });
+  const resetProgress = (s: State): State => ({ ...newState(), tapToReveal: s.tapToReveal, haptics: s.haptics, favorites: s.favorites, dailyDay: s.dailyDay });
 
   const usage = (s: State): DeckInfo[] => NAMES.map(name => {
     const cards = cardsOf(name);
@@ -177,7 +187,8 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
     const fresh0 = newState();
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return fresh0;
     const r = raw as Record<string, any>;
-    const s: State = { ...fresh0, tapToReveal: r.tapToReveal === true, haptics: r.haptics !== false };
+    const s: State = { ...fresh0, tapToReveal: r.tapToReveal === true, haptics: r.haptics !== false,
+      dailyDay: typeof r.dailyDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.dailyDay) ? r.dailyDay : '' };
 
     if (r.seen && typeof r.seen === 'object') for (const k of Object.keys(r.seen)) if (live(k)) s.seen[k] = 1;
     const favs = new Set<string>();
@@ -214,7 +225,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   }
 
   return { names: NAMES, total: ALL.length, text, view, live, deckKey, cleanDecks, newState, restore, current, next, prev, flip, setTapToReveal,
-    setHaptics, start, reshuffle, isFavorite, toggleFavorite, resetProgress, usage, seenCount, unusedCount, savedPlaces, daily, see };
+    setHaptics, start, reshuffle, isFavorite, toggleFavorite, resetProgress, usage, seenCount, unusedCount, savedPlaces, daily, see, openDaily, restoreFavorite };
 }
 
 export type Game = ReturnType<typeof makeGame>;

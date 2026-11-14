@@ -69,11 +69,11 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
 
   const backStyle = {
     opacity: turn.interpolate({ inputRange: [0, 0.5, 0.501, 1], outputRange: [1, 1, 0, 0] }),
-    transform: [{ perspective: 1400 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }],
+    transform: [{ perspective: 2200 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }],
   };
   const frontStyle = {
     opacity: turn.interpolate({ inputRange: [0, 0.499, 0.5, 1], outputRange: [0, 0, 1, 1] }),
-    transform: [{ perspective: 1400 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] }) }],
+    transform: [{ perspective: 2200 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] }) }],
   };
 
   // Bigger type on bigger cards, a little smaller for long questions.

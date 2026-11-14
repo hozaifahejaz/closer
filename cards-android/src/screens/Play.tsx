@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { game } from '../cards';
+import { deckName, num } from '../format';
 import type { State } from '../game';
-import { colors, fonts, radius } from '../theme';
+import { colors } from '../theme';
 import { shareQuestion } from '../share';
 import { Card } from '../components/Card';
-import { Icon } from '../components/Icon';
 import { Confirm } from '../components/Sheet';
 import { useToast } from '../components/Toast';
 import { RoundButton, TopBar } from '../components/TopBar';
-import { Button, tap, Toggle } from '../components/ui';
-
-const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+import { Button } from '../components/ui';
 
 type Props = { state: State; update: (change: (s: State) => State) => void; onBack: () => void; onDecks: () => void };
 
@@ -20,7 +18,8 @@ type Props = { state: State; update: (change: (s: State) => State) => void; onBa
 export function Play({ state, update, onBack, onDecks }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const { say, toast } = useToast();
+  // Messages show over the foot of the card, clear of every button.
+  const { say, toast } = useToast({ bottom: 44 });
   const [shuffleOpen, setShuffleOpen] = useState(false);
   const card = game.view(game.current(state) ?? '');
   if (!card) return null; // App only shows this screen once cards are dealt
@@ -28,49 +27,40 @@ export function Play({ state, update, onBack, onDecks }: Props) {
   const total = state.order.length;
   const wide = width >= 760 && width > height * 1.05;
   const compact = height < 700;
-  const gap = compact ? 10 : 14;
+  const gap = compact ? 10 : 12;
   const btnH = compact ? { minHeight: 48 } : null;
+  const playing = `${deckName(state.decks)}${state.fresh ? ' · new only' : ''}`;
 
   const next = () => { if (state.index === total - 1 && total > 1) say("That's every card here. Back to the first one."); update(game.next); };
   const prev = () => update(game.prev);
 
   const table = (
-    <Card cardKey={card.id} category={card.category} text={card.text} position={`${state.index + 1} / ${total}`}
-      flipped={state.flipped} tapToReveal={state.tapToReveal} favorite={game.isFavorite(state, card.id)}
-      onFlip={() => update(game.flip)}
-      onFavorite={() => { say(game.isFavorite(state, card.id) ? 'Removed from favorites' : 'Saved to favorites'); update(s => game.toggleFavorite(s, card.id)); }}
-      onSwipe={dir => (dir === 'next' ? next() : prev())} />
+    <View style={st.cardArea}>
+      {/* The filled heart is the confirmation; no message needed. */}
+      <Card cardKey={card.id} category={card.category} text={card.text} position={`${num(state.index + 1)} / ${num(total)}`}
+        flipped={state.flipped} tapToReveal={state.tapToReveal} favorite={game.isFavorite(state, card.id)}
+        onFlip={() => update(game.flip)} onFavorite={() => update(s => game.toggleFavorite(s, card.id))}
+        onSwipe={dir => (dir === 'next' ? next() : prev())} />
+      {toast}
+    </View>
   );
 
-  const decksButton = (
-    <Pressable onPress={() => { tap(); onDecks(); }} style={({ pressed }) => [st.deckBtn, compact && st.iconBtn, pressed && { opacity: 0.85 }]}
-      accessibilityRole="button" accessibilityLabel={`Choose decks. Now playing ${deckName(state.decks)}`}>
-      <Icon name="cards" size={18} color={colors.accent2} />
-      {compact ? null : <Text numberOfLines={1} style={st.deckText}>{deckName(state.decks)}{state.fresh ? ' · new only' : ''}</Text>}
-      {compact ? null : <View style={st.chev} />}
-    </Pressable>
-  );
-
+  // Two rows that hold at any width: move between cards, and change what is being played.
   const side = (
     <View style={{ gap, flexShrink: 0 }}>
-      <View style={st.opt}>
-        <Text style={st.optText}>Tap to reveal each card</Text>
-        <Toggle on={state.tapToReveal} onChange={on => update(s => game.setTapToReveal(s, on))} label="Tap to reveal each card" />
-      </View>
       <View style={st.row}>
         <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={prev} style={[{ width: compact ? 48 : 56, paddingHorizontal: 0 }, btnH]} />
         <Button title={compact ? 'Next' : 'Next question'} accessibilityLabel="Next question" iconRight="right" onPress={next} style={[{ flex: 1 }, btnH]} />
-        {compact ? decksButton : null}
       </View>
-      {compact ? null : <View style={st.row}>{decksButton}</View>}
+      <Button kind="ghost" title="Change decks" icon="cards" accessibilityLabel={`Change decks. Now playing ${playing}`} onPress={onDecks} style={btnH} />
     </View>
   );
 
   return (
     <View style={[st.fill, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <TopBar title="Closer" onBack={onBack}>
+      <TopBar title={playing} onBack={onBack} maxWidth={wide ? 1280 : 560}>
         <RoundButton icon="shuffle" label="Shuffle these cards" onPress={() => setShuffleOpen(true)} />
-        <RoundButton icon="share" label="Share this question" onPress={() => { if (state.flipped) shareQuestion(card.text); else say('Reveal the card first'); }} />
+        <RoundButton icon="share" label="Share this question" disabled={!state.flipped} onPress={() => shareQuestion(card.text)} />
       </TopBar>
       {wide ? (
         <View style={[st.wide, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -80,11 +70,10 @@ export function Play({ state, update, onBack, onDecks }: Props) {
       ) : (
         // Everything fits the screen: the card takes whatever height is left.
         <View style={[st.column, { gap, paddingBottom: Math.max(insets.bottom, compact ? 10 : 16) }]}>
-          <View style={st.cardArea}>{table}</View>
+          {table}
           {side}
         </View>
       )}
-      {toast}
       <Confirm visible={shuffleOpen} title="Shuffle these cards?" body="The cards you're playing are mixed again and you start from the first one. Seen cards and favorites stay as they are."
         yes="Shuffle" onYes={() => { update(game.reshuffle); say('Shuffled'); }} onClose={() => setShuffleOpen(false)} />
     </View>
@@ -95,15 +84,8 @@ const st = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
   column: { flex: 1, paddingHorizontal: 16, paddingTop: 4, width: '100%', maxWidth: 560, alignSelf: 'center' },
   cardArea: { flex: 1, minHeight: 120 },
-  wide: { flex: 1, flexDirection: 'row', gap: 28, paddingHorizontal: 28, paddingTop: 8, maxWidth: 1280, width: '100%', alignSelf: 'center' },
+  wide: { flex: 1, flexDirection: 'row', gap: 28, paddingHorizontal: 16, paddingTop: 8, maxWidth: 1280, width: '100%', alignSelf: 'center' },
   wideCard: { flex: 1.25, maxWidth: 720 },
   wideSide: { flex: 1, maxWidth: 400, justifyContent: 'center' },
-  iconBtn: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: 48, minHeight: 48, paddingHorizontal: 0, justifyContent: 'center', gap: 0 },
-  opt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 4 },
-  optText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.soft, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 10 },
-  deckBtn: { flex: 1, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: radius.control,
-    backgroundColor: colors.bg3, borderWidth: 1, borderColor: colors.line },
-  deckText: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 15, color: colors.text },
-  chev: { width: 8, height: 8, borderRightWidth: 1.5, borderBottomWidth: 1.5, borderColor: colors.muted, transform: [{ rotate: '-45deg' }], marginRight: 4 },
 });

@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DeckInfo } from '../game';
-import { colors, fonts, radius } from '../theme';
+import { colors, fonts } from '../theme';
 import { DeckArt, deckColors } from './DeckArt';
+import { num, plural } from '../format';
 import { Icon } from './Icon';
 import { Button, tap, Toggle } from './ui';
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
 
 type Props = {
@@ -25,6 +25,7 @@ type Props = {
 // Pick one deck, a few, or all of them. Each set of decks remembers its place.
 export function DeckPicker({ visible, list, decks, fresh: freshNow, started, saved: places, onStart, onClose }: Props) {
   const { height } = useWindowDimensions();
+  const short = height < 720;
   const [grid, setGrid] = useState({ w: 0, h: 0 });
   const insets = useSafeAreaInsets();
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -44,18 +45,18 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   const picked = list.filter(d => sel.has(d.name));
   const key = picked.length === list.length ? 'All' : picked.map(d => d.name).join('|');
   const saved = places[key];
-  const unused = sum(picked, left), seen = sum(list, d => d.used);
-  const short = height < 720;
-  // Four decks show at a time as upright cards, as big as the space between the heading and the
-  // Start button allows: 2 by 2 on tall spaces, 4 in a row on wide ones. Cards are playing-card shaped
-  // (5:7) when height limits them and grow taller (up to 4:7) when width does. A sliver of the next
-  // row peeks out to show the rest scroll.
+  const unused = sum(picked, left);
+  // Decks show as upright cards, as big as the space between the heading and the Start button
+  // allows: 2 by 2 on phones, 3 by 2 on tablets, 4 in a row on wide screens. They never shrink to
+  // fit more in; the rest scroll, and a sliver of the next row peeks out to show it. On a phone a
+  // card fills its half of the width whenever its height allows, and grows taller (up to 4:7)
+  // when there is height to spare.
   const aspect = grid.h ? grid.w / grid.h : 0;
-  const layout = aspect >= 10 / 7 ? { cols: 4, rows: 1, gap: 16 } : { cols: 2, rows: 2, gap: 12 };
+  const layout = aspect >= 10 / 7 ? { cols: 4, rows: 1, gap: 16, wide: 5 / 7 } : grid.w >= 572 ? { cols: 3, rows: 2, gap: 14, wide: 5 / 7 } : { cols: 2, rows: 2, gap: 12, wide: 0.88 };
   const COLS = layout.cols;
   const peek = Math.max(14, Math.min(30, grid.h * 0.05));
   const rowH = Math.max(130, (grid.h - peek - layout.rows * layout.gap) / layout.rows);
-  const cardW = Math.floor(Math.min(rowH * 5 / 7, (grid.w - layout.gap * (COLS - 1)) / COLS));
+  const cardW = Math.floor(Math.min(rowH * layout.wide, (grid.w - layout.gap * (COLS - 1)) / COLS));
   const cardH = Math.floor(Math.min(rowH, cardW * 7 / 4));
   // When width limits the cards, the box shrinks to four cards and a peek, centred, instead of showing half the next row.
   const boxH = Math.min(grid.h + 10, layout.rows * (cardH + layout.gap) + peek + 10);
@@ -74,7 +75,7 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
 
   const go = !picked.length ? 'Pick at least one deck'
     : fresh ? (unused ? 'Start' : "You've seen every card here")
-    : saved && saved.index > 0 ? `Continue · card ${saved.index + 1} of ${saved.total}` : 'Start';
+    : saved && saved.index > 0 ? `Continue · card ${num(saved.index + 1)} of ${num(saved.total)}` : 'Start';
 
   const tile = (name: string | null, label: string, cards: number, fresh_: number, on: boolean) => {
     const spent = fresh && !fresh_;
@@ -88,19 +89,24 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
     const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
     const chk = Math.max(18, Math.min(26, m * 0.12));
     const inset = Math.max(8, Math.min(14, m * 0.06));
+    const count = !fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${num(fresh_)} new` : 'All seen';
+    const lineH = nameSize * 1.15;
+    // A picked deck is bright with a strong ring in its colour; an unpicked one fades back.
+    // The art sits on the same line in every card and the name always has room for two lines,
+    // so the counts line up across a row even when one name wraps.
     return (
       <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-        accessibilityLabel={`${label}, ${!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'all seen'}`}
-        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingVertical: low ? 8 : cardH * 0.08, paddingHorizontal: low ? 6 : cardW * 0.08 },
-          { backgroundColor: colors.card, borderColor: c2 + 'b3' }, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ marginBottom: Math.min(22, cardH * (low ? 0.04 : 0.06)), opacity: spent ? 0.5 : 1 }}>
+        accessibilityLabel={`${label}, ${count}, ${on ? 'picked' : 'not picked'}`}
+        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingHorizontal: low ? 6 : cardW * 0.07 },
+          { backgroundColor: colors.card, borderColor: on ? c2 : c2 + '40' }, !on && st.off, pressed && { transform: [{ scale: 0.97 }] }]}>
+        <View style={{ height: art, marginBottom: Math.min(18, cardH * (low ? 0.03 : 0.05)), opacity: spent ? 0.5 : 1 }}>
           <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
         </View>
-        <Text style={[st.nm, { fontSize: nameSize, lineHeight: nameSize * 1.15 }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
+        <View style={{ height: lineH * 2, justifyContent: 'center' }}>
+          <Text style={[st.nm, { fontSize: nameSize, lineHeight: lineH }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
+        </View>
         {cardH < 110 ? null : (
-          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(12, cardH * (low ? 0.02 : 0.04)) }]} numberOfLines={1}>
-            {!fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${fresh_} new` : 'All seen'}
-          </Text>
+          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(10, cardH * (low ? 0.02 : 0.03)) }]} numberOfLines={1}>{count}</Text>
         )}
         <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: inset, right: inset },
           on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
@@ -110,16 +116,15 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
     );
   };
 
+  const column = cardW * COLS + layout.gap * (COLS - 1) + 28; // the cards plus their side padding
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
       onRequestClose={onClose} statusBarTranslucent>
       <View style={[st.sheet, { paddingTop: Platform.OS === 'ios' ? 12 : insets.top + 8 }]}>
         <View style={st.grabber} />
-        <View style={[st.head, short && { paddingBottom: 8 }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[st.title, short && { fontSize: 24 }]} accessibilityRole="header">Choose your decks</Text>
-            {short ? null : <Text style={st.sub}>Pick one, a few, or all of them. Your place in each is saved.</Text>}
-          </View>
+        <View style={[st.head, grid.w ? { maxWidth: Math.max(column, 320) } : null]}>
+          <Text style={st.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} accessibilityRole="header">Choose your decks</Text>
           <Pressable onPress={() => { tap(); onClose(); }} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel={started ? 'Back to the card' : 'Close'}>
             <Icon name="close" size={18} color={colors.muted} />
           </Pressable>
@@ -142,12 +147,9 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
             </View>
           ) : null}
         </View>
-        <View style={[st.foot, short && { gap: 10, paddingTop: 10 }, { paddingBottom: Math.max(insets.bottom, short ? 10 : 16) }]}>
-          <View style={[st.opt, short && { paddingVertical: 10 }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={st.optT}>Only cards I haven&apos;t seen</Text>
-              <Text style={st.optS}>{seen ? `You've seen ${seen} of ${sum(list, d => d.count)} so far` : 'Skip cards you have already seen'}</Text>
-            </View>
+        <View style={[st.foot, { paddingBottom: Math.max(insets.bottom, short ? 10 : 16) }]}>
+          <View style={st.opt}>
+            <Text style={st.optT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Only cards I haven&apos;t seen</Text>
             <Toggle on={fresh} onChange={setFreshOn} label="Only cards I haven't seen" />
           </View>
           <Button title={go} onPress={start} disabled={!picked.length || (fresh && !unused)} style={short && { minHeight: 48 }} />
@@ -160,22 +162,21 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
 const st = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: colors.bg },
   grabber: { alignSelf: 'center', width: 38, height: 5, borderRadius: 3, backgroundColor: colors.line2, marginBottom: 14, display: Platform.OS === 'ios' ? 'flex' : 'none' },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 20, paddingBottom: 14, width: '100%', maxWidth: 980, alignSelf: 'center' },
-  title: { fontFamily: fonts.serifBold, fontSize: 28, color: colors.text, letterSpacing: -0.3 },
-  sub: { marginTop: 4, fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, color: colors.muted },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, width: '100%', maxWidth: 980, alignSelf: 'center' },
+  title: { flex: 1, fontFamily: fonts.serifBold, fontSize: 23, color: colors.text, letterSpacing: -0.3 },
   x: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
   grid: { flex: 1, minHeight: 0, width: '100%', maxWidth: 1060, alignSelf: 'center', justifyContent: 'center', overflow: 'hidden' },
   scroll: { flex: 1 },
   scrollIn: { alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   fade: { position: 'absolute', left: 0, right: 0, height: 36 },
-  card: { borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+  off: { opacity: 0.5, elevation: 0, shadowOpacity: 0 },
+  card: { borderRadius: 16, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   chk: { position: 'absolute', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   nm: { fontFamily: fonts.serif, color: colors.ink, textAlign: 'center' },
   ct: { marginTop: 4, fontFamily: fonts.sansBold, letterSpacing: 1.4, textTransform: 'uppercase', fontVariant: ['tabular-nums'] },
-  foot: { paddingHorizontal: 20, paddingTop: 12, gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, width: '100%', maxWidth: 620, alignSelf: 'center' },
-  opt: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.bg2, borderRadius: radius.control, borderWidth: 1, borderColor: colors.line, padding: 14 },
-  optT: { fontFamily: fonts.sansBold, fontSize: 15, color: colors.text },
-  optS: { marginTop: 2, fontFamily: fonts.sans, fontSize: 13, color: colors.muted },
+  foot: { paddingHorizontal: 20, paddingTop: 8, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  opt: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, minHeight: 32 },
+  optT: { flex: 1, fontFamily: fonts.sansMedium, fontSize: 14.5, color: colors.soft },
 });

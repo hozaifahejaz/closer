@@ -138,6 +138,23 @@ test('favorites can be added, removed and survive a retired question', () => {
   assert.deepEqual(later.restore(JSON.parse(JSON.stringify(s))).favorites, [{ k: 'B:1', q: 'b1' }]);
 });
 
+test('the card of the day opens once a day and removing a favorite can be undone', () => {
+  let s = game.openDaily(game.newState(), '2026-11-14');
+  assert.equal(s.dailyDay, '2026-11-14');
+  assert.equal(s.seen[game.daily('2026-11-14')], 1);
+  assert.equal(game.openDaily(s, '2026-11-14'), s);
+  assert.equal(game.restore(JSON.parse(JSON.stringify(s))).dailyDay, '2026-11-14');
+  assert.equal(game.restore({ dailyDay: 'yesterday' }).dailyDay, '');
+  for (const k of game.start(s, ['Dilemmas'], false).order.slice(0, 3)) s = game.toggleFavorite(s, k);
+  const before = s.favorites, gone = s.favorites[1];
+  s = game.toggleFavorite(s, gone.k);
+  assert.equal(s.favorites.length, 2);
+  s = game.restoreFavorite(s, gone, 1);
+  assert.deepEqual(s.favorites, before);
+  assert.equal(game.restoreFavorite(s, gone, 0), s);
+  check(game, s);
+});
+
 test('reset forgets progress but keeps favorites and settings', () => {
   const g = small();
   let s = g.setHaptics(g.setTapToReveal(g.start(g.newState(), ['A'], false), true), false);
@@ -237,7 +254,7 @@ test('thousands of random taps never break a state', () => {
       else if (r < 0.85) s = g.toggleFavorite(s, g.current(s) ?? pick(g.names) + ':0');
       else if (r < 0.88) s = g.reshuffle(s);
       else if (r < 0.9) s = g.resetProgress(s);
-      else if (r < 0.95) s = g.see(s, g.daily(`2026-01-${i % 28}`));
+      else if (r < 0.95) s = g.openDaily(s, `2026-01-${String(1 + i % 28).padStart(2, '0')}`);
       else { const loaded = g.restore(JSON.parse(JSON.stringify(s))); assert.deepEqual(loaded, s); s = loaded; }
       if (i % 50 === 0) check(g, s);
     }

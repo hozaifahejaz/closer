@@ -1,46 +1,84 @@
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { num } from '../format';
+import type { CardView } from '../game';
 import { buttonGradient, cardGradient, colors, fonts, radius } from '../theme';
 import { Icon } from '../components/Icon';
-import { Button, HeartBadge, tap } from '../components/ui';
+import { bump, Button, HeartBadge, tap } from '../components/ui';
 
-const num = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+// The card of the day lies face down until it is tapped, then turns over where it is and stays
+// open for the rest of the day. Tapping the open card shows it full screen (to save or share it).
+function DailyCard({ card, open, short, onOpen, onView, style }: { card: CardView; open: boolean; short: boolean; onOpen: () => void; onView: () => void; style?: StyleProp<ViewStyle> }) {
+  const [turn] = useState(() => new Animated.Value(open ? 1 : 0));
+  const was = useRef(open);
+  useEffect(() => {
+    if (was.current === open) return;
+    was.current = open;
+    Animated.timing(turn, { toValue: open ? 1 : 0, duration: 600, easing: Easing.bezier(0.2, 0.7, 0.2, 1), useNativeDriver: true }).start();
+    if (open) bump();
+  }, [open, turn]);
+  const back = {
+    opacity: turn.interpolate({ inputRange: [0, 0.5, 0.501, 1], outputRange: [1, 1, 0, 0] }),
+    transform: [{ perspective: 2200 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }],
+  };
+  const front = {
+    opacity: turn.interpolate({ inputRange: [0, 0.499, 0.5, 1], outputRange: [0, 0, 1, 1] }),
+    transform: [{ perspective: 2200 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] }) }],
+  };
+  return (
+    <Pressable onPress={() => { tap(); if (open) onView(); else onOpen(); }} accessibilityRole="button"
+      accessibilityLabel={open ? `Card of the day. ${card.text}` : 'Card of the day. Tap to turn it over'}
+      style={({ pressed }) => [st.daily, style, pressed && { transform: [{ scale: 0.985 }] }]}>
+      <Animated.View style={[st.dailyFace, back]} pointerEvents="none">
+        <View style={st.dailyClip}>
+          <LinearGradient colors={cardGradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']} start={{ x: 0.3, y: 0 }} end={{ x: 0.5, y: 0.6 }} style={StyleSheet.absoluteFill} />
+          <View style={st.dailyInset} />
+          <View style={st.dailyHead}><Icon name="spark" size={13} color="#fff" fill strokeWidth={0} /><Text style={st.dailyLabel}>Card of the day</Text></View>
+          <View><Icon name="heart" size={short ? 34 : 46} color="#fff" strokeWidth={1.4} /></View>
+          <Text style={st.dailyOpen}>Tap to open</Text>
+        </View>
+      </Animated.View>
+      <Animated.View style={[st.dailyFace, front]} pointerEvents="none">
+        <View style={[st.dailyClip, st.dailyFront, short && { padding: 16 }]}>
+          <View style={st.dailyHead}><Icon name="spark" size={13} color={colors.rose} fill strokeWidth={0} /><Text style={[st.dailyLabel, { color: colors.rose }]}>Card of the day</Text></View>
+          <View style={st.dailyMid}>
+            <Text style={[st.dailyQ, short && { fontSize: 19, lineHeight: 25 }]} numberOfLines={6} adjustsFontSizeToFit minimumFontScale={0.7}>{card.text}</Text>
+          </View>
+          <Text style={st.dailyCat} numberOfLines={1}>{card.category}</Text>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 type Props = {
+  daily: CardView;
+  dailyOpen: boolean; // today's card has already been turned over
   seen: number;
   total: number;
   favorites: number;
   place: { index: number; total: number; label: string } | null; // where the cards were left, if any are dealt
   onContinue: () => void;
   onDecks: () => void;
+  onOpenDaily: () => void;
   onDaily: () => void;
   onFavorites: () => void;
   onMenu: () => void;
 };
 
 // The first screen: today's card, how far you've got, and a way back into the cards.
-export function Home({ seen, total, favorites, place, onContinue, onDecks, onDaily, onFavorites, onMenu }: Props) {
+export function Home({ daily, dailyOpen, onOpenDaily, seen, total, favorites, place, onContinue, onDecks, onDaily, onFavorites, onMenu }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const short = height < 700;
   const wide = width >= 760 && width > height * 1.05;
   const share = total ? seen / total : 0;
 
-  // The card of the day stays face down here, like a card on the table: tapping it opens the question.
-  const today = (
-    <Pressable onPress={() => { tap(); onDaily(); }} accessibilityRole="button" accessibilityLabel="Card of the day. Open to view"
-      style={({ pressed }) => [st.daily, wide && { flexGrow: 0, minHeight: 300 }, pressed && { transform: [{ scale: 0.985 }] }]}>
-      <View style={st.dailyClip}>
-        <LinearGradient colors={cardGradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 1 }} style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']} start={{ x: 0.3, y: 0 }} end={{ x: 0.5, y: 0.6 }} style={StyleSheet.absoluteFill} />
-        <View style={st.dailyInset} />
-        <View style={st.dailyHead}><Icon name="spark" size={13} color="#fff" fill strokeWidth={0} /><Text style={st.dailyLabel}>Card of the day</Text></View>
-        <View><Icon name="heart" size={short ? 34 : 46} color="#fff" strokeWidth={1.4} /></View>
-        <Text style={st.dailyOpen}>Open to view</Text>
-      </View>
-    </Pressable>
-  );
+  const today = <DailyCard card={daily} open={dailyOpen} short={short} onOpen={onOpenDaily} onView={onDaily}
+    style={wide ? { flexGrow: 0, height: Math.min(360, height - 150) } : { maxHeight: Math.min(560, Math.max(380, height * 0.46)) }} />;
 
   const stats = (
     <View style={st.stats}>
@@ -67,7 +105,8 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onDai
 
   const actions = (
     <View style={{ gap: 10 }}>
-      {place ? <Button title={`Continue · card ${place.index + 1} of ${place.total}`} accessibilityLabel={`Continue ${place.label}, card ${place.index + 1} of ${place.total}`} iconRight="right" onPress={onContinue} /> : null}
+      {place ? <Button title={place.index ? `Continue ${place.label} · ${num(place.index + 1)} of ${num(place.total)}` : `Start ${place.label}`}
+        accessibilityLabel={place.index ? `Continue ${place.label}, card ${place.index + 1} of ${place.total}` : `Start ${place.label}`} iconRight="right" onPress={onContinue} /> : null}
       <Button kind={place ? 'ghost' : 'primary'} title="Choose decks" icon="cards" onPress={onDecks} />
     </View>
   );
@@ -75,7 +114,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onDai
   return (
     <ScrollView style={st.fill} bounces={false} overScrollMode="never"
       contentContainerStyle={[st.page, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) + 4, paddingLeft: insets.left + 20, paddingRight: insets.right + 20 }]}>
-      <View style={st.header}>
+      <View style={[st.header, !wide && { maxWidth: 560 }]}>
         <View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Closer</Text></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { tap(); onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" color={colors.text} /></Pressable>
       </View>
@@ -96,7 +135,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onDai
 const st = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.bg },
   page: { flexGrow: 1, width: '100%', maxWidth: 1100, alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6, width: '100%', alignSelf: 'center' },
   logo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brand: { fontFamily: fonts.serifBold, fontSize: 24, color: colors.text },
   menuButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -10 },
@@ -104,13 +143,18 @@ const st = StyleSheet.create({
   wide: { flexGrow: 1, flexDirection: 'row', gap: 36, paddingVertical: 16 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 37, letterSpacing: -0.6, color: colors.text },
   sub: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 22, color: colors.muted },
-  daily: { flexGrow: 1, minHeight: 130, maxHeight: 380, borderRadius: radius.card, backgroundColor: colors.bg2,
+  daily: { flexGrow: 1, minHeight: 150 },
+  dailyFace: { ...StyleSheet.absoluteFill, borderRadius: radius.card, backgroundColor: colors.bg2,
     shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
   dailyClip: { flex: 1, borderRadius: radius.card, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18 },
+  dailyFront: { backgroundColor: colors.card, justifyContent: 'space-between', padding: 22, gap: 8 },
   dailyInset: { ...StyleSheet.absoluteFill, margin: 10, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
   dailyHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dailyLabel: { fontFamily: fonts.sansBold, fontSize: 12, letterSpacing: 1.8, textTransform: 'uppercase', color: '#fff' },
   dailyOpen: { fontFamily: fonts.sansMedium, fontSize: 13, letterSpacing: 0.3, color: '#ffe6e6' },
+  dailyMid: { flex: 1, minHeight: 0, justifyContent: 'center', alignSelf: 'stretch' },
+  dailyQ: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 29, color: colors.ink, textAlign: 'center' },
+  dailyCat: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.ink2 },
   stats: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, paddingVertical: 14, paddingHorizontal: 16, borderRadius: radius.box, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line },
   statNum: { fontFamily: fonts.sansBold, fontSize: 22, color: colors.text, letterSpacing: -0.4, fontVariant: ['tabular-nums'] },

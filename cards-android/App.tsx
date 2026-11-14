@@ -12,8 +12,9 @@ import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import app from './app.json';
 import { game } from './src/cards';
+import { deckName } from './src/format';
 import type { CardView, State } from './src/game';
-import { flush, load, save } from './src/storage';
+import { flush, load, loadNav, save, saveNav } from './src/storage';
 import { colors } from './src/theme';
 import { DeckPicker } from './src/components/DeckPicker';
 import { Confirm, Menu } from './src/components/Sheet';
@@ -33,19 +34,32 @@ type Screen =
   | { name: 'viewer'; title: string; cards: CardView[]; startAt: number; from: 'home' | 'favorites' };
 
 const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const deckLabel = (decks: string[]) => !decks.length ? 'all decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+
+// Checks a screen read back from storage before trusting it.
+function toScreen(raw: any): Screen {
+  const isCard = (c: any) => c && typeof c.id === 'string' && typeof c.category === 'string' && typeof c.text === 'string';
+  if (raw?.name === 'play' || raw?.name === 'favorites') return { name: raw.name };
+  if (raw?.name === 'info' && (raw.page === 'privacy' || raw.page === 'about')) return { name: 'info', page: raw.page };
+  if (raw?.name === 'viewer' && typeof raw.title === 'string' && Array.isArray(raw.cards) && raw.cards.length && raw.cards.every(isCard)) {
+    return { name: 'viewer', title: raw.title, cards: raw.cards, startAt: Number.isInteger(raw.startAt) ? raw.startAt : 0, from: raw.from === 'favorites' ? 'favorites' : 'home' };
+  }
+  return { name: 'home' };
+}
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({ Fraunces_500Medium, Fraunces_600SemiBold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
   const [state, setState] = useState<State | null>(null);
-  const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const [screen, setScreenNow] = useState<Screen>({ name: 'home' });
   const [picker, setPicker] = useState(false);
   const [menu, setMenu] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [day, setDay] = useState(localDay);
 
   // What was saved on this phone, or a clean start. A damaged save can't stop the app opening.
-  useEffect(() => { load().then(raw => setState(game.restore(raw)), () => setState(game.newState())); }, []);
+  useEffect(() => {
+    Promise.all([load(), loadNav()]).then(([raw, nav]) => { setScreenNow(toScreen(nav)); setState(game.restore(raw)); }, () => setState(game.newState()));
+  }, []);
+  const setScreen = useCallback((next: Screen) => { setScreenNow(next); saveNav(next); }, []);
   useEffect(() => { if (state) { save(state); setHapticsOn(state.haptics); } }, [state]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', now => { if (now === 'active') setDay(localDay()); else flush(); });
@@ -56,8 +70,8 @@ export default function App() {
   useEffect(() => { if (ready) SplashScreen.hideAsync().catch(() => {}); }, [ready]);
 
   const update = useCallback((change: (s: State) => State) => setState(s => s && change(s)), []);
-  const home = useCallback(() => setScreen({ name: 'home' }), []);
-  const back = useCallback(() => setScreen(s => s.name === 'viewer' && s.from === 'favorites' ? { name: 'favorites' } : { name: 'home' }), []);
+  const home = useCallback(() => setScreen({ name: 'home' }), [setScreen]);
+  const back = useCallback(() => setScreen(screen.name === 'viewer' && screen.from === 'favorites' ? { name: 'favorites' } : { name: 'home' }), [screen, setScreen]);
 
   // Android's back button or gesture: one screen back, and out of the app from the first screen.
   const atHome = screen.name === 'home';
@@ -82,17 +96,21 @@ export default function App() {
       case 'favorites':
         return <Favorites cards={favorites} onBack={home} onDecks={() => setPicker(true)}
           onOpen={startAt => setScreen({ name: 'viewer', title: 'Favorites', cards: favorites, startAt, from: 'favorites' })}
-          onRemove={id => update(s => game.toggleFavorite(s, id))} />;
+          onRemove={id => {
+            const at = state.favorites.findIndex(f => f.k === id), fav = state.favorites[at];
+            update(s => game.toggleFavorite(s, id));
+            return () => { if (fav) update(s => game.restoreFavorite(s, fav, at)); };
+          }} />;
       case 'viewer':
         return <Viewer title={screen.title} cards={screen.cards} startAt={screen.startAt} state={state} update={update} onBack={back} />;
       case 'info':
         return <Info page={screen.page} version={app.expo.version} onBack={home} />;
     }
-    return <Home seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
-      place={dealt ? { index: state.index, total: state.order.length, label: deckLabel(state.decks) } : null}
+    return <Home daily={daily} dailyOpen={state.dailyDay === day} onOpenDaily={() => update(s => game.openDaily(s, day))} seen={list.reduce((n, d) => n + d.used, 0)} total={game.total} favorites={state.favorites.length}
+      place={dealt ? { index: state.index, total: state.order.length, label: deckName(state.decks) } : null}
       onContinue={() => setScreen({ name: 'play' })}
       onDecks={() => setPicker(true)}
-      onDaily={() => { update(s => game.see(s, daily.id)); setScreen({ name: 'viewer', title: 'Card of the day', cards: [daily], startAt: 0, from: 'home' }); }}
+      onDaily={() => setScreen({ name: 'viewer', title: 'Card of the day', cards: [daily], startAt: 0, from: 'home' })}
       onFavorites={() => setScreen({ name: 'favorites' })}
       onMenu={() => setMenu(true)} />;
   })();
@@ -104,15 +122,15 @@ export default function App() {
       <DeckPicker visible={picker} list={list} decks={state.decks} fresh={state.fresh} started={dealt && screen.name === 'play'} saved={game.savedPlaces(state)}
         onClose={() => setPicker(false)}
         onStart={(decks, fresh) => { update(s => game.start(s, decks, fresh)); setPicker(false); setScreen({ name: 'play' }); }} />
-      <Menu visible={menu} onClose={() => setMenu(false)} items={[
-        { title: 'Favorites', onPress: () => setScreen({ name: 'favorites' }) },
-        { title: 'Vibration', on: state.haptics, onChange: on => update(s => game.setHaptics(s, on)) },
-        { title: 'Tap to reveal each card', on: state.tapToReveal, onChange: on => update(s => game.setTapToReveal(s, on)) },
-        { title: 'Reset my progress', onPress: () => setResetOpen(true) },
-        { title: 'Privacy policy', onPress: () => setScreen({ name: 'info', page: 'privacy' }) },
-        { title: 'About', onPress: () => setScreen({ name: 'info', page: 'about' }) },
+      <Menu visible={menu} onClose={() => setMenu(false)} groups={[
+        [{ title: 'Favorites', onPress: () => setScreen({ name: 'favorites' }) }],
+        [{ title: 'Tap to reveal each card', on: state.tapToReveal, onChange: (on: boolean) => update(s => game.setTapToReveal(s, on)) },
+          { title: 'Vibration', on: state.haptics, onChange: (on: boolean) => update(s => game.setHaptics(s, on)) }],
+        [{ title: 'Reset my progress', danger: true, onPress: () => setResetOpen(true) }],
+        [{ title: 'Privacy policy', onPress: () => setScreen({ name: 'info', page: 'privacy' }) },
+          { title: 'About', onPress: () => setScreen({ name: 'info', page: 'about' }) }],
       ]} />
-      <Confirm visible={resetOpen} title="Reset my progress?" yes="Reset" onClose={() => setResetOpen(false)}
+      <Confirm visible={resetOpen} danger title="Reset my progress?" yes="Reset" onClose={() => setResetOpen(false)}
         body="This forgets which cards you've seen and your place in every deck. Your favorites and settings are kept. It can't be undone."
         onYes={() => update(game.resetProgress)} />
     </SafeAreaProvider>
