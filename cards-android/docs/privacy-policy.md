@@ -12,6 +12,8 @@ _Last updated November 14, 2026. Published by Huzaifa, the developer of Stay Up 
 
 **Sharing a question.** If you tap Share, the text of that question is handed to the app you choose (for example your messaging app). That app, not Stay Up With Me, sends it, and its own privacy policy applies.
 
+**Payments.** Stay Up With Me is a paid app. You buy it once on Google Play, and Google handles the payment. We never see your card or payment details, and the app has no purchases, subscriptions or ads inside it. Refunds follow Google Play's refund policy.
+
 **Deleting your data.** Use "Reset my progress" in the menu to clear seen cards and saved places, and remove favorites from the Favorites screen. Uninstalling the app, or clearing its storage in Android settings, removes everything. If your phone backs up app data to your Google account, Android handles that backup under your Google settings.
 
 **Age.** Stay Up With Me is meant for adults aged 18 and over. Some decks include questions about intimacy and relationships.
