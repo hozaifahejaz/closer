@@ -1,6 +1,6 @@
 # Moth & Lamp: Privacy Policy
 
-_Last updated November 14, 2026. This is the same text the app shows under Menu > Privacy policy (`src/screens/Info.tsx`). Keep the two in step._
+_Last updated November 14, 2026. Published by Huzaifa, the developer of Moth & Lamp._
 
 **The short version.** Moth & Lamp works entirely on your phone. It has no accounts, no ads and no analytics, and it never connects to the internet. We do not collect, store or share any information about you.
 
