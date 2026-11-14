@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { Button, tap, Toggle } from './ui';
@@ -12,10 +12,15 @@ export function Menu({ visible, groups, onClose }: { visible: boolean; groups: M
   const st = useScaled(base);
   const k = useK();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const top = insets.top + 64 * k;
+  // On a phone turned sideways the menu is taller than the screen, so it scrolls instead of running off the bottom.
+  const maxHeight = height - top - insets.bottom - 12 * k;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable style={st.menuOverlay} accessibilityRole="button" accessibilityLabel="Close menu" onPress={onClose}>
-        <Pressable accessibilityViewIsModal style={[st.menu, { marginTop: insets.top + 64 * k, marginRight: insets.right + 16 * k }]} onPress={() => {}}>
+        <Pressable accessibilityViewIsModal style={[st.menu, { marginTop: top, marginRight: insets.right + 16 * k, maxHeight }]} onPress={() => {}}>
+          <ScrollView bounces={false} contentContainerStyle={st.menuScroll}>
           {groups.map((items, g) => (
             <View key={g} style={g ? st.group : null}>
           {items.map(item => 'on' in item ? (
@@ -31,6 +36,7 @@ export function Menu({ visible, groups, onClose }: { visible: boolean; groups: M
           ))}
             </View>
           ))}
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -61,7 +67,8 @@ export function Confirm({ visible, title, body, yes, danger, onYes, onClose, chi
 
 const base = sheet({
   menuOverlay: { flex: 1, backgroundColor: '#0008', alignItems: 'flex-end' },
-  menu: { paddingVertical: 8, minWidth: 250, maxWidth: 320, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, borderRadius: 16, overflow: 'hidden' },
+  menuScroll: { paddingVertical: 8 },
+  menu: { minWidth: 250, maxWidth: 320, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, borderRadius: 16, overflow: 'hidden' },
   group: { borderTopWidth: 1, borderTopColor: colors.line, marginTop: 6, paddingTop: 6 },
   menuRow: { minHeight: 50, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   menuText: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.text, flexShrink: 1 },

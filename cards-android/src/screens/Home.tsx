@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,9 +31,19 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
   const share = total ? seen / total : 0;
 
   // A fan of every deck's colour, the same art as the "All decks" tile, as the screen's picture.
-  // The fan is about 1.7 times wider than tall, so its box is cut down to the drawing's height.
-  const artSize = wide ? Math.min(height * 0.75, width * 0.4) : Math.min(width * 0.78, height * (short ? 0.3 : 0.4));
-  const hero = <View style={[st.hero, { height: artSize * 0.6 }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><DeckArt deck="All" size={artSize} /></View>;
+  // It takes whatever room the text and buttons leave, so tall phones and tablets have no empty
+  // band: the fan grows until it meets the sides or the free height. Its drawing is about
+  // 1.7 times wider than tall, so the box is cut down to that height.
+  const [room, setRoom] = useState<{ w: number; h: number } | null>(null);
+  const guess = wide ? Math.min(height * 0.75, width * 0.4) : Math.min(width * 0.78, height * (short ? 0.3 : 0.4));
+  const artSize = room ? Math.max(80 * k, Math.min(room.w * (wide ? 0.95 : 1), room.h / 0.6)) : guess;
+  const hero = (
+    <View style={[st.hero, wide ? { flex: 1 } : { flexGrow: 1, minHeight: guess * 0.6 }]}
+      onLayout={e => { const { width: w, height: h } = e.nativeEvent.layout; setRoom(r => r && Math.abs(r.w - w) < 1 && Math.abs(r.h - h) < 1 ? r : { w, h }); }}
+      accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={st.heroArt}><DeckArt deck="All" size={artSize} /></View>
+    </View>
+  );
 
   const stats = (
     <View style={st.stats}>
@@ -74,7 +85,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
       </View>
       {wide ? (
         <View style={st.wide}>
-          <View style={{ flex: 1, justifyContent: 'center' }}>{hero}</View>
+          {hero}
           <View style={{ flex: 1, justifyContent: 'center', gap: 18 * k }}>{welcome}{actions}{stats}</View>
         </View>
       ) : (
@@ -96,6 +107,8 @@ const base = sheet({
   menuButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -10 },
   body: { flexGrow: 1, justifyContent: 'center', paddingVertical: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
   hero: { alignItems: 'center', justifyContent: 'center' },
+  // Placed over the hero box, so the drawing's size never feeds back into the box's size.
+  heroArt: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
   wide: { flexGrow: 1, flexDirection: 'row', gap: 36, paddingVertical: 16 },
   title: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 37, letterSpacing: -0.6, color: colors.text },
   sub: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 22, color: colors.muted },
