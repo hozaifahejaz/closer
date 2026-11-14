@@ -80,7 +80,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
     <ScrollView style={st.fill} bounces={false} overScrollMode="never"
       contentContainerStyle={[st.page, { paddingTop: insets.top + 12 * k, paddingBottom: Math.max(insets.bottom, 16 * k) + 4, paddingLeft: insets.left + 20 * k, paddingRight: insets.right + 20 * k }]}>
       <View style={[st.header, !wide && { maxWidth: 560 * k }]}>
-        <View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Closer</Text></View>
+        <View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Moth &amp; Lamp</Text></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { tap(); onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" size={20 * k} color={colors.text} /></Pressable>
       </View>
       {wide ? (

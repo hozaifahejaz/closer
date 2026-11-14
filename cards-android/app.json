@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Closer Cards",
+    "name": "Moth & Lamp",
     "slug": "closer-cards",
     "version": "1.0.0",
-    "description": "Deep and playful question cards for good conversations. Works fully offline, with no account.",
+    "description": "Deep and playful question cards for couples. Works fully offline, with no account.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#1d1420",
     "android": {
-      "package": "com.hozaifahejaz.closercards",
+      "package": "com.hozaifahejaz.mothandlamp",
       "adaptiveIcon": {
         "backgroundColor": "#1d1420",
         "foregroundImage": "./assets/android-icon-foreground.png",

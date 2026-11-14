@@ -14,10 +14,10 @@ import app from './app.json';
 import { game } from './src/cards';
 import { deckName } from './src/format';
 import type { CardView, State } from './src/game';
-import { flush, load, loadNav, save, saveNav } from './src/storage';
+import { flush, load, loadNav, loadWelcomed, save, saveNav, saveWelcomed } from './src/storage';
 import { colors } from './src/theme';
 import { DeckPicker } from './src/components/DeckPicker';
-import { Confirm, Menu } from './src/components/Sheet';
+import { Confirm, Menu, Notice } from './src/components/Sheet';
 import { setHapticsOn } from './src/components/ui';
 import { Favorites } from './src/screens/Favorites';
 import { Home } from './src/screens/Home';
@@ -52,6 +52,8 @@ export default function App() {
   const [picker, setPicker] = useState(false);
   const [menu, setMenu] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+  useEffect(() => { loadWelcomed().then(seen => setWelcome(!seen)); }, []);
 
   // What was saved on this phone, or a clean start. A damaged save can't stop the app opening.
   useEffect(() => {
@@ -129,6 +131,8 @@ export default function App() {
       <Confirm visible={resetOpen} danger title="Reset my progress?" yes="Reset" onClose={() => setResetOpen(false)}
         body="This forgets which cards you've seen and your place in every deck. Your favorites and settings are kept. It can't be undone."
         onYes={() => update(game.resetProgress)} />
+      <Notice visible={welcome} title="For adults" ok="I'm 18 or older" onOk={() => { saveWelcomed(); setWelcome(false); }}
+        body="Moth & Lamp is for people aged 18 and over. Some decks, such as Desire & Intimacy, ask about intimacy. You choose which decks to play." />
     </SafeAreaProvider>
   );
 }

@@ -1,4 +1,6 @@
-# Closer Cards (offline, single-player, Android)
+# Moth & Lamp (offline question cards, Android)
+
+Formerly "Closer Cards". The folder, Expo slug (`closer-cards`) and npm name keep the old name; the app name, package and everything a user sees say Moth & Lamp.
 
 A separate app from the two-player Closer app in `../mobile`. One person, one phone, no internet: no accounts, rooms, partner sync or written answers. Every deck and question is bundled.
 

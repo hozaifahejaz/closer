@@ -65,6 +65,22 @@ export function Confirm({ visible, title, body, yes, danger, onYes, onClose, chi
   );
 }
 
+// Something to read once, with a single button.
+export function Notice({ visible, title, body, ok, onOk }: { visible: boolean; title: string; body: string; ok: string; onOk: () => void }) {
+  const st = useScaled(base);
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onOk} statusBarTranslucent navigationBarTranslucent>
+      <View style={st.overlay}>
+        <View accessibilityViewIsModal style={st.box}>
+          <Text style={st.title} accessibilityRole="header">{title}</Text>
+          <Text style={st.body}>{body}</Text>
+          <View style={st.buttons}><Button title={ok} onPress={onOk} style={st.button} /></View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 const base = sheet({
   menuOverlay: { flex: 1, backgroundColor: '#0008', alignItems: 'flex-end' },
   menuScroll: { paddingVertical: 8 },
