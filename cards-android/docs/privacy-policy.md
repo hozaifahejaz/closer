@@ -8,7 +8,7 @@ _Last updated November 14, 2026. Published by Huzaifa, the developer of Stay Up 
 
 **What stays on your phone.** The app remembers which cards you have seen, your favorites, your place in each set of decks and your settings. This is saved only in the app's private storage on this device. It is never sent to us or to anyone else, and we cannot see it.
 
-**Permissions.** The app does not ask for internet access, location, contacts, camera, microphone, photos or notifications. It can make the phone vibrate lightly when you tap, which you can switch off in the menu.
+**Permissions.** The app does not ask for internet access, location, contacts, camera, microphone, photos, notifications or vibration. It needs no permissions at all.
 
 **Sharing a question.** If you tap Share, the text of that question is handed to the app you choose (for example your messaging app). That app, not Stay Up With Me, sends it, and its own privacy policy applies.
 
