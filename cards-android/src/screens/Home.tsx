@@ -6,7 +6,7 @@ import { num } from '../format';
 import { buttonGradient, colors, fonts, radius } from '../theme';
 import { DeckArt } from '../components/DeckArt';
 import { Icon } from '../components/Icon';
-import { Button, HeartBadge, tap } from '../components/ui';
+import { Button, HeartBadge } from '../components/ui';
 import { sheet, useK, useScaled } from '../scale';
 
 type Props = {
@@ -52,7 +52,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
         <Text style={st.statLabel}>Cards seen</Text>
         <View style={st.bar}><LinearGradient colors={buttonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.barFill, { width: `${Math.max(seen ? 3 : 0, share * 100)}%` }]} /></View>
       </View>
-      <Pressable onPress={() => { tap(); onFavorites(); }} accessibilityRole="button" accessibilityLabel={`${favorites} favorites. Open favorites`}
+      <Pressable onPress={() => { onFavorites(); }} accessibilityRole="button" accessibilityLabel={`${favorites} favorites. Open favorites`}
         style={({ pressed }) => [st.stat, pressed && { backgroundColor: colors.raise }]}>
         <Text style={st.statNum}>{num(favorites)}</Text>
         <Text style={st.statLabel}>Favorites</Text>
@@ -81,7 +81,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
       contentContainerStyle={[st.page, { paddingTop: insets.top + 12 * k, paddingBottom: Math.max(insets.bottom, 16 * k) + 4, paddingLeft: insets.left + 20 * k, paddingRight: insets.right + 20 * k }]}>
       <View style={[st.header, !wide && { maxWidth: 560 * k }]}>
         <View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Stay Up With Me</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { tap(); onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" size={20 * k} color={colors.text} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" size={20 * k} color={colors.text} /></Pressable>
       </View>
       {wide ? (
         <View style={st.wide}>

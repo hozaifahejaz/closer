@@ -5,7 +5,7 @@ Formerly "Closer Cards" (and for one build "Moth & Lamp"); renamed on 2026-11-14
 ## What is already handled in the app
 - Targets Android 16 (API 36); minimum Android 7 (API 24). Built as an AAB, signed with a key Expo keeps. Native libraries are 16 KB aligned.
 - Version code goes up by itself on every production build (`eas.json`, `autoIncrement`).
-- Only permission: `VIBRATE`. Internet, network state, storage, overlay, audio and boot permissions are blocked in `app.json`, so the app cannot go online.
+- No permissions at all. Internet, network state, storage, overlay, audio, vibrate and boot permissions are blocked in `app.json`, so the app cannot go online.
 - No accounts, ads, analytics, tracking, in-app purchases, user-to-user content or links out of the app.
 - One-time "For adults" note on first launch; privacy policy inside the app (Menu > Privacy policy); 18+ in About and in the policy.
 - Android back button/gesture goes back one screen and leaves the app from the home screen.

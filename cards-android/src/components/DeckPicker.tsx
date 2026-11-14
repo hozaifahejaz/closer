@@ -7,7 +7,7 @@ import { colors, fonts } from '../theme';
 import { DeckArt, deckColors } from './DeckArt';
 import { num, plural } from '../format';
 import { Icon } from './Icon';
-import { Button, tap, Toggle } from './ui';
+import { Button, Toggle } from './ui';
 import { sheet, useK, useScaled } from '../scale';
 
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
@@ -76,7 +76,6 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   const fan = useMemo(() => names.split('\n').map(n => deckColors(n).c1), [names]);
   // The same function every render, so tapping one deck redraws only the tiles that changed.
   const toggle = useCallback((name: string | null) => {
-    tap();
     const all = names.split('\n');
     setSel(sel => {
       if (name === null) return sel.size === all.length ? new Set() : new Set(all);
@@ -104,7 +103,7 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
         <View style={st.grabber} />
         <View style={[st.head, grid.w ? { maxWidth: Math.max(column, 320 * k) } : null]}>
           <Text style={st.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} accessibilityRole="header">Choose your decks</Text>
-          <Pressable onPress={() => { tap(); onClose(); }} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel={started ? 'Back to the card' : 'Close'}>
+          <Pressable onPress={() => { onClose(); }} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel={started ? 'Back to the card' : 'Close'}>
             <Icon name="close" size={18 * k} color={colors.muted} />
           </Pressable>
         </View>

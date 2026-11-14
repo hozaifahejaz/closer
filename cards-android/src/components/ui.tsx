@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { buttonGradient, cardGradient, colors, fonts, radius } from '../theme';
 import { Icon, IconName } from './Icon';
 import { sheet, useK, useScaled } from '../scale';
-
-// Vibration can be switched off in the menu.
-let hapticsOn = true;
-export const setHapticsOn = (on: boolean) => { hapticsOn = on; };
-export const tap = () => { if (hapticsOn) Haptics.selectionAsync().catch(() => {}); };
-export const bump = (strong = false) => {
-  if (hapticsOn) Haptics.impactAsync(strong ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-};
 
 type ButtonProps = {
   title: string;
@@ -39,7 +30,7 @@ export function Button({ title, onPress, kind = 'primary', icon, iconRight, disa
   );
   return (
     <Pressable
-      onPress={() => { tap(); onPress(); }}
+      onPress={() => { onPress(); }}
       disabled={off}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
@@ -63,7 +54,7 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
   const [x] = useState(() => new Animated.Value(on ? 1 : 0));
   useEffect(() => { Animated.spring(x, { toValue: on ? 1 : 0, useNativeDriver: true, speed: 20, bounciness: 4 }).start(); }, [on, x]);
   return (
-    <Pressable onPress={() => { tap(); onChange(!on); }} accessibilityRole="switch" accessibilityLabel={label}
+    <Pressable onPress={() => { onChange(!on); }} accessibilityRole="switch" accessibilityLabel={label}
       accessibilityState={{ checked: on }} hitSlop={10} style={[st.switch, !on && st.switchOff]}>
       {on ? <LinearGradient colors={buttonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 999 }]} /> : null}
       <Animated.View style={[st.knob, { backgroundColor: on ? '#fff' : colors.soft, transform: [{ translateX: x.interpolate({ inputRange: [0, 1], outputRange: [0, 18 * k] }) }] }]} />

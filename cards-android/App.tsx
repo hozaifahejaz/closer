@@ -18,7 +18,6 @@ import { flush, load, loadNav, loadWelcomed, save, saveNav, saveWelcomed } from 
 import { colors } from './src/theme';
 import { DeckPicker } from './src/components/DeckPicker';
 import { Confirm, Menu, Notice } from './src/components/Sheet';
-import { setHapticsOn } from './src/components/ui';
 import { Favorites } from './src/screens/Favorites';
 import { Home } from './src/screens/Home';
 import { Info } from './src/screens/Info';
@@ -60,7 +59,7 @@ export default function App() {
     Promise.all([load(), loadNav()]).then(([raw, nav]) => { setScreenNow(toScreen(nav)); setState(game.restore(raw)); }, () => setState(game.newState()));
   }, []);
   const setScreen = useCallback((next: Screen) => { setScreenNow(next); saveNav(next); }, []);
-  useEffect(() => { if (state) { save(state); setHapticsOn(state.haptics); } }, [state]);
+  useEffect(() => { if (state) { save(state); } }, [state]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', now => { if (now !== 'active') flush(); });
     return () => sub.remove();
@@ -122,8 +121,7 @@ export default function App() {
         onStart={(decks, fresh) => { update(s => game.start(s, decks, fresh)); setPicker(false); setScreen({ name: 'play' }); }} />
       <Menu visible={menu} onClose={() => setMenu(false)} groups={[
         [{ title: 'Favorites', onPress: () => setScreen({ name: 'favorites' }) }],
-        [{ title: 'Tap to reveal each card', on: state.tapToReveal, onChange: (on: boolean) => update(s => game.setTapToReveal(s, on)) },
-          { title: 'Vibration', on: state.haptics, onChange: (on: boolean) => update(s => game.setHaptics(s, on)) }],
+        [{ title: 'Tap to reveal each card', on: state.tapToReveal, onChange: (on: boolean) => update(s => game.setTapToReveal(s, on)) }],
         [{ title: 'Reset my progress', danger: true, onPress: () => setResetOpen(true) }],
         [{ title: 'Privacy policy', onPress: () => setScreen({ name: 'info', page: 'privacy' }) },
           { title: 'About', onPress: () => setScreen({ name: 'info', page: 'about' }) }],

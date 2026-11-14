@@ -5,7 +5,7 @@ import { colors, fonts, radius } from '../theme';
 import { Icon } from '../components/Icon';
 import { useToast } from '../components/Toast';
 import { TopBar } from '../components/TopBar';
-import { Button, tap } from '../components/ui';
+import { Button } from '../components/ui';
 import { sheet, useK, useScaled } from '../scale';
 
 // onRemove takes the card out at once and returns how to put it back.
@@ -24,13 +24,13 @@ export function Favorites({ cards, onOpen, onRemove, onBack, onDecks }: Props) {
         <FlatList data={cards} keyExtractor={c => c.id} style={st.list} initialNumToRender={10} windowSize={7}
           contentContainerStyle={{ paddingHorizontal: 16 * k, paddingTop: 6 * k, paddingBottom: insets.bottom + 84 * k, gap: 10 * k }}
           renderItem={({ item, index }) => (
-            <Pressable onPress={() => { tap(); onOpen(index); }} accessibilityRole="button" accessibilityLabel={`${item.category}. ${item.text}`}
+            <Pressable onPress={() => { onOpen(index); }} accessibilityRole="button" accessibilityLabel={`${item.category}. ${item.text}`}
               style={({ pressed }) => [st.item, pressed && { opacity: 0.9 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={st.cat} numberOfLines={1}>{item.category}</Text>
                 <Text style={st.q}>{item.text}</Text>
               </View>
-              <Pressable onPress={() => { tap(); say('Removed from favorites', { label: 'Undo', onPress: onRemove(item.id) }); }} hitSlop={10} style={st.remove} accessibilityRole="button" accessibilityLabel="Remove from favorites">
+              <Pressable onPress={() => { say('Removed from favorites', { label: 'Undo', onPress: onRemove(item.id) }); }} hitSlop={10} style={st.remove} accessibilityRole="button" accessibilityLabel="Remove from favorites">
                 <Icon name="heart" size={22 * k} color={colors.accent} fill />
               </Pressable>
             </Pressable>

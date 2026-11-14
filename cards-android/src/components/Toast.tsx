@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleProp, Text, ViewStyle } from 'react-native';
 import { colors, fonts } from '../theme';
-import { tap } from './ui';
 import { sheet, useScaled } from '../scale';
 
 type Action = { label: string; onPress: () => void };
@@ -29,7 +28,7 @@ export function useToast(style: StyleProp<ViewStyle>) {
     <Animated.View pointerEvents={shown.action ? 'box-none' : 'none'} accessibilityLiveRegion="polite" style={[st.toast, shown.action && st.withAction, style, { opacity }]}>
       <Text style={st.text}>{shown.text}</Text>
       {shown.action ? (
-        <Pressable onPress={() => { tap(); shown.action?.onPress(); hide(); }} hitSlop={10} accessibilityRole="button" accessibilityLabel={shown.action.label} style={st.action}>
+        <Pressable onPress={() => { shown.action?.onPress(); hide(); }} hitSlop={10} accessibilityRole="button" accessibilityLabel={shown.action.label} style={st.action}>
           <Text style={st.actionText}>{shown.action.label}</Text>
         </Pressable>
       ) : null}

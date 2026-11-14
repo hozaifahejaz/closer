@@ -2,14 +2,13 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import { Icon, IconName } from './Icon';
-import { tap } from './ui';
 import { sheet, useK, useScaled } from '../scale';
 
 export function RoundButton({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
   const st = useScaled(base);
   const k = useK();
   return (
-    <Pressable onPress={() => { tap(); onPress(); }} disabled={disabled} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}
+    <Pressable onPress={() => { onPress(); }} disabled={disabled} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }} style={({ pressed }) => [st.round, pressed && { opacity: 0.7 }, disabled && { opacity: 0.35 }]}>
       <Icon name={icon} size={20 * k} color={colors.text} />
     </Pressable>

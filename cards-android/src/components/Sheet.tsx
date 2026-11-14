@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
-import { Button, tap, Toggle } from './ui';
+import { Button, Toggle } from './ui';
 import { sheet, useK, useScaled } from '../scale';
 
 export type MenuItem = { title: string; onPress: () => void; danger?: boolean } | { title: string; on: boolean; onChange: (on: boolean) => void };
@@ -29,7 +29,7 @@ export function Menu({ visible, groups, onClose }: { visible: boolean; groups: M
               <Toggle on={item.on} onChange={item.onChange} label={item.title} />
             </View>
           ) : (
-            <Pressable key={item.title} accessibilityRole="button" onPress={() => { tap(); onClose(); item.onPress(); }}
+            <Pressable key={item.title} accessibilityRole="button" onPress={() => { onClose(); item.onPress(); }}
               style={({ pressed }) => [st.menuRow, pressed && { backgroundColor: colors.raise }]}>
               <Text style={[st.menuText, item.danger && { color: colors.bad }]}>{item.title}</Text>
             </Pressable>

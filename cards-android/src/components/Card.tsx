@@ -3,7 +3,6 @@ import { Animated, Easing, PanResponder, Pressable, StyleSheet, Text, View } fro
 import { LinearGradient } from 'expo-linear-gradient';
 import { cardGradient, colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
-import { bump } from './ui';
 import { sheet, useK, useScaled } from '../scale';
 
 type Props = {
@@ -51,7 +50,6 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
     setShown({ category, text, position });
     if (was.flipped !== flipped) {
       spin(flipped ? 1 : 0);
-      if (flipped) bump();
     }
   }, [cardKey, flipped, category, text, position, turn, swap]);
 
@@ -120,7 +118,7 @@ export function Card({ cardKey, category, text, position, flipped, tapToReveal, 
                 numberOfLines={8} adjustsFontSizeToFit minimumFontScale={0.6}>{shown.text}</Text>
             </Animated.View>
             <Text style={st.num}>{shown.position}</Text>
-            <Pressable onPress={() => { bump(true); onFavorite(); }} hitSlop={8} style={[st.fav, small && { top: 2 * k, right: 2 * k, width: 38 * k, height: 38 * k }]}
+            <Pressable onPress={() => { onFavorite(); }} hitSlop={8} style={[st.fav, small && { top: 2 * k, right: 2 * k, width: 38 * k, height: 38 * k }]}
               accessibilityRole="button" accessibilityLabel={favorite ? 'Remove from favorites' : 'Save to favorites'} accessibilityState={{ selected: favorite }}>
               <Icon name="heart" size={(small ? 20 : 24) * k} color={favorite ? colors.accent : '#cdb8c7'} fill={favorite} />
             </Pressable>

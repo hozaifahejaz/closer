@@ -17,7 +17,6 @@ export type State = {
   progress: Record<string, Deal>; // saved place in other sets of decks, oldest first
   seen: Record<string, 1>;
   favorites: Favorite[]; // newest last
-  haptics: boolean;
 };
 export type DeckInfo = { name: string; count: number; used: number };
 export type CardView = { id: string; category: string; text: string };
@@ -59,7 +58,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   }
 
   const newState = (): State => ({ v: 1, decks: [], fresh: false, order: [], index: 0, flipped: true, tapToReveal: false,
-    started: false, progress: {}, seen: {}, favorites: [], haptics: true });
+    started: false, progress: {}, seen: {}, favorites: [] });
 
   const current = (s: State): string | null => (s.started && s.order[s.index]) || null;
   const isSeen = (s: State, key: string) => s.seen[key] === 1;
@@ -81,7 +80,6 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   const prev = (s: State) => step(s, -1);
   const flip = (s: State): State => s.tapToReveal && current(s) ? markSeen({ ...s, flipped: !s.flipped }) : s;
   const setTapToReveal = (s: State, on: boolean): State => markSeen({ ...s, tapToReveal: on, flipped: on ? s.flipped : true });
-  const setHaptics = (s: State, on: boolean): State => ({ ...s, haptics: on });
 
   const unusedCount = (s: State, decks: string[]) => (decks.length ? decks : NAMES).flatMap(cardsOf).filter(k => !isSeen(s, k)).length;
 
@@ -131,7 +129,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   }
 
   // Forgets seen cards and every saved place. Favorites and settings stay.
-  const resetProgress = (s: State): State => ({ ...newState(), tapToReveal: s.tapToReveal, haptics: s.haptics, favorites: s.favorites });
+  const resetProgress = (s: State): State => ({ ...newState(), tapToReveal: s.tapToReveal, favorites: s.favorites });
 
   const usage = (s: State): DeckInfo[] => NAMES.map(name => {
     const cards = cardsOf(name);
@@ -177,7 +175,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
     const fresh0 = newState();
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return fresh0;
     const r = raw as Record<string, any>;
-    const s: State = { ...fresh0, tapToReveal: r.tapToReveal === true, haptics: r.haptics !== false };
+    const s: State = { ...fresh0, tapToReveal: r.tapToReveal === true };
 
     if (r.seen && typeof r.seen === 'object') for (const k of Object.keys(r.seen)) if (live(k)) s.seen[k] = 1;
     const favs = new Set<string>();
@@ -214,7 +212,7 @@ export function makeGame(DECK: DeckData, random: () => number = Math.random) {
   }
 
   return { names: NAMES, total: ALL.length, text, view, live, deckKey, cleanDecks, newState, restore, current, next, prev, flip, setTapToReveal,
-    setHaptics, start, reshuffle, isFavorite, toggleFavorite, resetProgress, usage, seenCount, unusedCount, savedPlaces, see, restoreFavorite };
+    start, reshuffle, isFavorite, toggleFavorite, resetProgress, usage, seenCount, unusedCount, savedPlaces, see, restoreFavorite };
 }
 
 export type Game = ReturnType<typeof makeGame>;

@@ -152,7 +152,7 @@ test('removing a favorite can be undone', () => {
 
 test('reset forgets progress but keeps favorites and settings', () => {
   const g = small();
-  let s = g.setHaptics(g.setTapToReveal(g.start(g.newState(), ['A'], false), true), false);
+  let s = g.setTapToReveal(g.start(g.newState(), ['A'], false), true);
   s = g.toggleFavorite(g.next(s), 'A:0');
   s = g.resetProgress(s);
   assert.equal(s.started, false);
@@ -160,7 +160,6 @@ test('reset forgets progress but keeps favorites and settings', () => {
   assert.deepEqual(s.progress, {});
   assert.equal(s.favorites.length, 1);
   assert.equal(s.tapToReveal, true);
-  assert.equal(s.haptics, false);
   check(g, s);
 });
 
