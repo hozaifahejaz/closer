@@ -11,19 +11,19 @@ export const POLICY_DATE = 'November 14, 2026';
 // The privacy policy is part of the app so it can be read with no connection.
 // docs/privacy-policy.md is the same text for the Play Store listing.
 const PRIVACY: [string, string][] = [
-  ['The short version', 'Moth & Lamp works entirely on your phone. It has no accounts, no ads and no analytics, and it never connects to the internet. We do not collect, store or share any information about you.'],
-  ['Who we are', 'Moth & Lamp is made and published by Huzaifa, an independent developer. "We" in this policy means the developer.'],
+  ['The short version', 'Stay Up With Me works entirely on your phone. It has no accounts, no ads and no analytics, and it never connects to the internet. We do not collect, store or share any information about you.'],
+  ['Who we are', 'Stay Up With Me is made and published by Huzaifa, an independent developer. "We" in this policy means the developer.'],
   ['What stays on your phone', 'The app remembers which cards you have seen, your favorites, your place in each set of decks and your settings. This is saved only in the app\'s private storage on this device. It is never sent to us or to anyone else, and we cannot see it.'],
   ['Permissions', 'The app does not ask for internet access, location, contacts, camera, microphone, photos or notifications. It can make the phone vibrate lightly when you tap, which you can switch off in the menu.'],
-  ['Sharing a question', 'If you tap Share, the text of that question is handed to the app you choose (for example your messaging app). That app, not Moth & Lamp, sends it, and its own privacy policy applies.'],
+  ['Sharing a question', 'If you tap Share, the text of that question is handed to the app you choose (for example your messaging app). That app, not Stay Up With Me, sends it, and its own privacy policy applies.'],
   ['Deleting your data', 'Use "Reset my progress" in the menu to clear seen cards and saved places, and remove favorites from the Favorites screen. Uninstalling the app, or clearing its storage in Android settings, removes everything. If your phone backs up app data to your Google account, Android handles that backup under your Google settings.'],
-  ['Age', 'Moth & Lamp is meant for adults aged 18 and over. Some decks include questions about intimacy and relationships.'],
+  ['Age', 'Stay Up With Me is meant for adults aged 18 and over. Some decks include questions about intimacy and relationships.'],
   ['Changes', 'If this policy changes, the new version will ship with an app update and the date below will change.'],
   ['Contact', 'Questions about privacy:'],
 ];
 
 const ABOUT: [string, string][] = [
-  ['Moth & Lamp', 'Deep and playful question cards for couples. Share one phone, pick the decks you like, turn a card, and talk.'],
+  ['Stay Up With Me', 'Deep and playful question cards for couples. Share one phone, pick the decks you like, turn a card, and talk.'],
   ['How it works', 'Choose one deck, a few, or all of them. Swipe or tap Next for another card. Tap the heart to keep a card in your favorites. Your place in every set of decks is saved, so you can always pick up where you left off.'],
   ['Offline, always', 'Every question is inside the app. Nothing is downloaded and nothing is uploaded.'],
   ['For adults', 'The app is intended for people aged 18 and over. Some decks, such as Desire & Intimacy, ask about intimacy. You choose which decks to play.'],

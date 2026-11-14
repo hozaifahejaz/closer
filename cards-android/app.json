@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Moth & Lamp",
+    "name": "Stay Up With Me",
     "slug": "closer-cards",
     "version": "1.0.0",
     "description": "Deep and playful question cards for couples. Works fully offline, with no account.",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#1d1420",
     "android": {
-      "package": "com.hozaifahejaz.mothandlamp",
+      "package": "com.hozaifahejaz.stayupwithme",
       "adaptiveIcon": {
         "backgroundColor": "#1d1420",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -132,7 +132,7 @@ export default function App() {
         body="This forgets which cards you've seen and your place in every deck. Your favorites and settings are kept. It can't be undone."
         onYes={() => update(game.resetProgress)} />
       <Notice visible={welcome} title="For adults" ok="I'm 18 or older" onOk={() => { saveWelcomed(); setWelcome(false); }}
-        body="Moth & Lamp is for people aged 18 and over. Some decks, such as Desire & Intimacy, ask about intimacy. You choose which decks to play." />
+        body="Stay Up With Me is for people aged 18 and over. Some decks, such as Desire & Intimacy, ask about intimacy. You choose which decks to play." />
     </SafeAreaProvider>
   );
 }

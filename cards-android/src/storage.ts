@@ -3,8 +3,8 @@ import type { State } from './game';
 
 // Everything the app remembers lives on this phone only, in two entries: the small one
 // changes with every tap, the big one (the shuffled card orders) only when cards are dealt.
-const CORE = 'mothlamp.core.v1';
-const DEALS = 'mothlamp.deals.v1';
+const CORE = 'stayup.core.v1';
+const DEALS = 'stayup.deals.v1';
 
 const parse = (text: string | null) => { try { return text ? JSON.parse(text) : null; } catch { return null; } };
 
@@ -48,7 +48,7 @@ export function flush() {
 // Which screen was open, so a restart that the person didn't ask for (Android rebuilding the app
 // after a font size, theme or window change, or clearing it from memory in the background) comes
 // back to the same place. A fresh start much later opens on Home as usual.
-const NAV = 'mothlamp.nav.v1';
+const NAV = 'stayup.nav.v1';
 const NAV_KEEP = 30 * 60 * 1000;
 let navNow: unknown = null; // survives while the JavaScript side stays alive
 
@@ -66,7 +66,7 @@ export function saveNav(screen: unknown) {
 }
 
 // Whether the one-time "for adults" note on first launch has been read.
-const WELCOMED = 'mothlamp.welcomed.v1';
+const WELCOMED = 'stayup.welcomed.v1';
 export async function loadWelcomed(): Promise<boolean> {
   try { return (await AsyncStorage.getItem(WELCOMED)) === '1'; } catch { return true; }
 }
