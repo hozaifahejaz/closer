@@ -52,7 +52,7 @@ export function Home({ seen, total, favorites, place, onContinue, onDecks, onFav
         <Text style={st.statLabel}>Cards seen</Text>
         <View style={st.bar}><LinearGradient colors={buttonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.barFill, { width: `${Math.max(seen ? 3 : 0, share * 100)}%` }]} /></View>
       </View>
-      <Pressable onPress={() => { onFavorites(); }} accessibilityRole="button" accessibilityLabel={`${favorites} favorites. Open favorites`}
+      <Pressable onPress={() => { onFavorites(); }} accessibilityRole="button" accessibilityLabel={`${favorites} ${favorites === 1 ? "favorite" : "favorites"}. Open favorites`}
         style={({ pressed }) => [st.stat, pressed && { backgroundColor: colors.raise }]}>
         <Text style={st.statNum}>{num(favorites)}</Text>
         <Text style={st.statLabel}>Favorites</Text>
