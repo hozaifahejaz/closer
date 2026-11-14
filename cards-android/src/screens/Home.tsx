@@ -7,10 +7,13 @@ import type { CardView } from '../game';
 import { buttonGradient, cardGradient, colors, fonts, radius } from '../theme';
 import { Icon } from '../components/Icon';
 import { bump, Button, HeartBadge, tap } from '../components/ui';
+import { sheet, useK, useScaled } from '../scale';
 
 // The card of the day lies face down until it is tapped, then turns over where it is and stays
 // open for the rest of the day. Tapping the open card shows it full screen (to save or share it).
 function DailyCard({ card, open, short, onOpen, onView, style }: { card: CardView; open: boolean; short: boolean; onOpen: () => void; onView: () => void; style?: StyleProp<ViewStyle> }) {
+  const st = useScaled(base);
+  const k = useK();
   const [turn] = useState(() => new Animated.Value(open ? 1 : 0));
   const was = useRef(open);
   useEffect(() => {
@@ -36,16 +39,16 @@ function DailyCard({ card, open, short, onOpen, onView, style }: { card: CardVie
           <LinearGradient colors={cardGradient} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 0.75, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']} start={{ x: 0.3, y: 0 }} end={{ x: 0.5, y: 0.6 }} style={StyleSheet.absoluteFill} />
           <View style={st.dailyInset} />
-          <View style={st.dailyHead}><Icon name="spark" size={13} color="#fff" fill strokeWidth={0} /><Text style={st.dailyLabel}>Card of the day</Text></View>
-          <View><Icon name="heart" size={short ? 34 : 46} color="#fff" strokeWidth={1.4} /></View>
+          <View style={st.dailyHead}><Icon name="spark" size={13 * k} color="#fff" fill strokeWidth={0} /><Text style={st.dailyLabel}>Card of the day</Text></View>
+          <View><Icon name="heart" size={(short ? 34 : 46) * k} color="#fff" strokeWidth={1.4} /></View>
           <Text style={st.dailyOpen}>Tap to open</Text>
         </View>
       </Animated.View>
       <Animated.View style={[st.dailyFace, front]} pointerEvents="none">
-        <View style={[st.dailyClip, st.dailyFront, short && { padding: 16 }]}>
-          <View style={st.dailyHead}><Icon name="spark" size={13} color={colors.rose} fill strokeWidth={0} /><Text style={[st.dailyLabel, { color: colors.rose }]}>Card of the day</Text></View>
+        <View style={[st.dailyClip, st.dailyFront, short && { padding: 16 * k }]}>
+          <View style={st.dailyHead}><Icon name="spark" size={13 * k} color={colors.rose} fill strokeWidth={0} /><Text style={[st.dailyLabel, { color: colors.rose }]}>Card of the day</Text></View>
           <View style={st.dailyMid}>
-            <Text style={[st.dailyQ, short && { fontSize: 19, lineHeight: 25 }]} numberOfLines={6} adjustsFontSizeToFit minimumFontScale={0.7}>{card.text}</Text>
+            <Text style={[st.dailyQ, short && { fontSize: 19 * k, lineHeight: 25 * k }]} numberOfLines={6} adjustsFontSizeToFit minimumFontScale={0.7}>{card.text}</Text>
           </View>
           <Text style={st.dailyCat} numberOfLines={1}>{card.category}</Text>
         </View>
@@ -71,14 +74,16 @@ type Props = {
 
 // The first screen: today's card, how far you've got, and a way back into the cards.
 export function Home({ daily, dailyOpen, onOpenDaily, seen, total, favorites, place, onContinue, onDecks, onDaily, onFavorites, onMenu }: Props) {
+  const st = useScaled(base);
+  const k = useK();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const short = height < 700;
+  const short = height / k < 700;
   const wide = width >= 760 && width > height * 1.05;
   const share = total ? seen / total : 0;
 
   const today = <DailyCard card={daily} open={dailyOpen} short={short} onOpen={onOpenDaily} onView={onDaily}
-    style={wide ? { flexGrow: 0, height: Math.min(360, height - 150) } : { maxHeight: Math.min(560, Math.max(380, height * 0.46)) }} />;
+    style={wide ? { flexGrow: 0, height: Math.min(360 * k, height - 150 * k) } : { maxHeight: Math.min(560 * k, Math.max(380 * k, height * 0.46)) }} />;
 
   const stats = (
     <View style={st.stats}>
@@ -91,20 +96,20 @@ export function Home({ daily, dailyOpen, onOpenDaily, seen, total, favorites, pl
         style={({ pressed }) => [st.stat, pressed && { backgroundColor: colors.raise }]}>
         <Text style={st.statNum}>{num(favorites)}</Text>
         <Text style={st.statLabel}>Favorites</Text>
-        <View style={st.statIcon}><Icon name="heart" size={16} color={colors.accent} fill strokeWidth={0} /></View>
+        <View style={st.statIcon}><Icon name="heart" size={16 * k} color={colors.accent} fill strokeWidth={0} /></View>
       </Pressable>
     </View>
   );
 
   const welcome = (
-    <View style={{ gap: 6 }}>
-      <Text style={[st.title, short && { fontSize: 26, lineHeight: 32 }]} accessibilityRole="header">{place ? 'Welcome back.' : 'Welcome.'}</Text>
+    <View style={{ gap: 6 * k }}>
+      <Text style={[st.title, short && { fontSize: 26 * k, lineHeight: 32 * k }]} accessibilityRole="header">{place ? 'Welcome back.' : 'Welcome.'}</Text>
       <Text style={st.sub}>{place ? 'Pick up where you left off, or choose new decks.' : 'Choose your decks and turn the first card.'}</Text>
     </View>
   );
 
   const actions = (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 10 * k }}>
       {place ? <Button title={place.index ? `Continue ${place.label} · ${num(place.index + 1)} of ${num(place.total)}` : `Start ${place.label}`}
         accessibilityLabel={place.index ? `Continue ${place.label}, card ${place.index + 1} of ${place.total}` : `Start ${place.label}`} iconRight="right" onPress={onContinue} /> : null}
       <Button kind={place ? 'ghost' : 'primary'} title="Choose decks" icon="cards" onPress={onDecks} />
@@ -113,18 +118,18 @@ export function Home({ daily, dailyOpen, onOpenDaily, seen, total, favorites, pl
 
   return (
     <ScrollView style={st.fill} bounces={false} overScrollMode="never"
-      contentContainerStyle={[st.page, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 16) + 4, paddingLeft: insets.left + 20, paddingRight: insets.right + 20 }]}>
-      <View style={[st.header, !wide && { maxWidth: 560 }]}>
+      contentContainerStyle={[st.page, { paddingTop: insets.top + 12 * k, paddingBottom: Math.max(insets.bottom, 16 * k) + 4, paddingLeft: insets.left + 20 * k, paddingRight: insets.right + 20 * k }]}>
+      <View style={[st.header, !wide && { maxWidth: 560 * k }]}>
         <View style={st.logo}><HeartBadge size={32} /><Text style={st.brand}>Closer</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { tap(); onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" color={colors.text} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open menu" onPress={() => { tap(); onMenu(); }} hitSlop={6} style={st.menuButton}><Icon name="menu" size={20 * k} color={colors.text} /></Pressable>
       </View>
       {wide ? (
         <View style={st.wide}>
-          <View style={{ flex: 1, justifyContent: 'center', gap: 18 }}>{welcome}{actions}{stats}</View>
+          <View style={{ flex: 1, justifyContent: 'center', gap: 18 * k }}>{welcome}{actions}{stats}</View>
           <View style={{ flex: 1, justifyContent: 'center' }}>{today}</View>
         </View>
       ) : (
-        <View style={[st.body, { gap: short ? 14 : 20 }]}>
+        <View style={[st.body, { gap: (short ? 14 : 20) * k }]}>
           {welcome}{actions}{today}{stats}
         </View>
       )}
@@ -132,7 +137,7 @@ export function Home({ daily, dailyOpen, onOpenDaily, seen, total, favorites, pl
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg },
   page: { flexGrow: 1, width: '100%', maxWidth: 1100, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6, width: '100%', alignSelf: 'center' },

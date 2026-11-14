@@ -8,6 +8,7 @@ import { DeckArt, deckColors } from './DeckArt';
 import { num, plural } from '../format';
 import { Icon } from './Icon';
 import { Button, tap, Toggle } from './ui';
+import { sheet, useK, useScaled } from '../scale';
 
 const sum = <T,>(list: T[], f: (x: T) => number) => list.reduce((n, x) => n + f(x), 0);
 
@@ -24,8 +25,10 @@ type Props = {
 
 // Pick one deck, a few, or all of them. Each set of decks remembers its place.
 export function DeckPicker({ visible, list, decks, fresh: freshNow, started, saved: places, onStart, onClose }: Props) {
+  const st = useScaled(base);
+  const k = useK();
   const { height } = useWindowDimensions();
-  const short = height < 720;
+  const short = height / k < 720;
   const [grid, setGrid] = useState({ w: 0, h: 0 });
   const insets = useSafeAreaInsets();
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -52,14 +55,14 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
   // card fills its half of the width whenever its height allows, and grows taller (up to 4:7)
   // when there is height to spare.
   const aspect = grid.h ? grid.w / grid.h : 0;
-  const layout = aspect >= 10 / 7 ? { cols: 4, rows: 1, gap: 16, wide: 5 / 7 } : grid.w >= 572 ? { cols: 3, rows: 2, gap: 14, wide: 5 / 7 } : { cols: 2, rows: 2, gap: 12, wide: 0.88 };
+  const layout = aspect >= 10 / 7 ? { cols: 4, rows: 1, gap: 16 * k, wide: 5 / 7 } : grid.w >= 572 ? { cols: 3, rows: 2, gap: 14 * k, wide: 5 / 7 } : { cols: 2, rows: 2, gap: 12 * k, wide: 0.88 };
   const COLS = layout.cols;
-  const peek = Math.max(14, Math.min(30, grid.h * 0.05));
-  const rowH = Math.max(130, (grid.h - peek - layout.rows * layout.gap) / layout.rows);
+  const peek = Math.max(14 * k, Math.min(30 * k, grid.h * 0.05));
+  const rowH = Math.max(130 * k, (grid.h - peek - layout.rows * layout.gap) / layout.rows);
   const cardW = Math.floor(Math.min(rowH * layout.wide, (grid.w - layout.gap * (COLS - 1)) / COLS));
   const cardH = Math.floor(Math.min(rowH, cardW * 7 / 4));
   // When width limits the cards, the box shrinks to four cards and a peek, centred, instead of showing half the next row.
-  const boxH = Math.min(grid.h + 10, layout.rows * (cardH + layout.gap) + peek + 10);
+  const boxH = Math.min(grid.h + 10 * k, layout.rows * (cardH + layout.gap) + peek + 10 * k);
   const onScroll = ({ nativeEvent: n }: NativeSyntheticEvent<NativeScrollEvent>) => {
     const above = n.contentOffset.y > 2, below = n.contentOffset.y + n.layoutMeasurement.height < n.contentSize.height - 2;
     if (above !== edge.above || below !== edge.below) setEdge({ above, below });
@@ -83,12 +86,12 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
     const { c2 } = deckColors(deck);
     // Type and art scale with the card; each card shows just the deck's name and card count.
     const m = Math.min(cardW, cardH * 1.1);
-    const low = cardH < 150;
-    const nameSize = Math.max(14, Math.min(23, cardW * 0.1, cardH * 0.12));
-    const countSize = Math.max(9, Math.min(11.5, cardW * 0.056, cardH * 0.07));
+    const low = cardH < 150 * k;
+    const nameSize = Math.max(14 * k, Math.min(23 * k, cardW * 0.1, cardH * 0.12));
+    const countSize = Math.max(9 * k, Math.min(11.5 * k, cardW * 0.056, cardH * 0.07));
     const art = Math.min(cardW * 0.44, cardH * (low ? 0.32 : 0.36));
-    const chk = Math.max(18, Math.min(26, m * 0.12));
-    const inset = Math.max(8, Math.min(14, m * 0.06));
+    const chk = Math.max(18 * k, Math.min(26 * k, m * 0.12));
+    const inset = Math.max(8 * k, Math.min(14 * k, m * 0.06));
     const count = !fresh ? plural(cards, 'card', 'cards') : fresh_ ? `${num(fresh_)} new` : 'All seen';
     const lineH = nameSize * 1.15;
     // A picked deck is bright with a strong ring in its colour; an unpicked one fades back.
@@ -97,16 +100,16 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
     return (
       <Pressable key={label} onPress={() => toggle(name)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
         accessibilityLabel={`${label}, ${count}, ${on ? 'picked' : 'not picked'}`}
-        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingHorizontal: low ? 6 : cardW * 0.07 },
+        style={({ pressed }) => [st.card, { width: cardW, height: cardH, paddingHorizontal: low ? 6 * k : cardW * 0.07 },
           { backgroundColor: colors.card, borderColor: on ? c2 : c2 + '40' }, !on && st.off, pressed && { transform: [{ scale: 0.97 }] }]}>
-        <View style={{ height: art, marginBottom: Math.min(18, cardH * (low ? 0.03 : 0.05)), opacity: spent ? 0.5 : 1 }}>
+        <View style={{ height: art, marginBottom: Math.min(18 * k, cardH * (low ? 0.03 : 0.05)), opacity: spent ? 0.5 : 1 }}>
           <DeckArt deck={deck} size={art} spent={spent} fan={fan} />
         </View>
         <View style={{ height: lineH * 2, justifyContent: 'center' }}>
           <Text style={[st.nm, { fontSize: nameSize, lineHeight: lineH }]} numberOfLines={2}>{label.replace(/-/g, '\u2011')}</Text>
         </View>
-        {cardH < 110 ? null : (
-          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(10, cardH * (low ? 0.02 : 0.03)) }]} numberOfLines={1}>{count}</Text>
+        {cardH < 110 * k ? null : (
+          <Text style={[st.ct, { fontSize: countSize, color: spent ? colors.ink2 : c2, marginTop: Math.min(10 * k, cardH * (low ? 0.02 : 0.03)) }]} numberOfLines={1}>{count}</Text>
         )}
         <View style={[st.chk, { width: chk, height: chk, borderRadius: chk / 2, top: inset, right: inset },
           on ? { backgroundColor: c2, borderColor: c2 } : { borderColor: c2 + '80', borderWidth: 1.5 }]}>
@@ -116,20 +119,20 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
     );
   };
 
-  const column = cardW * COLS + layout.gap * (COLS - 1) + 28; // the cards plus their side padding
+  const column = cardW * COLS + layout.gap * (COLS - 1) + 28 * k; // the cards plus their side padding
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
       onRequestClose={onClose} statusBarTranslucent>
-      <View style={[st.sheet, { paddingTop: Platform.OS === 'ios' ? 12 : insets.top + 8 }]}>
+      <View style={[st.sheet, { paddingTop: Platform.OS === 'ios' ? 12 : insets.top + 8 * k }]}>
         <View style={st.grabber} />
-        <View style={[st.head, grid.w ? { maxWidth: Math.max(column, 320) } : null]}>
+        <View style={[st.head, grid.w ? { maxWidth: Math.max(column, 320 * k) } : null]}>
           <Text style={st.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} accessibilityRole="header">Choose your decks</Text>
           <Pressable onPress={() => { tap(); onClose(); }} hitSlop={10} style={st.x} accessibilityRole="button" accessibilityLabel={started ? 'Back to the card' : 'Close'}>
-            <Icon name="close" size={18} color={colors.muted} />
+            <Icon name="close" size={18 * k} color={colors.muted} />
           </Pressable>
         </View>
-        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28, h: e.nativeEvent.layout.height - 10 })}>
+        <View style={st.grid} onLayout={e => setGrid({ w: e.nativeEvent.layout.width - 28 * k, h: e.nativeEvent.layout.height - 10 * k })}>
           {grid.w ? (
             <View style={{ height: boxH, width: '100%' }}>
               <ScrollView style={st.scroll} contentContainerStyle={st.scrollIn} onScroll={onScroll} onContentSizeChange={(_, h) => setEdge(x => ({ ...x, below: h > boxH + 2 }))}
@@ -147,19 +150,19 @@ export function DeckPicker({ visible, list, decks, fresh: freshNow, started, sav
             </View>
           ) : null}
         </View>
-        <View style={[st.foot, { paddingBottom: Math.max(insets.bottom, short ? 10 : 16) }]}>
+        <View style={[st.foot, { paddingBottom: Math.max(insets.bottom, (short ? 10 : 16) * k) }]}>
           <View style={st.opt}>
             <Text style={st.optT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Only cards I haven&apos;t seen</Text>
             <Toggle on={fresh} onChange={setFreshOn} label="Only cards I haven't seen" />
           </View>
-          <Button title={go} onPress={start} disabled={!picked.length || (fresh && !unused)} style={short && { minHeight: 48 }} />
+          <Button title={go} onPress={start} disabled={!picked.length || (fresh && !unused)} style={short && { minHeight: 48 * k }} />
         </View>
       </View>
     </Modal>
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   sheet: { flex: 1, backgroundColor: colors.bg },
   grabber: { alignSelf: 'center', width: 38, height: 5, borderRadius: 3, backgroundColor: colors.line2, marginBottom: 14, display: Platform.OS === 'ios' ? 'flex' : 'none' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, width: '100%', maxWidth: 980, alignSelf: 'center' },

@@ -1,8 +1,9 @@
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { TopBar } from '../components/TopBar';
 import { HeartBadge } from '../components/ui';
+import { sheet, useK, useScaled } from '../scale';
 
 export const CONTACT = 'hozaiphaa@gmail.com';
 export const POLICY_DATE = 'November 12, 2026';
@@ -29,15 +30,17 @@ const ABOUT: [string, string][] = [
 ];
 
 export function Info({ page, version, onBack }: { page: 'privacy' | 'about'; version: string; onBack: () => void }) {
+  const st = useScaled(base);
+  const k = useK();
   const insets = useSafeAreaInsets();
   const sections = page === 'privacy' ? PRIVACY : ABOUT;
   return (
     <View style={[st.fill, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
       <TopBar title={page === 'privacy' ? 'Privacy policy' : 'About'} onBack={onBack} maxWidth={640} />
-      <ScrollView style={st.scroll} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: insets.bottom + 32 }}>
+      <ScrollView style={st.scroll} contentContainerStyle={{ paddingHorizontal: 20 * k, paddingTop: 8 * k, paddingBottom: insets.bottom + 32 * k }}>
         {page === 'about' ? <View style={st.badge}><HeartBadge size={64} /></View> : null}
         {sections.map(([title, body]) => (
-          <View key={title} style={{ marginBottom: 22 }}>
+          <View key={title} style={{ marginBottom: 22 * k }}>
             <Text style={st.h} accessibilityRole="header">{title}</Text>
             <Text style={st.p} selectable>{body}</Text>
             {title === 'Contact' ? (
@@ -52,7 +55,7 @@ export function Info({ page, version, onBack }: { page: 'privacy' | 'about'; ver
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg },
   scroll: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
   h: { fontFamily: fonts.serifBold, fontSize: 19, color: colors.text, marginBottom: 6 },

@@ -1,18 +1,21 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { Button, tap, Toggle } from './ui';
+import { sheet, useK, useScaled } from '../scale';
 
 export type MenuItem = { title: string; onPress: () => void; danger?: boolean } | { title: string; on: boolean; onChange: (on: boolean) => void };
 
 // The drop-down menu behind the ☰ button: groups of rows with a line between groups.
 export function Menu({ visible, groups, onClose }: { visible: boolean; groups: MenuItem[][]; onClose: () => void }) {
+  const st = useScaled(base);
+  const k = useK();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable style={st.menuOverlay} accessibilityRole="button" accessibilityLabel="Close menu" onPress={onClose}>
-        <Pressable accessibilityViewIsModal style={[st.menu, { marginTop: insets.top + 64, marginRight: insets.right + 16 }]} onPress={() => {}}>
+        <Pressable accessibilityViewIsModal style={[st.menu, { marginTop: insets.top + 64 * k, marginRight: insets.right + 16 * k }]} onPress={() => {}}>
           {groups.map((items, g) => (
             <View key={g} style={g ? st.group : null}>
           {items.map(item => 'on' in item ? (
@@ -38,6 +41,7 @@ export function Menu({ visible, groups, onClose }: { visible: boolean; groups: M
 // With `danger`, Cancel is the main button and the risky one is the quiet red one.
 export function Confirm({ visible, title, body, yes, danger, onYes, onClose, children }:
   { visible: boolean; title: string; body: string; yes: string; danger?: boolean; onYes: () => void; onClose: () => void; children?: ReactNode }) {
+  const st = useScaled(base);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable style={st.overlay} accessibilityLabel="Cancel" onPress={onClose}>
@@ -55,7 +59,7 @@ export function Confirm({ visible, title, body, yes, danger, onYes, onClose, chi
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   menuOverlay: { flex: 1, backgroundColor: '#0008', alignItems: 'flex-end' },
   menu: { paddingVertical: 8, minWidth: 250, maxWidth: 320, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, borderRadius: 16, overflow: 'hidden' },
   group: { borderTopWidth: 1, borderTopColor: colors.line, marginTop: 6, paddingTop: 6 },
