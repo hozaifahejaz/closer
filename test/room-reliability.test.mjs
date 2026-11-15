@@ -73,7 +73,7 @@ test('valid full answer histories are saved in values smaller than 2 MB', async 
   for(const card of f.room.room.order) f.room.room.answers[game.cardKey(card)] = { [A]:'a'.repeat(1000), [B]:'b'.repeat(1000) };
   await f.room.save();
   const restored = await fixture({ storage:f.storage });
-  assert.equal(Object.keys(restored.room.room.answers).length, 1378);
+  assert.equal(Object.keys(restored.room.room.answers).length, 1322);
   assert.equal(restored.room.room.answers[game.cardKey(restored.room.room.order[0])][B].length, 1000);
 });
 

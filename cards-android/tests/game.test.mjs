@@ -36,7 +36,7 @@ test('the bundled questions are the same as the repo questions.json', { skip: !e
 
 test('all 26 decks and every live question are bundled', () => {
   assert.equal(game.names.length, 26);
-  assert.equal(game.total, 1378);
+  assert.equal(game.total, 1322);
   for (const d of game.usage(game.newState())) assert.ok(d.count > 0, d.name);
 });
 
@@ -52,7 +52,7 @@ test('a new install has nothing dealt and nothing seen', () => {
 test('starting all decks deals every live card once', () => {
   const s = game.start(game.newState(), game.names, false);
   check(game, s);
-  assert.equal(s.order.length, 1378);
+  assert.equal(s.order.length, 1322);
   assert.deepEqual(s.decks, []);
   assert.equal(game.seenCount(s), 1);
 });
