@@ -19,7 +19,7 @@ Formerly "Closer Cards" (and for one build "Moth & Lamp"); renamed on 2026-11-14
 6. Ads: No.
 7. Content rating questionnaire, category "All other app types":
    - Sexual content: Yes, sexual themes and references in text only (Desire & Intimacy deck and a few others). No nudity, no images, nothing explicit.
-   - Alcohol, tobacco or drugs: Yes, references to alcohol only (three cards). No drugs or tobacco.
+   - Alcohol, tobacco or drugs: Yes, references to alcohol only (two cards). No drugs or tobacco.
    - Violence, crude language, gambling: No.
    - Users interact or share content, location sharing, in-app digital purchases: No (the one-time price to download is not an in-app purchase).
    - Expect Teen to Mature 17+.
