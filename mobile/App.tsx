@@ -96,6 +96,12 @@ export default function App() {
     setConn(c);
   }, []);
 
+  // A guest who wants an account goes to the sign-up form in the app (the room stays saved to rejoin).
+  const onSignUp = useCallback(() => {
+    setConn(null);
+    setState(s => s && { ...s, guest: false, notice: '' });
+  }, []);
+
   const forgetResume = useCallback(() => {
     setItem('closer:guestRoom', null);
     setState(s => s && { ...s, resume: null });
@@ -109,7 +115,7 @@ export default function App() {
       ) : bootError || !state ? (
         <View style={st.boot}><Text style={{ color: colors.text, marginBottom: 16 }}>{bootError}</Text><Button title="Try again" onPress={start} /></View>
       ) : conn ? (
-        <Game conn={conn} onLeave={onLeave} accounts={state.accounts} signedIn={!!state.account} isAdmin={!!state.account?.isAdmin} />
+        <Game conn={conn} onLeave={onLeave} onSignUp={onSignUp} accounts={state.accounts} signedIn={!!state.account} isAdmin={!!state.account?.isAdmin} />
       ) : (
         <Lobby accounts={state.accounts} passwordReset={state.passwordReset} token={state.token} account={state.account} clientId={state.clientId} savedName={state.name} startAsGuest={!!state.guest}
           notice={state.notice} onSession={onSession} onPlay={onPlay} resume={state.resume} onForgetResume={forgetResume} />

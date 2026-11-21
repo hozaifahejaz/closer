@@ -19,7 +19,7 @@ import { deckName, num } from '../format';
 import { APP_NAME } from '../brand';
 import { sheet, useK, useScaled } from '../scale';
 
-export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean; isAdmin: boolean }) {
+export function Game({ conn, onLeave, onSignUp, accounts, signedIn, isAdmin }: { conn: Connection; onLeave: (message?: string) => void; onSignUp: () => void; accounts: boolean; signedIn: boolean; isAdmin: boolean }) {
   const { room, link, send, reclaim, draft, setDraft, answerPending, error, requestSafety } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
   const st = useScaled(base);
@@ -110,7 +110,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
     promotion={!room.couple && !signedIn ? <>
       <Text style={{ fontFamily: fonts.serif, fontSize: 22 * k, color: colors.text }}>Make your moments last.</Text>
       <Text style={{ fontFamily: fonts.sans, fontSize: 14 * k, lineHeight: 23 * k, color: colors.muted }}>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</Text>
-      <Button kind="ghost" title="Create an account" disabled={!accounts} onPress={() => { if (accounts) Linking.openURL(WEBSITE); }} style={{ alignSelf: 'flex-start' }} />
+      <Button kind="ghost" title="Create an account" disabled={!accounts} onPress={() => { if (accounts) onSignUp(); }} style={{ alignSelf: 'flex-start' }} />
       <Text style={{ fontFamily: fonts.sans, fontSize: 12 * k, lineHeight: 19 * k, color: colors.muted }}>{accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.'}</Text>
     </> : undefined}
     menu={[
@@ -152,7 +152,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   );
 
   // Short phones fold the two bottom rows into one; while typing an answer, only the card and the answer stay.
-  const compact = height < 760;
+  const compact = !wide && height < 760;
   const typing = keyboard && answerMode;
   // Once both answers are showing on a short phone, they get the room the switch row would take.
   const revealedTight = compact && answerMode && !!room.revealed;
