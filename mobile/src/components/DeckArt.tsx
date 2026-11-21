@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Svg, { Circle, Ellipse, G, Path, Rect, SvgXml } from 'react-native-svg';
 
 // Each deck's colours and line artwork, the same as the website's deck picker (public/index.html).
@@ -51,19 +52,35 @@ const MARKUP: Record<string, [string, string]> = {
   "Tiny Vows": ["28 10 64 76", "<circle class=\"tint\" cx=\"60\" cy=\"62\" r=\"20\"/><circle cx=\"60\" cy=\"62\" r=\"20\"/><circle class=\"soft\" cx=\"60\" cy=\"62\" r=\"15\"/><path class=\"tint\" d=\"M50 30l5-8h10l5 8-10 12z\"/><path d=\"M50 30l5-8h10l5 8-10 12zM50 30h20M57 22l3 8 3-8\"/><path class=\"soft\" d=\"M80 22l4-4M84 30h5M40 22l-4-4M36 30h-5\"/>"],
   "Comfort Codes": ["20 16 80 76", "<path class=\"soft\" d=\"M46 36c-3-4 3-6 0-10M56 36c-3-4 3-6 0-10M66 36c-3-4 3-6 0-10\"/><path class=\"tint\" d=\"M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12z\"/><path d=\"M34 42h40v26a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12zM74 48h4a8 8 0 0 1 0 16h-4\"/><path class=\"fill\" d=\"M54 68c-.4 0-7-4.2-7-8.6 0-2.3 1.8-4 3.9-4 1.4 0 2.5.8 3.1 1.8.6-1 1.7-1.8 3.1-1.8 2.1 0 3.9 1.7 3.9 4 0 4.4-6.6 8.6-7 8.6z\"/><path class=\"soft\" d=\"M28 88h56\"/>"],
 };
+// One card of the "All decks" fan: a 24 by 34 rounded card, turned by `deg` around the point (60, 84).
+function fanCard(deg: number) {
+  const a = deg * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+  const at = (x: number, y: number) => `${(60 + x * cos - y * sin).toFixed(2)} ${(84 + x * sin + y * cos).toFixed(2)}`;
+  const l = -12, r = 12, t = -56, b = -22, k = 3;
+  return `M${at(l + k, t)}L${at(r - k, t)}Q${at(r, t)} ${at(r, t + k)}L${at(r, b - k)}Q${at(r, b)} ${at(r - k, b)}L${at(l + k, b)}Q${at(l, b)} ${at(l, b - k)}L${at(l, t + k)}Q${at(l, t)} ${at(l + k, t)}Z`;
+}
+// The SVG text for each deck and look is built once and reused, so scrolling never rebuilds it.
+const xmlCache = new Map<string, string>();
 function markupArt(viewBox: string, body: string, line: string, tint: string, size: number) {
+  const id = `${viewBox}|${line}|${tint}|${body.length}|${body.slice(0, 40)}`;
+  let xml = xmlCache.get(id);
+  if (!xml) { xml = buildXml(viewBox, body, line, tint); xmlCache.set(id, xml); }
+  return <SvgXml width={size} height={size} xml={xml} />;
+}
+function buildXml(viewBox: string, body: string, line: string, tint: string) {
   const xml = body
     .replace(/class="tint"/g, `fill="${tint}" opacity="0.28" stroke="none"`)
     .replace(/class="fill soft"/g, `fill="${line}" stroke="none" opacity="0.45"`)
     .replace(/class="fill"/g, `fill="${line}" stroke="none"`)
     .replace(/class="soft"/g, 'opacity="0.45"')
     .replace(/<(path|circle|ellipse|rect) /g, '<$1 vector-effect="non-scaling-stroke" ');
-  return <SvgXml width={size} height={size} xml={`<svg viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet"><g fill="none" stroke="${line}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${xml}</g></svg>`} />;
+  return `<svg viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet"><g fill="none" stroke="${line}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${xml}</g></svg>`;
 }
 
 // dim: the deck isn't picked, so the art fades back like the website's.
 // fan: colours for the "All decks" fan, one card per deck the server offers.
-export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; size: number; dim?: boolean; spent?: boolean; fan?: string[] }) {
+// Memoised: a tile's art only redraws when its own look changes.
+export const DeckArt = memo(function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; size: number; dim?: boolean; spent?: boolean; fan?: string[] }) {
   const { c1, c2 } = deckColors(deck);
   const line = spent ? '#9c8f9a' : dim ? '#cbb6c6' : c2;
   const tint = spent ? '#b9adb6' : c1;
@@ -213,13 +230,16 @@ export function DeckArt({ deck, size, dim, spent, fan = FAN }: { deck: string; s
       break;
     }
     default: // All decks: a fan with one card per deck colour
+      // Each card's outline is worked out here and drawn as a plain path: rotated groups with
+      // non-scaling strokes came out as specks on small phones and cropped on tablets.
+      // The widest fan (cards out to 49 degrees) reaches x 9 to 111 and y 26 to 80.
+      viewBox = '7 22 106 62';
       body = <>
         {fan.map((c, i) => (
-          <G key={c + i} transform={`translate(60 84) rotate(${(i - (fan.length - 1) / 2) * (fan.length > 11 ? Math.min(7, 98 / (fan.length - 1)) : fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16)})`}>
-            <Rect x="-12" y="-56" width="24" height="34" rx="3" fill={spent ? '#b9adb6' : c} opacity={dim ? 0.5 : 1} stroke="#fffaf4" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
-          </G>
+          <Path key={c + i} d={fanCard((i - (fan.length - 1) / 2) * (fan.length > 11 ? Math.min(7, 98 / (fan.length - 1)) : fan.length > 8 ? 8 : fan.length > 5 ? 10 : 16))}
+            fill={spent ? '#b9adb6' : c} opacity={dim ? 0.5 : 1} stroke="#fffaf4" strokeWidth={0.9} strokeLinejoin="round" />
         ))}
       </>;
   }
   return <Svg width={size} height={size} viewBox={viewBox} preserveAspectRatio="xMidYMid meet">{body}</Svg>;
-}
+});

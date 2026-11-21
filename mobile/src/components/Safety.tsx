@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { RoomState, SafetyAction } from '../api';
 import { WEBSITE } from '../config';
 import { colors, fonts } from '../theme';
 import { Button } from './ui';
+import { sheet, useScaled } from '../scale';
 
 const reasons = ['Harassment or threats', 'Sexual or inappropriate content', 'Hate or discrimination', 'Child safety', 'Spam or impersonation', 'Other'];
 export function Safety({ mode, room, request, onClose }: {
   mode: 'terms' | 'report' | null; room: RoomState;
   request: (action: SafetyAction) => Promise<{ reportId?: string }>; onClose: () => void;
 }) {
+  const st = useScaled(base);
   const [checked, setChecked] = useState(false);
   const [partnerHandle, setPartnerHandle] = useState<string | null>(null);
   const [reason, setReason] = useState(reasons[0]);
@@ -63,7 +65,7 @@ export function Safety({ mode, room, request, onClose }: {
     </ScrollView></View></View>
   </Modal>;
 }
-const st = StyleSheet.create({
+const base = sheet({
   overlay: { flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 },
   panel: { maxHeight: '90%', width: '100%', maxWidth: 540, alignSelf: 'center', backgroundColor: colors.bg2, borderRadius: 18 },
   content: { padding: 24, gap: 12 },

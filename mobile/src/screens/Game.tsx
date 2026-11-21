@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, Linking, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, Linking, Share, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Action } from '../api';
 import { WEBSITE } from '../config';
@@ -15,13 +15,18 @@ import { Card } from '../components/Card';
 import { DeckPicker } from '../components/DeckPicker';
 import { Icon } from '../components/Icon';
 import { Button, HeartBadge, Segmented, tap, Toggle } from '../components/ui';
-
-const deckName = (decks: string[]) => !decks.length ? 'All decks' : decks.length === 1 ? decks[0] : `${decks.length} decks`;
+import { deckName, num } from '../format';
+import { APP_NAME } from '../brand';
+import { sheet, useK, useScaled } from '../scale';
 
 export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Connection; onLeave: (message?: string) => void; accounts: boolean; signedIn: boolean; isAdmin: boolean }) {
   const { room, link, send, reclaim, draft, setDraft, answerPending, error, requestSafety } = useRoom(conn, onLeave);
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const st = useScaled(base);
+  const k = useK();
+  // Layout decisions use the phone-sized space: a tablet is a scaled-up phone, not a stretched one.
+  const { width: rawW, height: rawH } = useWindowDimensions();
+  const width = rawW / k, height = rawH / k;
   const [toast, setToast] = useState('');
   const [toastOpacity] = useState(() => new Animated.Value(0));
   const keyboard = useKeyboardVisible();
@@ -68,8 +73,8 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
         <ActivityIndicator color={colors.accent} size="large" />
         <Text style={st.loading}>{conn.kind === 'couple' ? 'Opening your cards…' : `Joining room ${conn.code}…`}</Text>
         {error ? <Text accessibilityRole="alert" style={[st.loading, { color: colors.bad }]}>{error}</Text> : null}
-        {link === 'reconnecting' || link === 'replaced' ? <Button kind="ghost" title={link === 'replaced' ? 'Use room here' : 'Retry connection'} onPress={reclaim} style={{ marginTop: 16 }} /> : null}
-        <Button kind="link" title="Cancel" onPress={() => onLeave()} style={{ marginTop: 16 }} />
+        {link === 'reconnecting' || link === 'replaced' ? <Button kind="ghost" title={link === 'replaced' ? 'Use room here' : 'Retry connection'} onPress={reclaim} style={{ marginTop: 16 * k }} /> : null}
+        <Button kind="link" title="Cancel" onPress={() => onLeave()} style={{ marginTop: 16 * k }} />
       </View>
     );
   }
@@ -100,13 +105,13 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
     onRetry={link === 'reconnecting' || link === 'replaced' ? reclaim : undefined} retryTitle={link === 'replaced' ? 'Use room here' : undefined}
     invite={!room.couple && !together ? <>
       <Text style={st.pillText}>Your room code</Text>
-      <View style={st.row}><Text selectable style={[st.pillCode, { fontSize: 26, letterSpacing: 6, flex: 1 }]}>{room.code}</Text><Button kind="ghost" title="Share invite" onPress={invite} /></View>
+      <View style={st.row}><Text selectable style={[st.pillCode, { fontSize: 26 * k, letterSpacing: 6 * k, flex: 1 }]}>{room.code}</Text><Button kind="ghost" title="Share invite" onPress={invite} /></View>
     </> : undefined}
     promotion={!room.couple && !signedIn ? <>
-      <Text style={{ fontFamily: fonts.serif, fontSize: 22, color: colors.text }}>Make your moments last.</Text>
-      <Text style={{ fontFamily: fonts.sans, fontSize: 14, lineHeight: 23, color: colors.muted }}>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</Text>
+      <Text style={{ fontFamily: fonts.serif, fontSize: 22 * k, color: colors.text }}>Make your moments last.</Text>
+      <Text style={{ fontFamily: fonts.sans, fontSize: 14 * k, lineHeight: 23 * k, color: colors.muted }}>Create an account and link your partner to save answers, favorites, and cards you’ve seen.</Text>
       <Button kind="ghost" title="Create an account" disabled={!accounts} onPress={() => { if (accounts) Linking.openURL(WEBSITE); }} style={{ alignSelf: 'flex-start' }} />
-      <Text style={{ fontFamily: fonts.sans, fontSize: 12, lineHeight: 19, color: colors.muted }}>{accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.'}</Text>
+      <Text style={{ fontFamily: fonts.sans, fontSize: 12 * k, lineHeight: 19 * k, color: colors.muted }}>{accounts ? 'Your current guest progress won’t transfer to your account.' : 'Sign-up is unavailable in this guest-only preview.'}</Text>
     </> : undefined}
     menu={[
       { title: 'Profile', onPress: () => setProfileOpen(true) },
@@ -122,18 +127,18 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   const top = (
     <View style={st.top}>
       <Pressable onPress={() => { tap(); setDashboard(true); }} hitSlop={10} style={st.back} accessibilityRole="button" accessibilityLabel="Back to dashboard">
-        <Icon name="left" size={20} color={colors.text} />
+        <Icon name="left" size={20 * k} color={colors.text} />
       </Pressable>
-      <View style={st.brand}><HeartBadge size={26} />{width >= 360 ? <Text style={st.brandText}>Closer</Text> : null}</View>
-      <View style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel="Safety and support" onPress={() => setSafetyOpen('report')} style={st.back}><Icon name="menu" size={20} color={colors.text} /></Pressable>
+      <View style={st.brand}><HeartBadge size={26} />{width >= 360 ? <Text style={st.brandText}>{APP_NAME}</Text> : null}</View>
+      <View style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel="Safety and support" onPress={() => setSafetyOpen('report')} style={st.back}><Icon name="menu" size={20 * k} color={colors.text} /></Pressable>
       {room.couple ? (
-        <View style={st.pill}><Icon name="heart" size={13} color={colors.accent} fill strokeWidth={0} /><Text style={st.pillName}>Just us</Text></View>
+        <View style={st.pill}><Icon name="heart" size={13 * k} color={colors.accent} fill strokeWidth={0} /><Text style={st.pillName}>Just us</Text></View>
       ) : !together ? (
         <Pressable onPress={invite} style={({ pressed }) => [st.pill, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityLabel={`Room ${room.code}. Invite your partner`}>
           <Text style={st.pillText}>Room</Text><Text style={st.pillCode}>{room.code}</Text>
         </Pressable>
       ) : null}
-      <View style={[st.pill, { maxWidth: wide ? 220 : 140 }]}>
+      <View style={[st.pill, { maxWidth: (wide ? 220 : 140) * k }]}>
         <View style={[st.dot, together && st.dotOn]} />
         <Text numberOfLines={1} style={together ? st.pillName : st.pillText}>{together ? partner : 'Waiting…'}</Text>
       </View>
@@ -141,7 +146,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   );
 
   const card = (
-    <Card cardKey={cardKey} category={room.card?.category ?? ''} text={room.card?.text ?? ''} position={`${room.index + 1} / ${room.total}`}
+    <Card cardKey={cardKey} category={room.card?.category ?? ''} text={room.card?.text ?? ''} position={`${num(room.index + 1)} / ${num(room.total)}`}
       flipped={room.flipped} tapToReveal={room.tapToReveal} favorite={room.favorites.includes(room.card?.text ?? '')}
       onFlip={() => act({ type: 'flip' })} onFavorite={() => act({ type: 'favorite', cardKey, generation: room.generation })} onSwipe={dir => act({ type: dir })} />
   );
@@ -151,20 +156,20 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   const typing = keyboard && answerMode;
   // Once both answers are showing on a short phone, they get the room the switch row would take.
   const revealedTight = compact && answerMode && !!room.revealed;
-  const gap = compact ? 10 : 12;
+  const gap = (compact ? 10 : 12) * k;
   const decksButton = (
     <Pressable onPress={() => { tap(); act({ type: 'choose', on: true }); }}
       style={({ pressed }) => [st.deckBtn, compact && st.iconBtn, pressed && { opacity: 0.85 }]}
       accessibilityRole="button" accessibilityLabel={`Choose decks. Now playing ${deckName(room.decks)}`}>
-      <Icon name="cards" size={18} color={colors.accent2} />
+      <Icon name="cards" size={18 * k} color={colors.accent2} />
       {compact ? null : <Text numberOfLines={1} style={st.deckText}>{deckName(room.decks)}{room.fresh ? ' · new only' : ''}</Text>}
       {compact ? null : <View style={st.chev} />}
     </Pressable>
   );
-  const btnH = compact ? { minHeight: 48 } : null;
+  const btnH = compact ? { minHeight: 48 * k } : null;
   const nav = (
     <View style={st.row}>
-      <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={() => act({ type: 'prev' })} style={[{ width: compact ? 48 : 56, paddingHorizontal: 0 }, btnH]} />
+      <Button kind="ghost" title="" icon="left" accessibilityLabel="Previous question" onPress={() => act({ type: 'prev' })} style={[{ width: (compact ? 48 : 56) * k, paddingHorizontal: 0 }, btnH]} />
       <Button title={compact ? 'Next' : 'Next question'} accessibilityLabel="Next question" iconRight="right" onPress={() => act({ type: 'next' })} style={[{ flex: 1 }, btnH]} />
       {compact ? decksButton : null}
       {compact && !room.couple && !together ? <Button kind="ghost" title="" icon="share" accessibilityLabel="Invite your partner" onPress={invite} style={[st.iconBtn, btnH]} /> : null}
@@ -221,21 +226,21 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
       {top}
       {banner}
       {wide ? (
-        <View style={[st.wide, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={[st.wideCard, { gap: 12 }]}>{modes}<View style={{ flex: 1 }}>{card}</View></View>
+        <View style={[st.wide, { paddingBottom: Math.max(insets.bottom, 16 * k) }]}>
+          <View style={[st.wideCard, { gap: 12 * k }]}>{modes}<View style={{ flex: 1 }}>{card}</View></View>
           <View style={st.wideSide}>{side}</View>
         </View>
       ) : (
         // Everything fits the screen: the card takes whatever height is left.
         <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[st.column, { gap, paddingBottom: typing ? 8 : Math.max(insets.bottom, compact ? 10 : 16) }]}>
+          <View style={[st.column, { gap, paddingBottom: typing ? 8 * k : Math.max(insets.bottom, (compact ? 10 : 16) * k) }]}>
             {typing ? null : modes}
-            <View style={[st.cardArea, { minHeight: typing || room.revealed ? 90 : 120 }]}>{card}</View>
+            <View style={[st.cardArea, { minHeight: (typing || room.revealed ? 90 : 120) * k }]}>{card}</View>
             {side}
           </View>
         </KeyboardAvoidingView>
       )}
-      <Animated.View pointerEvents="none" style={[st.toast, { opacity: toastOpacity, bottom: insets.bottom + 90 }]}>
+      <Animated.View pointerEvents="none" style={[st.toast, { opacity: toastOpacity, bottom: insets.bottom + 90 * k }]}>
         <Text style={st.toastText}>{toast}</Text>
       </Animated.View>
       <DeckPicker room={room} send={act} onLeave={() => setDashboard(true)} banner={banner} />
@@ -243,7 +248,7 @@ export function Game({ conn, onLeave, accounts, signedIn, isAdmin }: { conn: Con
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: 'center', justifyContent: 'center', padding: 24 },
   loading: { marginTop: 16, fontFamily: fonts.sansMedium, fontSize: 15, color: colors.muted },

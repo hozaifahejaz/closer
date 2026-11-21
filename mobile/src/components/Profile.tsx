@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Account, api } from '../api';
 import { setItem } from '../storage';
 import { colors, fonts } from '../theme';
 import { Button, Field } from './ui';
+import { sheet, useK, useScaled } from '../scale';
 
 type Props = { visible: boolean; token: string | null; name: string; onClose: () => void; onSaved?: (account: Account) => void; renameGuest?: (name: string) => Promise<unknown>; onNotice?: (message: string) => void };
 export function Profile({ visible, token, name, onClose, onSaved, renameGuest, onNotice }: Props) {
+  const st = useScaled(base);
+  const k = useK();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState(name);
   const [email, setEmail] = useState('');
@@ -47,7 +50,7 @@ export function Profile({ visible, token, name, onClose, onSaved, renameGuest, o
   };
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[st.page, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[st.page, { paddingTop: insets.top + 20 * k, paddingBottom: insets.bottom + 24 * k }]}>
         <View style={st.header}><Text style={st.title}>Profile</Text><Button kind="ghost" title="" icon="close" accessibilityLabel="Close profile" onPress={onClose} /></View>
         <Text style={st.note}>{token ? 'Your partner will see your updated name.' : 'Your name is saved for this guest room.'}</Text>
         {loading ? <ActivityIndicator color={colors.accent} /> : <>
@@ -61,7 +64,7 @@ export function Profile({ visible, token, name, onClose, onSaved, renameGuest, o
     </KeyboardAvoidingView>
   </Modal>;
 }
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg }, page: { flexGrow: 1, paddingHorizontal: 24, gap: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { fontFamily: fonts.serif, color: colors.text, fontSize: 30 }, note: { fontFamily: fonts.sans, color: colors.muted, fontSize: 14, lineHeight: 23 },

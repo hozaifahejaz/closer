@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Account, api, ApiError } from '../api';
@@ -14,6 +14,8 @@ import { Profile } from '../components/Profile';
 import { Dashboard } from '../components/Dashboard';
 import { Icon, IconName } from '../components/Icon';
 import { Button, Field, HeartBadge, Or, Segmented } from '../components/ui';
+import { APP_NAME } from '../brand';
+import { sheet, useK, useScaled } from '../scale';
 
 type Props = {
   accounts: boolean; // false when the server has accounts switched off: guest rooms only
@@ -32,7 +34,10 @@ type Props = {
 
 export function Lobby({ accounts, passwordReset, token, account, clientId, savedName, notice, onSession, onPlay, startAsGuest, resume, onForgetResume }: Props) {
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const st = useScaled(base);
+  const k = useK();
+  const { width: rawW, height: rawH } = useWindowDimensions();
+  const width = rawW / k, height = rawH / k; // phone-sized space; everything grows by k on big screens
   const [guest, setGuest] = useState(!accounts || !!startAsGuest);
   const [termsChecked, setTermsChecked] = useState(false);
   const [signup, setSignup] = useState(true);
@@ -183,14 +188,14 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
   const [heroH, setHeroH] = useState(0);
   const view = account ? (account.partner ? 'home' : 'link') : guest ? 'guest' : 'auth';
 
-  const consent = <View style={{ gap: 8 }}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: termsChecked }} onPress={() => setTermsChecked(!termsChecked)} style={{ paddingVertical: 10 }}><Text style={st.hint}>{termsChecked ? '☑' : '☐'} I have read and agree to the <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/terms`); }}>Terms of Use &amp; Community Rules</Text> and <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/privacy`); }}>Privacy Policy</Text>.</Text></Pressable></View>;
+  const consent = <View style={{ gap: 8 * k }}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: termsChecked }} onPress={() => setTermsChecked(!termsChecked)} style={{ paddingVertical: 10 * k }}><Text style={st.hint}>{termsChecked ? '☑' : '☐'} I have read and agree to the <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/terms`); }}>Terms of Use &amp; Community Rules</Text> and <Text style={st.a} accessibilityRole="link" onPress={e => { e.stopPropagation(); void Linking.openURL(`${WEBSITE}/privacy`); }}>Privacy Policy</Text>.</Text></Pressable></View>;
 
-  if (account && !account.termsAccepted && !deleting) return <ScrollView contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 16 }}><Text style={st.hello}>Review the terms before playing</Text><Text style={st.hint}>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</Text>{consent}<Button title="Accept terms" disabled={!termsChecked} busy={busy === 'terms'} onPress={() => { void run('terms', async () => { await api('/api/terms', token, { version: '2026-10-04' }); onSession(token, await api<Account>('/api/me', token), token); }); }} /><Button kind="link" title="Log out" onPress={logout} /><Button kind="link" title="Delete account" onPress={() => setDeleting(true)} />{err ? <Text style={st.err}>{err}</Text> : null}</ScrollView>;
+  if (account && !account.termsAccepted && !deleting) return <ScrollView contentContainerStyle={{ padding: 24 * k, paddingTop: insets.top + 24 * k, gap: 16 * k, width: '100%', maxWidth: 520 * k, alignSelf: 'center' }}><Text style={st.hello}>Review the terms before playing</Text><Text style={st.hint}>Closer is for adults aged 18 or older. Respect consent. No harassment, threats, hate, sexually explicit content, child exploitation, or illegal activity.</Text>{consent}<Button title="Accept terms" disabled={!termsChecked} busy={busy === 'terms'} onPress={() => { void run('terms', async () => { await api('/api/terms', token, { version: '2026-10-04' }); onSession(token, await api<Account>('/api/me', token), token); }); }} /><Button kind="link" title="Log out" onPress={logout} /><Button kind="link" title="Delete account" onPress={() => setDeleting(true)} />{err ? <Text style={st.err}>{err}</Text> : null}</ScrollView>;
 
   const panel = (
-    <View style={[st.panel, compact && { padding: 16 }]}>
+    <View style={[st.panel, compact && { padding: 16 * k }]}>
       {deleting && account && (
-        <View style={[st.stack, compact && { gap: 10 }]}>
+        <View style={[st.stack, compact && { gap: 10 * k }]}>
           <Text style={st.hello}>Delete your account</Text>
           <Text style={st.hint}>This permanently removes your account and saved couple data, including your partner&apos;s answers in your old shared rooms. Your partner will be unlinked.</Text>
           <Field label="Confirm your password" value={deletePassword} onChangeText={setDeletePassword} secureTextEntry autoComplete="current-password" textContentType="password" />
@@ -201,7 +206,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
         </View>
       )}
       {view === 'auth' && (
-        <View style={[st.stack, compact && { gap: 10 }]}>
+        <View style={[st.stack, compact && { gap: 10 * k }]}>
           <Segmented value={signup ? 'signup' : 'login'} onChange={v => { setSignup(v === 'signup'); setErr(''); }}
             options={[{ value: 'signup', label: 'Sign up' }, { value: 'login', label: 'Log in' }]} />
           {signup ? <Field label={compact ? undefined : 'Your name'} value={name} onChangeText={setName} maxLength={24} placeholder={compact ? 'Your name' : 'e.g. Sam'} inputStyle={compact && st.inputCompact} autoComplete="given-name"
@@ -232,7 +237,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
       )}
 
       {view === 'guest' && (
-        <View style={[st.stack, compact && { gap: 10 }]}>
+        <View style={[st.stack, compact && { gap: 10 * k }]}>
           {resume ? <Button kind="ghost" title={`Resume room ${resume.code}`} onPress={resumeRoom} busy={busy === 'resume'} /> : null}
           <Field label={compact ? undefined : 'Your name'} value={name} onChangeText={setName} maxLength={24} placeholder={compact ? 'Your name' : 'e.g. Sam'} inputStyle={compact && st.inputCompact} autoComplete="given-name" textContentType="givenName" />
           <Button title="Start a new room" onPress={create} busy={busy === 'create'} style={compact && st.btnCompact} />
@@ -241,7 +246,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
             <TextInput value={joinCode} onChangeText={t => setJoinCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={4} placeholder="CODE"
               autoCapitalize="characters" autoCorrect={false} returnKeyType="join" onSubmitEditing={join} accessibilityLabel="Room code"
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
-            <Button kind="ghost" title="Join" onPress={join} busy={busy === 'join'} style={{ minWidth: 92 }} />
+            <Button kind="ghost" title="Join" onPress={join} busy={busy === 'join'} style={{ minWidth: 92 * k }} />
           </View>
           {accounts ? <Button kind="link" title="Sign up or log in instead" onPress={() => { setGuest(false); setErr(''); }} /> : null}
           {consent}
@@ -249,7 +254,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
       )}
 
       {view === 'link' && account && !deleting && (
-        <View style={[st.stack, compact && { gap: 10 }]}>
+        <View style={[st.stack, compact && { gap: 10 * k }]}>
           <Text style={st.hello}>Hi {account.name}! Link with your partner</Text>
           <View>
             <Text style={st.label}>Your code: send it to your partner</Text>
@@ -263,7 +268,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
             <TextInput value={partnerCode} onChangeText={t => setPartnerCode(t.toUpperCase().replace(/[^A-Z]/g, ''))} maxLength={6} placeholder="CODE"
               autoCapitalize="characters" autoCorrect={false} returnKeyType="done" onSubmitEditing={linkPartner} accessibilityLabel="Partner's code"
               placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact, st.code]} />
-            <Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} style={{ minWidth: 92 }} />
+            <Button kind="ghost" title="Link" onPress={linkPartner} busy={busy === 'link'} style={{ minWidth: 92 * k }} />
           </View>
           <Text style={st.hint}>You only do this once. After that you&apos;ll always land in your shared room.</Text>
           <Button kind="link" title="Log out" onPress={logout} />
@@ -273,7 +278,7 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
       )}
 
       {view === 'home' && account?.partner && !deleting && (
-        <View style={[st.stack, compact && { gap: 10 }]}>
+        <View style={[st.stack, compact && { gap: 10 * k }]}>
           <View style={st.couple}>
             <View style={st.avatars}>
               <View style={st.avatar}><Text style={st.avatarText}>{account.name.slice(0, 1).toUpperCase()}</Text></View>
@@ -328,16 +333,16 @@ export function Lobby({ accounts, passwordReset, token, account, clientId, saved
     ]}
   /></>;
 
-  const pad = { paddingLeft: Math.max(insets.left, 16), paddingRight: Math.max(insets.right, 16) };
+  const pad = { paddingLeft: Math.max(insets.left, 16 * k), paddingRight: Math.max(insets.right, 16 * k) };
   return (
     <KeyboardAvoidingView style={st.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Laid out to fit the screen; it only scrolls if the keyboard leaves too little room. */}
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false} alwaysBounceVertical={false}
-        contentContainerStyle={[st.page, wide && st.pageWide, pad, { paddingTop: insets.top + (compact ? 8 : 20), paddingBottom: insets.bottom + (compact ? 10 : 20) }]}>
+        contentContainerStyle={[st.page, wide && st.pageWide, pad, { paddingTop: insets.top + (compact ? 8 : 20) * k, paddingBottom: insets.bottom + (compact ? 10 : 20) * k }]}>
         {wide ? <Hero level={3} wide /> : (
           // The hero takes whatever height the panel leaves, and shows less of itself on shorter screens.
           <View style={st.heroBox} onLayout={e => setHeroH(e.nativeEvent.layout.height)}>
-            <Hero level={heroH >= 300 ? 3 : heroH >= 118 ? 2 : heroH >= 52 ? 1 : 0} wide={false} />
+            <Hero level={heroH >= 300 * k ? 3 : heroH >= 118 * k ? 2 : heroH >= 52 * k ? 1 : 0} wide={false} />
           </View>
         )}
         {panel}
@@ -354,17 +359,19 @@ const PERKS: [IconName, string, string][] = [
 
 // level 3: logo, tagline and the card illustration (or the perks, side by side on tablets); 2: logo and tagline; 1: logo; 0: nothing.
 function Hero({ level, wide }: { level: number; wide: boolean }) {
+  const st = useScaled(base);
+  const k = useK();
   if (!level) return null;
   return (
     <View style={[st.hero, wide && st.heroWide]}>
-      <View style={st.logo}><HeartBadge size={level > 1 ? 42 : 32} /><Text style={[st.h1, level === 1 && { fontSize: 32 }]}>Closer</Text></View>
+      <View style={st.logo}><HeartBadge size={level > 1 ? 42 : 32} /><Text style={[st.h1, level === 1 && { fontSize: 32 * k }]}>{APP_NAME}</Text></View>
       {level > 1 ? <Text style={[st.sub, wide && { textAlign: 'left' }]}>Deep questions for two. Same card, same moment, wherever you are.</Text> : null}
       {level > 2 && !wide ? <MiniDeck /> : null}
       {wide ? (
-        <View style={{ marginTop: 28, gap: 18 }}>
+        <View style={{ marginTop: 28 * k, gap: 18 * k }}>
           {PERKS.map(([icon, title, body]) => (
             <View key={title} style={st.perk}>
-              <View style={st.perkIcon}><Icon name={icon} size={18} color={colors.accent2} /></View>
+              <View style={st.perkIcon}><Icon name={icon} size={18 * k} color={colors.accent2} /></View>
               <View style={{ flex: 1 }}><Text style={st.perkTitle}>{title}</Text><Text style={st.perkBody}>{body}</Text></View>
             </View>
           ))}
@@ -376,11 +383,13 @@ function Hero({ level, wide }: { level: number; wide: boolean }) {
 
 // A small fanned stack of cards, like the website's hero.
 function MiniDeck() {
+  const st = useScaled(base);
+  const k = useK();
   return (
     <View style={st.mini} accessible={false} importantForAccessibility="no-hide-descendants">
-      <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.miniCard, { transform: [{ rotate: '-9deg' }, { translateX: -38 }], opacity: 0.7 }]} />
-      <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.miniCard, st.miniBack, { transform: [{ rotate: '8deg' }, { translateX: 38 }] }]}>
-        <Icon name="heart" size={22} color="#fff" strokeWidth={1.5} />
+      <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.miniCard, { transform: [{ rotate: '-9deg' }, { translateX: -38 * k }], opacity: 0.7 }]} />
+      <LinearGradient colors={cardGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.miniCard, st.miniBack, { transform: [{ rotate: '8deg' }, { translateX: 38 * k }] }]}>
+        <Icon name="heart" size={22 * k} color="#fff" strokeWidth={1.5} />
       </LinearGradient>
       <View style={[st.miniCard, st.miniFront]}>
         <Text style={st.miniCat}>GETTING CLOSER</Text>
@@ -390,7 +399,7 @@ function MiniDeck() {
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg },
   page: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   heroBox: { flex: 1, minHeight: 0, width: '100%', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

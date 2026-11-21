@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, ScrollView, Text, TextInput, View } from 'react-native';
 import type { RoomState } from '../api';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
 import { Button } from './ui';
+import { sheet, useK, useScaled } from '../scale';
 
 // Answer & reveal: each of you writes privately; both answers show once you've both locked in.
 export function AnswerPanel({ room, partnerName, onLockIn, compact, text, onChangeText, pending }:
   { room: RoomState; partnerName: string; onLockIn: (text: string) => boolean; compact?: boolean;
     text: string; onChangeText: (text: string) => void; pending: boolean }) {
+  const st = useScaled(base);
+  const k = useK();
   const [pop] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (!room.revealed) { pop.setValue(0); return; }
@@ -26,38 +29,38 @@ export function AnswerPanel({ room, partnerName, onLockIn, compact, text, onChan
     : away ? 'Waiting for your partner to join…' : "Hidden until you've both answered.";
 
   return (
-    <View style={[st.box, compact && { padding: 12 }]}>
+    <View style={[st.box, compact && { padding: 12 * k }]}>
       {room.revealed ? (
         // Answers are laid out to fit; only very long ones can scroll here.
-        <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: compact ? 8 : 10 }} bounces={false} alwaysBounceVertical={false} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: (compact ? 8 : 10) * k }} bounces={false} alwaysBounceVertical={false} showsVerticalScrollIndicator={false}>
           {room.revealed.map((a, i) => (
-            <Animated.View key={i} style={[st.reveal, compact && { paddingVertical: 10, paddingHorizontal: 12 }, { opacity: pop, transform: [{ translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [8 + i * 6, 0] }) }, { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
+            <Animated.View key={i} style={[st.reveal, compact && { paddingVertical: 10 * k, paddingHorizontal: 12 * k }, { opacity: pop, transform: [{ translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [(8 + i * 6) * k, 0] }) }, { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }] }]}>
               <Text style={st.revealWho}>{a.mine ? 'You' : a.name}</Text>
-              <Text style={[st.revealText, compact && { fontSize: 14, lineHeight: 20 }]}>{a.text}</Text>
+              <Text style={[st.revealText, compact && { fontSize: 14 * k, lineHeight: 20 * k }]}>{a.text}</Text>
             </Animated.View>
           ))}
         </ScrollView>
       ) : answered ? (
         <View>
-          <View style={st.who}><Icon name="lock" size={14} color={colors.muted} /><Text style={st.whoText}>Your answer</Text></View>
+          <View style={st.who}><Icon name="lock" size={14 * k} color={colors.muted} /><Text style={st.whoText}>Your answer</Text></View>
           <Text style={st.mine} numberOfLines={compact ? 3 : 5}>{room.myAnswer}</Text>
         </View>
       ) : (
-        <View style={{ gap: compact ? 8 : 10 }}>
+        <View style={{ gap: (compact ? 8 : 10) * k }}>
           <TextInput value={text} onChangeText={onChangeText} editable={!pending} multiline maxLength={1000} placeholder="Write your answer…"
             placeholderTextColor={colors.faint} selectionColor={colors.accent} keyboardAppearance="dark" style={[st.input, compact && st.inputCompact]}
             accessibilityLabel="Your answer" textAlignVertical="top" />
           <Button title={pending ? 'Saving…' : 'Lock in my answer'} icon="lock" disabled={!text.trim()} busy={pending}
-            onPress={() => onLockIn(text.trim())} style={compact && { minHeight: 46 }} />
+            onPress={() => onLockIn(text.trim())} style={compact && { minHeight: 46 * k }} />
         </View>
       )}
       {/* On short screens the two answers speak for themselves. */}
-      {compact && room.revealed ? null : <Text style={[st.status, compact && { marginTop: 8 }]} numberOfLines={1}>{status}</Text>}
+      {compact && room.revealed ? null : <Text style={[st.status, compact && { marginTop: 8 * k }]} numberOfLines={1}>{status}</Text>}
     </View>
   );
 }
 
-const st = StyleSheet.create({
+const base = sheet({
   box: { flexShrink: 1, minHeight: 0, backgroundColor: colors.bg2, borderWidth: 1, borderColor: colors.line, borderRadius: radius.box, padding: 14 },
   input: { minHeight: 92, maxHeight: 180, borderRadius: 12, backgroundColor: colors.bg3, borderWidth: 1, borderColor: colors.line, color: colors.text,
     paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, fontFamily: fonts.sans, fontSize: 16, lineHeight: 23 },

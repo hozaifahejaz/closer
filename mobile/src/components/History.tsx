@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, type DeckInfo } from '../api';
 import { colors, fonts } from '../theme';
 import { Button } from './ui';
+import { sheet, useK, useScaled } from '../scale';
 
 type Usage = { linked: boolean; decks: DeckInfo[]; total: number; used: number; remaining: number };
 export function History({ visible, token, onClose }: { visible: boolean; token: string | null; onClose: () => void }) {
+  const st = useScaled(base);
+  const k = useK();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<Usage | null>(null);
   const [error, setError] = useState('');
@@ -18,10 +21,10 @@ export function History({ visible, token, onClose }: { visible: boolean; token: 
     return () => { current = false; };
   }, [visible, token, retry]);
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-    <ScrollView contentContainerStyle={[st.page, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]} style={st.fill}>
+    <ScrollView contentContainerStyle={[st.page, { paddingTop: insets.top + 20 * k, paddingBottom: insets.bottom + 24 * k }]} style={st.fill}>
       <View style={st.header}><Text style={st.title}>History</Text><Button kind="ghost" title="" icon="close" accessibilityLabel="Close history" onPress={onClose} /></View>
       <Text style={st.note}>Cards revealed or answered in your shared account room.</Text>
-      {error ? <View style={{ gap: 12 }}><Text accessibilityRole="alert" style={st.note}>{error}</Text><Button kind="ghost" title="Try again" onPress={() => setRetry(n => n + 1)} /></View> : !token ? <Text style={st.note}>Sign in to view your history.</Text> : !data ? <ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} /> : !data.linked ? <Text style={st.note}>Link with your partner to start your shared card history.</Text> : <>
+      {error ? <View style={{ gap: 12 * k }}><Text accessibilityRole="alert" style={st.note}>{error}</Text><Button kind="ghost" title="Try again" onPress={() => setRetry(n => n + 1)} /></View> : !token ? <Text style={st.note}>Sign in to view your history.</Text> : !data ? <ActivityIndicator color={colors.accent} style={{ marginTop: 32 * k }} /> : !data.linked ? <Text style={st.note}>Link with your partner to start your shared card history.</Text> : <>
         <View style={st.stats}>{[[data.used, 'Used'], [data.remaining, 'Remaining'], [`${Math.round(data.used / (data.total || 1) * 100)}%`, 'Explored']].map(([value, label]) => <View key={label} style={{ flex: 1 }}><Text style={st.number}>{value}</Text><Text style={st.label}>{label}</Text></View>)}</View>
         {!data.used ? <Text style={st.note}>Your story starts with the first card. Reveal a card to begin.</Text> : null}
         {data.decks.map(deck => <View key={deck.name} style={st.deck}>
@@ -32,7 +35,7 @@ export function History({ visible, token, onClose }: { visible: boolean; token: 
     </ScrollView>
   </Modal>;
 }
-const st = StyleSheet.create({
+const base = sheet({
   fill: { flex: 1, backgroundColor: colors.bg },
   page: { flexGrow: 1, paddingHorizontal: 24 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
